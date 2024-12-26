@@ -3,6 +3,7 @@
 .gitignore
 venv/
 .venv
+venv_subidopro
 vev-django-api
 vev-django-api/
 db.sqlite3
