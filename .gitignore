@@ -1,2 +1,5 @@
 venv_subidopro
 cloud-sql-proxy.exe
+subidopro3db.sql
+teste.py
+db.ipynb
