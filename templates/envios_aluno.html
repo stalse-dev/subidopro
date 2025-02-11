@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envios do Aluno {{ aluno_id }} - {{ mes }}/{{ ano }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Envios do Aluno {{ aluno_id }} - {{ mes }}/{{ ano }}</h1>
+
+{% if envios %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Pontos</th>
+                <th>Descrição</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for envio in envios %}
+            <tr>
+                <td>{{ envio.envio_id }}</td>
+                <td>{{ envio.data|date:"d/m/Y H:i" }}</td>
+                <td>{{ envio.pontos }}</td>
+                <td>{{ envio.descricao|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Nenhum envio encontrado para esse aluno neste mês.</p>
+{% endif %}
+
+</body>
+</html>

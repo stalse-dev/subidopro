@@ -52,15 +52,25 @@ BASE_URL = env("BASE_URL", default="http://127.0.0.1:8000")
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'api',
     'users',
     'subidometro',
 ]
+# WSGI_APPLICATION = 'subidopro.wsgi.application'
+ASGI_APPLICATION = 'subidopro.asgi.application'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -71,6 +81,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Permitir acesso sem autenticação
+    ]
+}
+
 
 USE_L10N = True
 
@@ -102,7 +119,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'subidopro.wsgi.application'
+
 
 
 # Database
@@ -116,7 +133,7 @@ if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
     DATABASES = {   
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
-            'NAME': env("db_name_pro_prod"),
+            'NAME': "db-subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
             "HOST": "127.0.0.1",
@@ -124,8 +141,20 @@ if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
         }   
     }
 else:
+    CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis://https://subidopro.uc.r.appspot.com/", 6379)],
+        },
+    },
+}
+
+
     SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
+    CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
@@ -134,7 +163,7 @@ else:
     DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env("db_name_pro_prod"),
+        'NAME': "db-subidopro",
         'USER': env("db_user_pro"),
         'PASSWORD': env("db_password_pro"),
         'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),
@@ -158,7 +187,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'America/Sao_Paulo'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 

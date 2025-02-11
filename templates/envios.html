@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envios</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+    
+
+<body>
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Cliente</th>
+                    <th>ID Contrato</th>
+                    <th>Valor Contrato</th>
+                    <th>Tipo Contrato</th>
+                    <th>Porcentagem Contrato</th>
+                    <th>Data Vencimento</th>
+                    <th>Total Envios</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in queryset %}
+                <tr>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.contratos__id }}</td>
+                    <td>{{ item.contratos__valor_contrato }}</td>
+                    <td>{{ item.contratos__tipo_contrato }}</td>
+                    <td>{{ item.contratos__porcentagem_contrato }}</td>
+                    <td>{{ item.contratos__data_vencimento }}</td>
+                    <td>{{ item.total_envios }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">Nenhum registro encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

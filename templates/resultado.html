@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado da Atualização</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .highlight {
+            background-color: #ffebcc;
+        }
+    </style>
+</head>
+<body>
+    <h2>Resumo por Aluno</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Aluno</th>
+                <th>Ano</th>
+                <th>Mês</th>
+                <th>Total Envios</th>
+                <th>Total Faturamento</th>
+                <th>Total Pontos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for envio in envios %}
+            <tr>
+                <td>{{ envio.aluno }}</td>
+                <td>{{ envio.data__year }}</td>
+                <td>{{ envio.data__month }}</td>
+                <td>{{ envio.total_envios }}</td>
+                <td>R$ {{ envio.total_faturamento }}</td>
+                <td>{{ envio.total_pontos }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Lista de Envios com Pontos Modificados</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID Envio</th>
+                <th>Aluno</th>
+                <th>Pontos (DE)</th>
+                <th>Pontos (PARA)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pontos_modificados %}
+            <tr class="{% if item.de != item.para %}highlight{% endif %}">
+                <td>{{ item.id }}</td>
+                <td>{{ item.aluno }}</td>
+                <td>{{ item.de }}</td>
+                <td>{{ item.para }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,369 +1,356 @@
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse
+from django.http import JsonResponse
+from django.db.models.functions import Coalesce, DenseRank
 from django.db import connection
+from django.utils import timezone
 from datetime import datetime
-from users.models import *
+from .models import *
+from django.db.models import OuterRef, Subquery, Max, F, Value, Count, CharField, Q, IntegerField, Window, DecimalField
+from django.db.models.functions import Concat, ExtractYear, ExtractMonth
+from django.db.models import Count, Sum, Max, Value
+from django.db.models.functions import TruncMonth
+
+from django.db.models import Count, Max, F, Value
+from django.db.models.functions import Concat, Cast
+from django.db.models import CharField, ExpressionWrapper
 from datetime import date
+import time
+from django.utils.timezone import localtime
 
 def index(request):
     return render(request, 'home.html')
 
+def envios_por_aluno_mes(request, aluno_id, ano, mes):
+    envio = Aluno_pontuacao.objects.get(envio_id=372299)
+    print(f"Banco: {envio.data}, Local: {localtime(envio.data)}")
+    envios = (
+        Aluno_pontuacao.objects
+        .filter(aluno_id=aluno_id, data__year=ano, data__month=mes, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+        .order_by('data')
+    )
+    print(len(envios))
+    
+    context = {'envios': envios, 'aluno_id': aluno_id, 'ano': ano, 'mes': mes}
+    return render(request, 'envios_aluno.html', context)
+
 def atualizaPontosLimitesMesesEnvios(request):
-    sql_query = """
-        SELECT
-            alunosenvios."vinculoAluno" AS "idAluno",
-            alunos."nomeCompleto",
-            alunos.email,
-            TO_CHAR(alunosenvios."data", 'YYYY-MM') AS "mesAno",
-            COUNT(*) AS "totalEnvios",
-            SUM(alunosenvios.valor) AS "totalFaturamento",
-            SUM(alunosenvios.pontos) AS "totalPontos",
-            SUM(alunosenvios."pontosPreenchidos") AS "totalPontosPreenchidos",
-            MAX(alunosenvios."data") AS "ultimaDataEnvio",
-            STRING_AGG(alunosenvios.id::TEXT, ',') AS "idsEnvios",
-            STRING_AGG(alunosenvios.id::TEXT || '|' || alunosenvios.pontos::TEXT, ',') AS "idsEnviosComPontos"
-        FROM
-            alunosenvios
-        INNER JOIN alunos ON alunos.id = alunosenvios."vinculoAluno"
-        WHERE
-            alunosenvios.tipo = 2
-            AND alunosenvios."status" = 3
-            AND alunosenvios.semana > 0
-            AND alunosenvios."data" >= '2024-09-01'
-        GROUP BY
-            alunosenvios."vinculoAluno", "mesAno", alunos."nomeCompleto", alunos.email
-        HAVING
-            SUM(alunosenvios.pontos) > 3000
-        ORDER BY
-            alunosenvios."vinculoAluno" ASC, "mesAno" ASC, "totalPontos" DESC;
-    """
+    limit = 3000
+    pontuacoes = (
+        Aluno_pontuacao.objects
+        .annotate(mes=TruncMonth('data'))
+        .values('aluno_id', 'mes')
+        .annotate(total_pontos=Sum('pontos'))
+        .filter(total_pontos__gt=limit, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+        .order_by('aluno_id', 'mes')
+    )
 
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query)
-        results = cursor.fetchall()
+    updates = []
+    zerados = []
+    pontos_modificados = []  # Lista para armazenar alterações (DE -> PARA)
 
-    data = []
-    for row in results:
-        ultrapassou_pontos = row[6] > 3000
-        ids_envios_com_pontos = row[10].split(",")
-        # Processamento dos pontos
-        limite = 3000
+
+    for pontos in pontuacoes:
+        aluno_id = pontos["aluno_id"]
+        pontos_detalhados = (
+            Aluno_pontuacao.objects
+            .filter(aluno_id=aluno_id, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+            .order_by('-pontos')  # Processar do maior para o menor
+            .values('envio_id', 'pontos')
+        )
+
         total = 0
         ajustado = []
-        zerados = []
+        zerar_envios = False
 
-        for item in ids_envios_com_pontos:
-            id_envio, pontos_envio = item.split("|")
-            pontos_envio = int(pontos_envio)
+        ids_envios = []  # Lista com IDs de envios afetados
+        ids_envios_com_pontos = []  # IDs com pontuação mantida
 
-            if total + pontos_envio > limite:
-                pontos_restantes = limite - total
-                ajustado.append((id_envio, pontos_restantes))
-                total += pontos_restantes
-                break
+        for pontos_det in pontos_detalhados:
+            envio_id = pontos_det['envio_id']
+            pontos_envio = pontos_det['pontos']
+            ids_envios.append(envio_id)  # Todos os envios afetados
+
+            if zerar_envios or total + pontos_envio > limit:
+                if total < limit:
+                    #Falta um pouco de pontos
+                    faltante = limit - total
+                else:
+                    faltante = 0
+                
+                total += pontos_envio
+                zerados.append({"id": envio_id, "pontos": faltante})
+                pontos_modificados.append({
+                    "id": envio_id,
+                    "aluno": aluno_id,
+                    "de": pontos_envio,
+                    "para": faltante
+                })
+                zerar_envios = True
+
+                #ATUALIZANDO O PONTO DO ENVIO NO BANCO
+                #Aluno_envios.objects.filter(id=envio_id).update(pontos=faltante)
             else:
-                ajustado.append((id_envio, pontos_envio))
+                ajustado.append({"id": envio_id, "pontos": pontos_envio})
+                ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
+                pontos_modificados.append({
+                    "id": envio_id,
+                    "aluno": aluno_id,
+                    "de": pontos_envio,
+                    "para": pontos_envio
+                })
                 total += pontos_envio
 
-        # # Atualizar banco de dados
-        # with connection.cursor() as cursor:
-        #     for id_envio, pontos in ajustado:
-        #         cursor.execute("UPDATE alunosenvios SET pontos = %s WHERE id = %s", [pontos, id_envio])
+        updates.extend(ajustado)
+    
+    context = {'pontuacoes': pontuacoes}
 
-        data.append({
-            "idAluno": row[0],
-            "nomeCompleto": row[1],
-            "email": row[2],
-            "mesAno": row[3],
-            "totalEnvios": row[4],
-            "totalFaturamento": row[5],
-            "totalPontos": row[6],
-            "totalPontosPreenchidos": row[7],
-            "ultimaDataEnvio": row[8],
-            "ultrapassouPontos": ultrapassou_pontos,
-            "ajustado": ajustado
-        })
-
-    return render(request, "atualizaPontosLimitesMesesEnvios.html", {"data": data})
+    return render(request, 'resultado.html', {
+        'envios': pontuacoes,
+        'pontos_modificados': pontos_modificados,
+    })
 
 def gera_pontos_clientes(valor):
-    if 0 <= valor < 1000:
+    if valor >= 0 and valor < 1000:
         return 60
-    elif 1000 <= valor < 3000:
+    elif valor >= 1000 and valor < 3000:
         return 480
-    elif 3000 <= valor < 5000:
+    elif valor >= 3000 and valor < 5000:
         return 1080
-    elif 5000 <= valor < 9000:
+    elif valor >= 5000 and valor < 9000:
         return 1920
     elif valor >= 9000:
         return 2460
-    return 0
+    else:
+        return 0
 
 def gera_pontos_retencao(pontos):
-    pontos_map = {60: 40, 480: 320, 1080: 720, 1920: 1280, 2460: 1640}
-    return pontos_map.get(pontos, 0)
+    mapping = {
+        60: 40,
+        480: 320,
+        1080: 720,
+        1920: 1280,
+        2460: 1640,
+    }
+    return mapping.get(pontos, 0)
 
 def calculoRetencaoClientes(request):
-    sql_query = """
-        SELECT
-            ac.id AS "idCliente",
-            acc.id AS "idContrato",
-            acc."valorContrato" AS "valorContrato",
-            acc."tipoContrato" AS "tipoContrato",
-            acc."porcentagemContrato" AS "porcentagemContrato",
-            acc."dataVencimento" AS "dataVencimentoContrato",
-            ae.valor AS "valorEnvio",
-            ac.aluno AS "idAluno",
-            ac.pontos AS "pontosCliente",
-            COUNT(DISTINCT TO_CHAR(ae.data, 'YYYY-MM')) AS "totalEnvios",
-            STRING_AGG(
-                CONCAT(ae.id, '|', ae.valor, '|', ae.pontos, '|', ae.data),
-                ',' 
-            ) AS registros
-        FROM
-            alunosclientes ac
-            INNER JOIN alunosenvios ae ON ae."vinculoCliente" = ac.id
-            INNER JOIN (
-                SELECT cliente, MAX("dataContrato") AS "dataContrato"
-                FROM alunosclientescontratos
-                WHERE status = 1
-                GROUP BY cliente
-            ) contratoRecente ON contratoRecente.cliente = ac.id
-            INNER JOIN alunosclientescontratos acc ON 
-                acc.cliente = contratoRecente.cliente
-                AND acc."dataContrato" = contratoRecente."dataContrato"
-        WHERE
-            ae.status = 3 
-            AND ae.tipo = 2 
-            AND ac.status = 1 
-            AND ae.data BETWEEN '2024-09-01' AND CURRENT_DATE
-            AND acc.status = 1 
-            AND ae.semana > 0
-        GROUP BY
-            ac.id,
-            acc.id,                 -- Adicionei aqui
-            acc."valorContrato",
-            acc."tipoContrato",
-            acc."porcentagemContrato",
-            acc."dataVencimento",
-            ae.valor,
-            ac.aluno,
-            ac.pontos
-        HAVING
-            COUNT(DISTINCT TO_CHAR(ae.data, 'YYYY-MM')) > 1
-        ORDER BY
-            COUNT(DISTINCT TO_CHAR(ae.data, 'YYYY-MM')) DESC;
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query)
-        columns = [col[0] for col in cursor.description]
-        clientes = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    # Subquery para obter a data do contrato mais recente (status = 1) para cada cliente
+    latest_contract_qs = Aluno_clientes_contratos.objects.filter(
+        cliente=OuterRef('pk'),
+        status=1
+    ).order_by('-data_contrato').values('data_contrato')[:1]
 
-    
-    resultados = []
-    for cliente in clientes:
-        if cliente["totalEnvios"] > 0:
-            if int(cliente["tipoContrato"]) == 2 and int(cliente["porcentagemContrato"]) > 0:
-                valor_inicial = int(cliente["valorEnvio"])
-                porcentagem = int(cliente["porcentagemContrato"])
-                valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
-                valor_comissao = valor_inicial - valor_final
-                cliente["valorEnvio"] = round(valor_comissao, 2)
-                cliente["pontosCliente"] = gera_pontos_clientes(cliente["valorEnvio"])
-            else:
-                if cliente["valorContrato"] is None:
-                    cliente["pontosCliente"] = gera_pontos_clientes(cliente["valorEnvio"])
-                else:
-                    cliente["pontosCliente"] = gera_pontos_clientes(cliente["valorContrato"])
+    # Define a data de início e a data de hoje
+    data_inicio = '2024-09-01'
+    hoje = date.today()
 
-            pontos_retencao = gera_pontos_retencao(cliente["pontosCliente"])
+    # Primeiro, filtramos os clientes ativos que possuem contratos ativos
+    # cujo data_contrato seja a mais recente para aquele cliente.
+    clientes_qs = Aluno_clientes.objects.annotate(
+        latest_data_contrato=Subquery(latest_contract_qs)
+    ).filter(
+        status=1,  # Clientes ativos
+        contratos__status=1,
+        contratos__data_contrato=F('latest_data_contrato')
+    ).distinct()
 
-            resultados.append({
-                "idCliente": cliente["idCliente"],
-                "idContrato": cliente["idContrato"],
-                "dataVencimentoContrato": cliente["dataVencimentoContrato"],
-                "pontosGerados": cliente["pontosCliente"],
-                "totalEnvios": cliente["totalEnvios"],
-                "registros": cliente["registros"],
-                "valorEnvio": cliente["valorEnvio"],
-                "pontosRetencao": pontos_retencao,
-            })
+    # Em seguida, filtramos os envios que atendam às condições informadas
+    clientes_qs = clientes_qs.filter(
+        envios_cliente_cl__status=3,
+        envios_cliente_cl__tipo=2,
+        envios_cliente_cl__data__range=(data_inicio, hoje),
+        envios_cliente_cl__semana__gt=0
+    )
 
-    return render(request, "calculoRetencaoClientes.html", {"data": resultados})
+    # Para contar os meses distintos (usando a função TruncMonth)
+    clientes_qs = clientes_qs.annotate(
+        envio_month=TruncMonth('envios_cliente_cl__data')
+    )
 
-def calculoRankingSemanaAluno_s(request):
-    with connection.cursor() as cursor:
-        # Inserindo registros na tabela de logs
-        cursor.execute("SELECT * FROM alunosPosicoesSemana")
-        posicoes = cursor.fetchall()
+    # Agrupamos os dados e selecionamos os campos desejados,
+    # contando os envios (meses distintos) para cada cliente.
+    clientes_qs = clientes_qs.values(
+        'id',  # ID do Cliente
+        'contratos__id',  # ID do Contrato
+        'contratos__valor_contrato',  # Valor do Contrato
+        'contratos__tipo_contrato',  # Tipo do Contrato
+        'contratos__porcentagem_contrato',  # Porcentagem do Contrato
+        'contratos__data_vencimento'  # Data de Vencimento do Contrato
+    ).annotate(
+        total_envios=Count('envio_month', distinct=True)
+    ).filter(
+        total_envios__gt=1  # HAVING total_envios > 1
+    ).order_by('-total_envios')
 
-        for posicao in posicoes:
-            aluno = posicao[1] if posicao[1] else "0"  # Assumindo que 'aluno' está na posição correta
-            cla = posicao[2] if posicao[2] else "0"    # Assumindo que 'cla' está na posição correta
-            semana, posicao, tipo, data, pontos = posicao[3:8]  # Ajuste conforme o esquema real
-            
-            # Obtendo o campeonato vigente (ajuste conforme necessário)
-            cursor.execute("SELECT id FROM campeonatos WHERE vigente = TRUE")
-            campeonato_vigente = cursor.fetchone()
-            campeonato_id = campeonato_vigente[0] if campeonato_vigente else None
-            
-            if campeonato_id:
-                cursor.execute("""
-                    INSERT INTO alunosPosicoesSemanaLogs (aluno, cla, semana, posicao, tipo, data, pontos, campeonato)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, [aluno, cla, semana, posicao, tipo, data, pontos, campeonato_id])
+    # Obtém o campeonato vigente (ajuste o filtro conforme seu model)
+    try:
+        campeonatoVigente = Campeonato.objects.get(id=5)
+    except Campeonato.DoesNotExist:
+        campeonatoVigente = None
 
-        # Atualizar `alunosEnvios` para a semana específica
-        semana_subidometro = 1  # Defina essa variável corretamente
-        cursor.execute("""
-            UPDATE alunosEnvios 
-            SET status = 2, statusMotivo = 63 
-            WHERE semana = %s AND status < 2
-        """, [semana_subidometro])
+    mensagem_email = []
+    contador_clientes = 1
+    log_msgs = []  # Lista para coletar mensagens de log
+    now = timezone.now()
 
-        # Remover ranking de alunos
-        cursor.execute("DELETE FROM alunosPosicoesSemana")
+    # Itera sobre cada cliente para aplicar a lógica
+    # for cliente in clientes_qs:
+    #     print(cliente.total_envios)
+        #if cliente.total_envios > 0:
+            #pass
+            # log_msgs.append(f"CONTADOR {contador_clientes}")
 
-        # Obter alunos e seus respectivos `cla`
-        cursor.execute("SELECT id, cla FROM alunos")
-        alunos = cursor.fetchall()
-    return render(request, "calculoRankingSemanaAluno.html", {})
+            # # Se o tipo de contrato for 2 e houver porcentagem, calcula comissão
+            # if cliente['contratos__tipo_contrato'] == 2 and float(cliente['contratos__porcentagem_contrato']) > 0:
+            #     valor_inicial = float(cliente['valorEnvio'])
+            #     porcentagem = float(cliente['contratos__porcentagem_contrato'])
+            #     valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
+            #     valor_comissao = valor_inicial - valor_final
+
+            #     # Atualiza o valor do envio para o valor de comissão
+            #     cliente['valorEnvio'] = valor_comissao
+            #     pontos_cliente = gera_pontos_clientes(valor_comissao)
+            #     cliente['pontosCliente'] = pontos_cliente
+            # else:
+            #     # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
+            #     if not cliente['contratos__valor_contrato']:
+            #         pontos_cliente = gera_pontos_clientes(float(cliente['valorEnvio']))
+            #     else:
+            #         pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
+            #     cliente['pontosCliente'] = pontos_cliente
+
+            # # Exibe dados para debug (os nomes dos campos seguem os do .values())
+            # log_msgs.append(f"CLIENTE {cliente['id']}")
+            # log_msgs.append(f"CONTRATO {cliente['contratos__id']}")
+            # log_msgs.append(f"VENCIMENTO CONTRATO {cliente['contratos__data_vencimento']}")
+            # log_msgs.append(f"PONTOS GERADOS {pontos_cliente}")
+            # log_msgs.append(f"PONTOS CADASTRADOS {cliente['pontosCliente']}")
+            # log_msgs.append(f"ENVIOS {cliente['total_envios']}")
+            # # Para 'registros' (GROUP_CONCAT) você pode implementar uma consulta adicional se necessário
+            # log_msgs.append(f"VALOR ENVIO {cliente['valorEnvio']}")
+
+            # # Se pontosCliente estiver vazio ou zero, garante que seja igual aos pontos calculados
+            # if not cliente['pontosCliente'] or cliente['pontosCliente'] == 0:
+            #     cliente['pontosCliente'] = pontos_cliente
+
+            # # Calcula os pontos de retenção com base nos pontos do cliente
+            # pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
+            # # Conforme o código PHP final, usamos apenas pontos_retencao (apesar de haver comentário de multiplicação)
+            # pontos_soma = pontos_retencao
+
+            # # Verifica quantos registros já existem para esse cliente na tabela de retenção
+            # registros_count = AlunosClientesPontosMesesRetencao.objects.filter(cliente_id=cliente['id']).count()
+            # if registros_count < (cliente['total_envios'] - 1):
+            #     # Insere um novo registro na tabela de retenção
+            #     novo_registro = AlunosClientesPontosMesesRetencao.objects.create(
+            #         aluno_id=cliente['envios_cliente_cl__aluno'],
+            #         cliente_id=cliente['id'],
+            #         campeonato=campeonatoVigente,
+            #         data=now,
+            #         pontos=pontos_soma,
+            #         qtdEnvios=cliente['total_envios'],
+            #         idsEnvios="",  # Aqui você pode construir a string concatenada dos envios, se necessário
+            #         semana=campeonatoVigente.semanaVigente if campeonatoVigente else 0
+            #     )
+            #     sql_simulado = (
+            #         f"INSERT INTO alunosClientesPontosMesesRetencao "
+            #         f"(aluno, cliente, campeonato, data, pontos, qtdEnvios, idsEnvios, semana) "
+            #         f"VALUES ({cliente['envios_cliente_cl__aluno']}, {cliente['id']}, "
+            #         f"{campeonatoVigente.id if campeonatoVigente else 'NULL'}, '{now}', "
+            #         f"{pontos_soma}, {cliente['total_envios']}, '', "
+            #         f"{campeonatoVigente.semanaVigente if campeonatoVigente else 0})"
+            #     )
+            #     mensagem_email.append(sql_simulado)
+            #     log_msgs.append(sql_simulado)
+
+            # contador_clientes += 1
+            # log_msgs.append("<hr>")
+
+    # Exibe o log e as mensagens no template "envios_log.html"
+    return render(request, "envios.html", {"queryset": clientes_qs})
 
 def calculoRankingSemanaAluno(request):
-    campeonato_id = 5
-    semana_subidometro_anterior = 10  # Substitua pelo valor correto
-    
-    with connection.cursor() as cursor:
-        query_posicoes_alunos = """
-            WITH
-                lista AS (
-                SELECT
-                    alunos."id",
-                    (
-                    SELECT
-                    COALESCE(SUM("pontos"), 0)
-                    FROM
-                    alunosenvios
-                    WHERE
-                    alunos."id" = alunosenvios."vinculoAluno"
-                    AND alunosenvios."campeonato" = %s
-                    AND alunosenvios."status" = 3
-                    AND alunosenvios."semana" <> 0 ) AS "totalPontos",
-                    (
-                    SELECT
-                    COALESCE(SUM("pontos"), 0)
-                    FROM
-                    alunosclientes
-                    WHERE
-                    alunos."id" = alunosclientes."aluno"
-                    AND alunosclientes."campeonato" = %s
-                    AND alunosclientes."status" = 1
-                    AND alunosclientes."pontos" > 0 ) AS "totalPontosClientes",
-                    (
-                    SELECT
-                    COALESCE(SUM("pontos"), 0)
-                    FROM
-                    alunosclientespontosmesesretencao
-                    WHERE
-                    alunos."id" = alunosclientespontosmesesretencao."aluno"
-                    AND alunosclientespontosmesesretencao."campeonato" = %s
-                    AND alunosclientespontosmesesretencao."pontos" > 0 ) AS "totalPontosClientesRetencao"
-                FROM
-                    alunos
-                INNER JOIN
-                    mentoriacla
-                ON
-                    mentoriacla."id" = alunos."cla"
-                WHERE
-                    ( alunos."status" IN ('ACTIVE',
-                        'APPROVED',
-                        'COMPLETE')
-                    OR alunos."dataExpiracao" >= CURRENT_DATE
-                    OR (alunos."dataExpiracao7Dias" IS NOT NULL
-                        AND alunos."dataExpiracao7Dias" >= CURRENT_DATE) )
-                    AND alunos."nivel" < 16
-                    AND mentoriacla."definido" = 1)
-                SELECT
-                lista.*,
-                (COALESCE(lista."totalPontos", 0) + COALESCE(lista."totalPontosClientes", 0) + COALESCE(lista."totalPontosClientesRetencao", 0)) AS "totalPontosFinal",
-                DENSE_RANK() OVER (ORDER BY (COALESCE(lista."totalPontos", 0) + COALESCE(lista."totalPontosClientes", 0) + COALESCE(lista."totalPontosClientesRetencao", 0)) DESC) AS "rank"
-                FROM
-                lista
-                ORDER BY
-                "rank" ASC;
-        """
-        cursor.execute(query_posicoes_alunos, [campeonato_id, campeonato_id, campeonato_id])
-        posicoes_alunos = cursor.fetchall()
+    CAMPEONATO_ID = 5
+    try:
+        campeonatoVigente = Campeonato.objects.get(id=CAMPEONATO_ID)
+    except Campeonato.DoesNotExist:
+        return render(request, "ranking.html", {"error": "Campeonato vigente não encontrado."})
 
-    # Inserção no banco de dados
-    for contador, posicao in enumerate(posicoes_alunos, start=1):
-        aluno_id = posicao[0]  # Substitua pelos índices corretos da consulta
-        total_pontos_final = posicao[-2]
-        rank = posicao[-1]
+    # IDs dos registros de mentoria_cla com definido = 1
+    mentoria_ids = Mentoria_cla.objects.filter(definido=1).values_list('id', flat=True)
 
-        # # Inserção em alunosPosicoesSemana
-        # AlunoPosicaoSemana.objects.create(
-        #     aluno_id=aluno_id,
-        #     cla_id=0,  # Substitua pelo cla correto se necessário
-        #     semana=semana_subidometro_anterior,
-        #     posicao=rank,
-        #     tipo=1,
-        #     data=date.today(),
-        #     pontos=total_pontos_final,
-        # )
+    # Filtra os alunos conforme as condições:
+    alunos_qs = Alunos.objects.filter(
+        Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
+        nivel__lt=16,
+        cla__in=mentoria_ids
+    )
 
-    # Atualização de posições para tipo 2
-    tipo_2_posicoes = AlunoPosicaoSemana.objects.filter(tipo=2).order_by('pontos')
-    for rank, posicao in enumerate(tipo_2_posicoes, start=1):
-        print(posicao)
-        # posicao.posicao = rank
-        # posicao.save()
+    # Subquery para total de pontos (garantindo DecimalField)
+    subquery_pontos = Aluno_pontuacao.objects.filter(
+        aluno=OuterRef('pk'),
+        status=3,
+        semana__gt=0
+    ).filter(
+        Q(envio__campeonato_id=CAMPEONATO_ID) |
+        Q(desafio__campeonato_id=CAMPEONATO_ID) |
+        Q(certificacao__campeonato_id=CAMPEONATO_ID)
+    ).values('aluno').annotate(
+        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+    ).values('total')
 
-    # Soma de pontos para cla
-    # pontos_cla_arr = {}
-    # tipo_1_posicoes = AlunoPosicaoSemana.objects.filter(tipo=1)
-    # for row in tipo_1_posicoes:
-    #     pontos_cla_arr.setdefault(row.cla_id, []).append(row.pontos)
+    # Subquery para total de pontos clientes (garantindo DecimalField)
+    subquery_pontos_clientes = Aluno_clientes.objects.filter(
+        aluno=OuterRef('pk'),
+        status=1,
+        pontos__gt=0
+    ).values('aluno').annotate(
+        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+    ).values('total')
 
-    # for cla_id, pontos in pontos_cla_arr.items():
-    #     if cla_id > 0:
-    #         soma_pontos = sum(pontos)
-    #         print(cla_id, soma_pontos)
-            # AlunoPosicaoSemana.objects.create(
-            #     aluno_id=0,
-            #     cla_id=cla_id,
-            #     semana=semana_subidometro_anterior,
-            #     posicao=0,
-            #     tipo=2,
-            #     data=date.today(),
-            #     pontos=soma_pontos,
-            # )
+    # Subquery para total de pontos clientes retencao (garantindo DecimalField)
+    subquery_total_pontos_clientes_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(
+        aluno=OuterRef('pk'),
+        campeonato_id=CAMPEONATO_ID,
+        pontos__gt=0
+    ).values('aluno').annotate(
+        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+    ).values('total')
 
-    # Atualização de posições novamente
-    tipo_2_posicoes = AlunoPosicaoSemana.objects.filter(tipo=2).order_by('pontos')
-    for rank, posicao in enumerate(tipo_2_posicoes, start=1):
-        print(posicao)
-        # posicao.posicao = rank
-        # posicao.save()
+    # Aplicando as subqueries
+    alunos_qs = alunos_qs.annotate(
+        total_pontos=Coalesce(Subquery(subquery_pontos, output_field=DecimalField()), Value(0, output_field=DecimalField())),
+        total_pontos_clientes=Coalesce(Subquery(subquery_pontos_clientes, output_field=DecimalField()), Value(0, output_field=DecimalField())),
+        total_pontos_clientes_retencao=Coalesce(Subquery(subquery_total_pontos_clientes_retencao, output_field=DecimalField()), Value(0, output_field=DecimalField())),
+        total_pontos_final=F('total_pontos') + F('total_pontos_clientes') + F('total_pontos_clientes_retencao')
+    )
 
-    
-    # Preparando o resultado final
-    resultados = []
-    for posicao in posicoes_alunos:
-        aluno_id = posicao[0]
-        total_pontos_final = posicao[-2]
-        rank = posicao[-1]
+    # Criando lista de dicionários
+    resultado = [
+        {
+            "id": aluno.id,
+            "nome": aluno.nome_completo,
+            "totalPontos": aluno.total_pontos,
+            "totalPontosClientes": aluno.total_pontos_clientes,
+            "totalPontosClientesRetencao": aluno.total_pontos_clientes_retencao,
+            "totalPontosFinal": aluno.total_pontos_final,
+        }
+        for aluno in alunos_qs
+    ]
 
-        # Obtendo os detalhes do aluno com base no aluno_id
-        aluno = Aluno.objects.get(id=aluno_id)
-        
-        resultados.append({
-            "idAluno": aluno.id,
-            "nomeCompleto": aluno.nomeCompleto,
-            "apelido": aluno.apelido,
-            "email": aluno.email,
-            "totalPontosFinal": total_pontos_final,
-            "rank": rank
-        })
+    # Ordena a lista pelo totalPontosFinal (do maior para o menor)
+    resultado = sorted(resultado, key=lambda x: x["totalPontosFinal"], reverse=True)
 
-    return render(request, "calculoRankingSemanaAluno.html", {"data": resultados})  
+    # Atribui ranking (1 para o maior pontuador, 2 para o segundo, etc.)
+    for i, aluno in enumerate(resultado, start=1):
+        aluno["rank"] = i
+
+    return render(request, "ranking.html", {"alunos": resultado})
+
+
+def teste(request):
+
+
+    return render(request, "ranking.html", {"alunos": "resultado"})
+
 
