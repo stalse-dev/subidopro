@@ -1,0 +1,61 @@
+{% extends 'main.html' %}
+
+{% block containerBodyMain %}
+<div class="flex flex-col bg-gray-900 text-white min-h-screen">
+    <h1 class="text-3xl font-bold text-center mt-6">Perfil do Clã</h1>
+    
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div class="w-[90%] max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg">
+            <!-- Dados do Clã -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">{{ cla.nome }}</h2>
+                    <p class="text-gray-400"><strong>Sigla:</strong> {{ cla.sigla|default:"N/A" }}</p>
+                    <p class="text-gray-400"><strong>Descrição:</strong> {{ cla.descricao|default:"Sem descrição" }}</p>
+                    <p class="text-gray-400"><strong>Rastreador:</strong> {{ cla.rastreador|default:"N/A" }}</p>
+                </div>
+            </div>
+
+            <!-- Lista de Alunos -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4">Integrantes do Clã</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-600 text-gray-300">
+                            <tr>
+                                <th class="px-6 py-3">Nome</th>
+                                <th class="px-6 py-3">Apelido</th>
+                                <th class="px-6 py-3">Email</th>
+                                <th class="px-6 py-3">Nível</th>
+                                <th class="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aluno in alunos %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer"
+                                onclick="window.location.href='#'">
+                                <td class="px-6 py-4">{{ aluno.nome_completo }}</td>
+                                <td class="px-6 py-4">{{ aluno.apelido|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ aluno.email }}</td>
+                                <td class="px-6 py-4 text-yellow-400 font-bold">Nível {{ aluno.nivel }}</td>
+                                <td class="px-6 py-4">
+                                    {% if aluno.status == "ACTIVE" %}
+                                        <span class="text-green-400">Ativo</span>
+                                    {% else %}
+                                        <span class="text-red-400">Inativo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">Nenhum aluno encontrado neste Clã.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

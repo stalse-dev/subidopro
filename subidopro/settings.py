@@ -63,14 +63,25 @@ INSTALLED_APPS = [
     'api',
     'users',
     'subidometro',
+    'alunos',
 ]
 # WSGI_APPLICATION = 'subidopro.wsgi.application'
 ASGI_APPLICATION = 'subidopro.asgi.application'
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("10.0.0.3", 6379)],  # Substitua pelo IP interno do Cloud Memorystore
+        },
     },
 }
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -161,14 +172,16 @@ else:
 
     DEBUG = False
     DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': "db-subidopro",
-        'USER': env("db_user_pro"),
-        'PASSWORD': env("db_password_pro"),
-        'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': "db-subidopro",
+            'USER': env("db_user_pro"),
+            'PASSWORD': env("db_password_pro"),
+            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
+            'PORT': '5432',
+        }
     }
-}
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -20,23 +20,6 @@ class Desafios(models.Model):
     def __str__(self):
         return self.titulo
 
-class Alunos(models.Model):
-    nome_completo = models.CharField(max_length=255, null=True, blank=True, db_column="nome_completo")
-    nome_social = models.CharField(max_length=255, null=True, blank=True, db_column="nome_social")
-    apelido = models.CharField(max_length=255, null=True, blank=True)
-    email = models.EmailField(max_length=255, null=True, blank=True)
-    data_criacao = models.DateTimeField(null=True, blank=True, db_column="data_criacao")
-    status = models.CharField(max_length=255, null=True, blank=True, default='1')
-    hotmart = models.IntegerField(null=True, blank=True)
-    termo_aceito = models.IntegerField(null=True, blank=True, db_column="termo_aceito")
-    cla = models.IntegerField(null=True, blank=True, default=0)
-    nivel = models.IntegerField(null=True, blank=True, default=0)
-    aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
-    tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")
-
-    def __str__(self):
-        return self.nome_completo
-
 class Mentoria_cla(models.Model):
     campeonato = models.ForeignKey("Campeonato", on_delete=models.CASCADE, null=True, blank=True, related_name="campeonato_cla")
     nome = models.CharField(max_length=255, unique=True)
@@ -49,6 +32,24 @@ class Mentoria_cla(models.Model):
 
     def __str__(self):
         return self.nome
+
+class Alunos(models.Model):
+    nome_completo = models.CharField(max_length=255, null=True, blank=True, db_column="nome_completo")
+    nome_social = models.CharField(max_length=255, null=True, blank=True, db_column="nome_social")
+    apelido = models.CharField(max_length=255, null=True, blank=True)
+    email = models.EmailField(max_length=255, null=True, blank=True)
+    data_criacao = models.DateTimeField(null=True, blank=True, db_column="data_criacao")
+    status = models.CharField(max_length=255, null=True, blank=True, default='1')
+    hotmart = models.IntegerField(null=True, blank=True)
+    termo_aceito = models.IntegerField(null=True, blank=True, db_column="termo_aceito")
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_cla")
+    #cla = models.IntegerField(null=True, blank=True, default=0)
+    nivel = models.IntegerField(null=True, blank=True, default=0)
+    aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
+    tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")
+
+    def __str__(self):
+        return self.nome_completo
     
 class Aluno_clientes(models.Model):
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonato_clientes")
@@ -184,7 +185,7 @@ class Aluno_pontuacao(models.Model):
 
     # Vínculo opcional com Certificações
     certificacao = models.ForeignKey("Aluno_certificacao", on_delete=models.SET_NULL, null=True, blank=True, related_name="pontuacoes_certificacoes")
-
+    campeonato = models.ForeignKey("Campeonato", on_delete=models.CASCADE, null=True, blank=True, related_name="pontuacoes_campeonato")
     descricao = models.CharField(max_length=255, null=True, blank=True)
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
     pontos_previsto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

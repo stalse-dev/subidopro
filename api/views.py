@@ -180,6 +180,7 @@ def criar_envio(envio_data):
     #Creditar pontuação
     aluno_pontuacao = Aluno_pontuacao.objects.create(
         aluno=aluno,
+        campeonato=campeonato,
         tipo_pontuacao=tipo_pontuacao,
         envio=novo_envio,
         desafio=novo_desafio,
@@ -362,7 +363,9 @@ def alterar_envio(envio_data):
         return Response({"message": "Tipo de envio não encontrado!"}, status=status.HTTP_400_BAD_REQUEST)
 
     #Creditar pontuação
+    
     pontuacao.aluno=aluno
+    pontuacao.campeonato=campeonato
     pontuacao.tipo_pontuacao=tipo_pontuacao
     pontuacao.envio=envio
     pontuacao.desafio=desafio
@@ -386,7 +389,7 @@ LOGS_PER_PAGE = 50
 def listar_logs(request):
     
     logs = Log.objects.order_by('-criado_em')[:LOGS_PER_PAGE]
-    return render(request, 'logs.html', {'logs': logs})
+    return render(request, 'logs/logs.html', {'logs': logs})
 
 @api_view(['GET'])
 def carregar_mais_logs(request):

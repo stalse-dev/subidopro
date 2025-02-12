@@ -345,7 +345,7 @@ def calculoRankingSemanaAluno(request):
     for i, aluno in enumerate(resultado, start=1):
         aluno["rank"] = i
 
-    return render(request, "ranking.html", {"alunos": resultado})
+    return render(request, "Ranking/ranking.html", {"alunos": resultado})
 
 
 def teste(request):

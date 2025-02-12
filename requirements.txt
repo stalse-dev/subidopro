@@ -25,6 +25,7 @@ google-resumable-media==2.7.2
 googleapis-common-protos==1.65.0
 grpc-google-iam-v1==0.13.1
 grpcio==1.66.1
+gunicorn==23.0.0
 django-blacklist==0.7.0
 grpcio-status
 idna==3.8

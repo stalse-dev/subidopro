@@ -1,0 +1,50 @@
+{% extends 'main.html' %}
+
+{% block containerBodyMain %}
+    <div class="flex flex-col bg-gray-900 text-white min-h-screen">
+        <h1 class="text-3xl font-bold text-center mt-6">Lista de Alunos</h1>
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Nome Completo</th>
+                                <th class="px-6 py-3">Nível</th>
+                                <th class="px-6 py-3">Apelido</th>
+                                <th class="px-6 py-3">Email</th>
+                                <th class="px-6 py-3">Data Criação</th>
+                                <th class="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aluno in alunos %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
+                                onclick="window.location.href='{% url 'aluno' aluno.id %}'">
+                                <td class="px-6 py-4">{{ aluno.id }}</td>
+                                <td class="px-6 py-4">{{ aluno.nome_completo }}</td>
+                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ aluno.nivel }}</td>
+                                <td class="px-6 py-4">{{ aluno.apelido }}</td>
+                                <td class="px-6 py-4">{{ aluno.email }}</td>
+                                <td class="px-6 py-4">{{ aluno.data_criacao|date:"d/m/Y H:i" }}</td>
+                                <td class="px-6 py-4">
+                                    {% if aluno.status == "ACTIVE" %}
+                                        <span class="text-green-400">Ativo</span>
+                                    {% else %}
+                                        <span class="text-red-400">Inativo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">Nenhum aluno encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
