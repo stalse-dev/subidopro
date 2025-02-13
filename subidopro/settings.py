@@ -52,7 +52,7 @@ BASE_URL = env("BASE_URL", default="http://127.0.0.1:8000")
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
+    #'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -65,22 +65,22 @@ INSTALLED_APPS = [
     'subidometro',
     'alunos',
 ]
-# WSGI_APPLICATION = 'subidopro.wsgi.application'
-ASGI_APPLICATION = 'subidopro.asgi.application'
+WSGI_APPLICATION = 'subidopro.wsgi.application'
+#ASGI_APPLICATION = 'subidopro.asgi.application'
 # CHANNEL_LAYERS = {
 #     "default": {
 #         "BACKEND": "channels.layers.InMemoryChannelLayer",
 #     },
 # }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("10.0.0.3", 6379)],  # Substitua pelo IP interno do Cloud Memorystore
-        },
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("10.0.0.3", 6379)],  # Substitua pelo IP interno do Cloud Memorystore
+#         },
+#     },
+# }
 
 
 MIDDLEWARE = [
@@ -206,6 +206,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+LOGIN_URL = 'login'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/

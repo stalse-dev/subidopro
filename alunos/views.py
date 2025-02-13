@@ -2,7 +2,13 @@ from django.shortcuts import render
 from subidometro.models import *
 from django.db.models.functions import Coalesce
 from django.db.models import OuterRef, Subquery, F, Value, Q, DecimalField, Value, Sum
+from django.contrib.auth.decorators import login_required
 
+@login_required
+def home(request):
+    return render(request, 'Home/home.html')
+
+@login_required
 def alunos(request):
     alunos = Alunos.objects.all().order_by('id')
     context = {
@@ -10,6 +16,7 @@ def alunos(request):
     }
     return render(request, 'Alunos/alunos.html', context)
 
+@login_required
 def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato = Campeonato.objects.get(id=5)
@@ -21,6 +28,7 @@ def aluno(request, aluno_id):
     }
     return render(request, 'Alunos/aluno.html', context)
 
+@login_required
 def clas(request):
     campeonato = Campeonato.objects.get(id=5)
     clas = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
@@ -30,6 +38,7 @@ def clas(request):
     }
     return render(request, 'Clas/clas.html', context)
 
+@login_required
 def cla(request, cla_id):
     campeonato = Campeonato.objects.get(id=5)
     cla = Mentoria_cla.objects.get(id=cla_id, campeonato=campeonato)
@@ -42,6 +51,29 @@ def cla(request, cla_id):
 
     return render(request, 'Clas/cla.html', context)
 
+@login_required
+def clientes(request):
+    PAGE = 150
+    clientes = Aluno_clientes.objects.all().order_by('id')[:PAGE]
+    context = {
+        'clientes': clientes,
+    }
+    return render(request, 'Clientes/clientes.html', context)
+
+@login_required
+def cliente(request, cliente_id):
+    
+    cliente = Aluno_clientes.objects.get(id=cliente_id)
+    contratos = Aluno_clientes_contratos.objects.filter(cliente=cliente).order_by('-data_contrato')
+    envios = Aluno_envios.objects.filter(cliente=cliente).order_by('-data')
+    context = {
+        'cliente': cliente,
+        'contratos': contratos,
+        'envios': envios,
+    }
+    return render(request, 'Clientes/cliente.html', context)
+
+@login_required
 def ranking(request):
     CAMPEONATO_ID = 5
     try:

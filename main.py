@@ -1,3 +1,3 @@
-from subidopro.asgi import application
+from subidopro.wsgi import application
 
 app = application

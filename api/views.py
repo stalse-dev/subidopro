@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from api.models import Log
 from api.utils import registrar_log
 from decimal import Decimal
+from django.contrib.auth.decorators import login_required
 
 def criar_aluno_cliente(aluno_data):
     # Validar se cliente já existe
@@ -385,7 +386,8 @@ def alterar_envio(envio_data):
 
 LOGS_PER_PAGE = 50
 
-@api_view(['GET'])
+
+@login_required
 def listar_logs(request):
     
     logs = Log.objects.order_by('-criado_em')[:LOGS_PER_PAGE]

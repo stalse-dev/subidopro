@@ -16,30 +16,16 @@ from django.db.models import CharField, ExpressionWrapper
 from datetime import date
 import time
 from django.utils.timezone import localtime
+from django.contrib.auth.decorators import login_required
 
-def index(request):
-    return render(request, 'home.html')
 
-def envios_por_aluno_mes(request, aluno_id, ano, mes):
-    envio = Aluno_pontuacao.objects.get(envio_id=372299)
-    print(f"Banco: {envio.data}, Local: {localtime(envio.data)}")
-    envios = (
-        Aluno_pontuacao.objects
-        .filter(aluno_id=aluno_id, data__year=ano, data__month=mes, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
-        .order_by('data')
-    )
-    print(len(envios))
-    
-    context = {'envios': envios, 'aluno_id': aluno_id, 'ano': ano, 'mes': mes}
-    return render(request, 'envios_aluno.html', context)
-
-def atualizaPontosLimitesMesesEnvios(request):
+def calcula_balanceamento(request):
     limit = 3000
     pontuacoes = (
         Aluno_pontuacao.objects
         .annotate(mes=TruncMonth('data'))
         .values('aluno_id', 'mes')
-        .annotate(total_pontos=Sum('pontos'))
+        .annotate(total_pontos=Sum('pontos'), total_envios=Count('envio_id', distinct=True))
         .filter(total_pontos__gt=limit, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
         .order_by('aluno_id', 'mes')
     )
@@ -48,8 +34,15 @@ def atualizaPontosLimitesMesesEnvios(request):
     zerados = []
     pontos_modificados = []  # Lista para armazenar alterações (DE -> PARA)
 
+    for pontos in pontuacoes:
+        aluno_id = pontos["aluno_id"]
+        aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
+        mes = pontos["mes"].strftime("%B")  # Converte mês para extenso
+        pontos["aluno_nome"] = aluno_nome  # Adiciona o nome do aluno
+        pontos["mes"] = mes  # Substitui pela versão por extenso
 
     for pontos in pontuacoes:
+        print(pontos)
         aluno_id = pontos["aluno_id"]
         pontos_detalhados = (
             Aluno_pontuacao.objects
@@ -57,7 +50,8 @@ def atualizaPontosLimitesMesesEnvios(request):
             .order_by('-pontos')  # Processar do maior para o menor
             .values('envio_id', 'pontos')
         )
-
+        aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
+        mes = pontos["mes"]
         total = 0
         ajustado = []
         zerar_envios = False
@@ -81,7 +75,9 @@ def atualizaPontosLimitesMesesEnvios(request):
                 zerados.append({"id": envio_id, "pontos": faltante})
                 pontos_modificados.append({
                     "id": envio_id,
-                    "aluno": aluno_id,
+                    "aluno_id": aluno_id,
+                    "nome": aluno_nome,
+                    "mes": mes,
                     "de": pontos_envio,
                     "para": faltante
                 })
@@ -94,21 +90,21 @@ def atualizaPontosLimitesMesesEnvios(request):
                 ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
                 pontos_modificados.append({
                     "id": envio_id,
-                    "aluno": aluno_id,
+                    "aluno_id": aluno_id,
+                    "nome": aluno_nome,
+                    "mes": mes,
                     "de": pontos_envio,
                     "para": pontos_envio
                 })
                 total += pontos_envio
 
         updates.extend(ajustado)
-    
-    context = {'pontuacoes': pontuacoes}
 
-    return render(request, 'resultado.html', {
-        'envios': pontuacoes,
+    return render(request, 'Balancamento/balanceamento.html', {
+        'pontuacoes': pontuacoes,
         'pontos_modificados': pontos_modificados,
     })
-
+    
 def gera_pontos_clientes(valor):
     if valor >= 0 and valor < 1000:
         return 60
@@ -172,7 +168,7 @@ def calculoRetencaoClientes(request):
     clientes_qs = clientes_qs.values(
         'id',  # ID do Cliente
         'contratos__id',  # ID do Contrato
-        'contratos__valor_contrato',  # Valor do Contrato
+        'contratos__valor_contrato',  # Valor do Contrato/
         'contratos__tipo_contrato',  # Tipo do Contrato
         'contratos__porcentagem_contrato',  # Porcentagem do Contrato
         'contratos__data_vencimento'  # Data de Vencimento do Contrato

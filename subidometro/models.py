@@ -43,7 +43,6 @@ class Alunos(models.Model):
     hotmart = models.IntegerField(null=True, blank=True)
     termo_aceito = models.IntegerField(null=True, blank=True, db_column="termo_aceito")
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_cla")
-    #cla = models.IntegerField(null=True, blank=True, default=0)
     nivel = models.IntegerField(null=True, blank=True, default=0)
     aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
     tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")

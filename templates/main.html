@@ -23,15 +23,26 @@
                             <img class="h-12 w-auto" src="https://langermarketing.com.br/wp-content/uploads/2023/09/selo_subido_pro-2.png" alt="Logo">
                         </a>
                     </div>
+                    
                     <!-- Links do menu -->
                     <div class="hidden md:flex space-x-8 ml-12 items-center">
-                        <a href="{% url 'alunos' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Alunos</a>
-                        <a href="{% url 'ranking' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Ranking</a>
-                        <a href="{% url 'clas' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clãs</a>
-                        <a href="#" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clientes</a>
-                        <a href="{% url 'listar_logs' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Logs</a>
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'alunos' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Alunos</a>
+                            <a href="{% url 'ranking' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Ranking</a>
+                            <a href="{% url 'clas' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clãs</a>
+                            <a href="{% url 'clientes' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clientes</a>
+                            <a href="{% url 'listar_logs' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Logs</a>
+                            <a href="{% url 'balanceamento' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Balanceamento</a>
+                        {% endif %}
                     </div>
                 </div>
+                {% if user.is_authenticated %}
+                    <div class="hidden md:flex items-center">
+                        <a href="{% url 'logout' %}" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 transition">
+                            Sair
+                        </a>
+                    </div>
+                {% endif %}
                 <!-- Menu mobile -->
                 <div class="md:hidden flex items-center">
                     <button id="menu-btn" class="text-gray-200 focus:outline-none">
@@ -44,11 +55,14 @@
         </div>
         <!-- Dropdown mobile -->
         <div id="mobile-menu" class="hidden md:hidden bg-[#1e293b] border-t border-gray-600">
-            <a href="{% url 'alunos' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Alunos</a>
-            <a href="{% url 'ranking' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Ranking</a>
-            <a href="{% url 'clas' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clãs</a>
-            <a href="#" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clientes</a>
-            <a href="{% url 'listar_logs' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Logs</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'alunos' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Alunos</a>
+                <a href="{% url 'ranking' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Ranking</a>
+                <a href="{% url 'clas' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clãs</a>
+                <a href="{% url 'clientes' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Clientes</a>
+                <a href="{% url 'listar_logs' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Logs</a>
+                <a href="{% url 'balanceamento' %}" class="text-gray-200 hover:text-blue-400 font-semibold text-lg">Balanceamento</a>
+            {% endif %}
         </div>
     </nav>
     

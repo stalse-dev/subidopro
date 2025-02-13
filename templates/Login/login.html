@@ -1,0 +1,37 @@
+{% extends 'main.html' %}
+{% block header %}
+        
+{% endblock %}
+
+{% block containerBodyMain %}
+    <div class="flex items-center justify-center min-h-screen bg-gray-900 text-white">
+        <div class="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold text-center mb-6">Login</h1>
+            
+            {% if messages %}
+                <div class="bg-red-500 text-white p-2 rounded mb-4">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="email" class="block text-sm font-semibold">E-mail:</label>
+                    <input type="email" name="email" id="email" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-semibold">Senha:</label>
+                    <input type="password" name="password" id="password" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 mt-4">Entrar</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
