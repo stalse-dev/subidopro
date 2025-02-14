@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from subidometro.models import *
-from django.db.models.functions import Coalesce
-from django.db.models import OuterRef, Subquery, F, Value, Q, DecimalField, Value, Sum
+from django.db.models.functions import Coalesce, TruncMonth
+from django.db.models import OuterRef, Subquery, F, Value, Q, DecimalField, Value, Sum, Count
 from django.contrib.auth.decorators import login_required
+from datetime import date
+from django.utils import timezone
 
 @login_required
 def home(request):
@@ -72,6 +74,200 @@ def cliente(request, cliente_id):
         'envios': envios,
     }
     return render(request, 'Clientes/cliente.html', context)
+
+@login_required
+def balanceamento(request):
+    limit = 3000
+    pontuacoes = (
+        Aluno_pontuacao.objects
+        .annotate(mes=TruncMonth('data'))
+        .values('aluno_id', 'mes')
+        .annotate(total_pontos=Sum('pontos'), total_envios=Count('envio_id', distinct=True))
+        .filter(total_pontos__gt=limit, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+        .order_by('aluno_id', 'mes')
+    )
+
+    updates = []
+    zerados = []
+    pontos_modificados = []  # Lista para armazenar alterações (DE -> PARA)
+
+    for pontos in pontuacoes:
+        aluno_id = pontos["aluno_id"]
+        aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
+        mes = pontos["mes"].strftime("%B")  # Converte mês para extenso
+        pontos["aluno_nome"] = aluno_nome  # Adiciona o nome do aluno
+        pontos["mes"] = mes  # Substitui pela versão por extenso
+
+    for pontos in pontuacoes:
+        aluno_id = pontos["aluno_id"]
+        pontos_detalhados = (
+            Aluno_pontuacao.objects
+            .filter(aluno_id=aluno_id, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+            .order_by('-pontos')  # Processar do maior para o menor
+            .values('envio_id', 'pontos')
+        )
+        aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
+        mes = pontos["mes"]
+        total = 0
+        ajustado = []
+        zerar_envios = False
+
+        ids_envios = []  # Lista com IDs de envios afetados
+        ids_envios_com_pontos = []  # IDs com pontuação mantida
+
+        for pontos_det in pontos_detalhados:
+            envio_id = pontos_det['envio_id']
+            pontos_envio = pontos_det['pontos']
+            ids_envios.append(envio_id)  # Todos os envios afetados
+
+            if zerar_envios or total + pontos_envio > limit:
+                if total < limit:
+                    #Falta um pouco de pontos
+                    faltante = limit - total
+                else:
+                    faltante = 0
+                
+                total += pontos_envio
+                zerados.append({"id": envio_id, "pontos": faltante})
+                pontos_modificados.append({
+                    "id": envio_id,
+                    "aluno_id": aluno_id,
+                    "nome": aluno_nome,
+                    "mes": mes,
+                    "de": pontos_envio,
+                    "para": faltante
+                })
+                zerar_envios = True
+
+                #ATUALIZANDO O PONTO DO ENVIO NO BANCO
+                #Aluno_envios.objects.filter(id=envio_id).update(pontos=faltante)
+            else:
+                ajustado.append({"id": envio_id, "pontos": pontos_envio})
+                ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
+                pontos_modificados.append({
+                    "id": envio_id,
+                    "aluno_id": aluno_id,
+                    "nome": aluno_nome,
+                    "mes": mes,
+                    "de": pontos_envio,
+                    "para": pontos_envio
+                })
+                total += pontos_envio
+
+        updates.extend(ajustado)
+
+    return render(request, 'Balanceamento/balanceamento.html', {
+        'pontuacoes': pontuacoes,
+        'pontos_modificados': pontos_modificados,
+    })
+
+@login_required
+def retencao(request):
+    def gera_pontos_clientes(valor):
+        if valor >= 0 and valor < 1000:
+            return 60
+        elif valor >= 1000 and valor < 3000:
+            return 480
+        elif valor >= 3000 and valor < 5000:
+            return 1080
+        elif valor >= 5000 and valor < 9000:
+            return 1920
+        elif valor >= 9000:
+            return 2460
+        else:
+            return 0
+
+    def gera_pontos_retencao(pontos):
+        mapping = {
+            60: 40,
+            480: 320,
+            1080: 720,
+            1920: 1280,
+            2460: 1640,
+        }
+        return mapping.get(pontos, 0)
+
+    latest_contract_id_qs = Aluno_clientes_contratos.objects.filter(
+    cliente=OuterRef('pk'),
+    status=1
+    ).order_by('-data_contrato', '-id').values('id')[:1] 
+
+    data_inicio = '2024-09-01'
+    hoje = date.today()
+
+    ultimo_envio_qs = Aluno_envios.objects.filter(
+        cliente=OuterRef('contratos__cliente'),  # Filtrando pelo cliente
+        status=3,
+        tipo=2,
+        data__range=(data_inicio, hoje),
+        semana__gt=0
+    ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
+
+    clientes_com_ultimo_contrato = Aluno_clientes.objects.annotate(
+        latest_contract_id=Subquery(latest_contract_id_qs),
+    ).filter(
+        status=1,
+        contratos__id=F('latest_contract_id')
+    ).distinct()
+
+    retencoes = clientes_com_ultimo_contrato.filter(
+        envios_cliente_cl__status=3,
+        envios_cliente_cl__tipo=2,
+        envios_cliente_cl__data__range=(data_inicio, hoje),
+        envios_cliente_cl__semana__gt=0
+    )
+
+    retencoes = retencoes.annotate(
+        envio_month=TruncMonth('envios_cliente_cl__data'),
+        ultimo_envio=Subquery(ultimo_envio_qs)  
+    )
+
+    retencoes = retencoes.values(
+        'id',
+        'contratos__id',  
+        'contratos__valor_contrato', 
+        'contratos__tipo_contrato', 
+        'contratos__porcentagem_contrato', 
+        'contratos__data_vencimento', 
+        'aluno__id',
+        'aluno__apelido',
+        'ultimo_envio',  
+    ).annotate(
+        total_envios=Count('envio_month', distinct=True)
+    ).filter(
+        total_envios__gt=1
+    ).order_by('-total_envios')
+
+    for cliente in retencoes:
+        if cliente['total_envios'] > 0:
+            # Se o tipo de contrato for 2 e houver porcentagem, calcula comissão
+            if cliente['contratos__tipo_contrato'] == 2 and float(cliente['contratos__porcentagem_contrato']) > 0:
+                valor_inicial = float(cliente['ultimo_envio'])
+                porcentagem = float(cliente['contratos__porcentagem_contrato'])
+                valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
+                valor_comissao = valor_inicial - valor_final
+
+                # Atualiza o valor do envio para o valor de comissão
+                cliente['valorEnvio'] = valor_comissao
+                pontos_cliente = gera_pontos_clientes(valor_comissao)
+                cliente['pontosCliente'] = pontos_cliente
+            else:
+                # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
+                if not cliente['contratos__valor_contrato']:
+                    pontos_cliente = gera_pontos_clientes(float(cliente['ultimo_envio']))
+                else:
+                    pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
+                cliente['pontosCliente'] = pontos_cliente
+
+            # # Se pontosCliente estiver vazio ou zero, garante que seja igual aos pontos calculados
+            if not cliente['pontosCliente'] or cliente['pontosCliente'] == 0:
+                cliente['pontosCliente'] = pontos_cliente
+
+            # Calcula os pontos de retenção com base nos pontos do cliente
+            pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
+            cliente['PontosRetencao'] = pontos_retencao
+
+    return render(request, "Retencao/retencao.html", {"retencoes": retencoes})
 
 @login_required
 def ranking(request):

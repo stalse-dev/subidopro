@@ -42,7 +42,6 @@ def calcula_balanceamento(request):
         pontos["mes"] = mes  # Substitui pela versão por extenso
 
     for pontos in pontuacoes:
-        print(pontos)
         aluno_id = pontos["aluno_id"]
         pontos_detalhados = (
             Aluno_pontuacao.objects
@@ -84,7 +83,7 @@ def calcula_balanceamento(request):
                 zerar_envios = True
 
                 #ATUALIZANDO O PONTO DO ENVIO NO BANCO
-                #Aluno_envios.objects.filter(id=envio_id).update(pontos=faltante)
+                Aluno_pontuacao.objects.filter(envio_id=envio_id).update(pontos=faltante)
             else:
                 ajustado.append({"id": envio_id, "pontos": pontos_envio})
                 ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
@@ -100,7 +99,7 @@ def calcula_balanceamento(request):
 
         updates.extend(ajustado)
 
-    return render(request, 'Balancamento/balanceamento.html', {
+    return render(request, 'Balanceamento/balanceamento.html', {
         'pontuacoes': pontuacoes,
         'pontos_modificados': pontos_modificados,
     })
@@ -129,53 +128,73 @@ def gera_pontos_retencao(pontos):
     }
     return mapping.get(pontos, 0)
 
-def calculoRetencaoClientes(request):
+def calculo_retencao(request):
     # Subquery para obter a data do contrato mais recente (status = 1) para cada cliente
-    latest_contract_qs = Aluno_clientes_contratos.objects.filter(
-        cliente=OuterRef('pk'),
-        status=1
-    ).order_by('-data_contrato').values('data_contrato')[:1]
+    latest_contract_id_qs = Aluno_clientes_contratos.objects.filter(
+    cliente=OuterRef('pk'),  # Filtra contratos pelo cliente
+    status=1
+    ).order_by('-data_contrato', '-id').values('id')[:1] # Exclui contratos sem data
 
     # Define a data de início e a data de hoje
     data_inicio = '2024-09-01'
     hoje = date.today()
 
-    # Primeiro, filtramos os clientes ativos que possuem contratos ativos
-    # cujo data_contrato seja a mais recente para aquele cliente.
-    clientes_qs = Aluno_clientes.objects.annotate(
-        latest_data_contrato=Subquery(latest_contract_qs)
+    # Subquery para pegar o último envio do contrato vigente
+    # ultimo_envio_qs = Aluno_envios.objects.filter(
+    #     contrato=OuterRef('contratos__id'),  
+    #     status=3,
+    #     tipo=2,
+    #     data__range=(data_inicio, hoje),
+    #     semana__gt=0
+    # ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
+
+    ultimo_envio_qs = Aluno_envios.objects.filter(
+        cliente=OuterRef('contratos__cliente'),  # Filtrando pelo cliente
+        status=3,
+        tipo=2,
+        data__range=(data_inicio, hoje),
+        semana__gt=0
+    ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
+
+
+    # Filtramos os clientes ativos e contratos ativos
+    clientes_com_ultimo_contrato = Aluno_clientes.objects.annotate(
+        latest_contract_id=Subquery(latest_contract_id_qs),  # Pega o ID do último contrato
     ).filter(
         status=1,  # Clientes ativos
-        contratos__status=1,
-        contratos__data_contrato=F('latest_data_contrato')
+        contratos__id=F('latest_contract_id')  # Filtra apenas o contrato mais recente
     ).distinct()
 
-    # Em seguida, filtramos os envios que atendam às condições informadas
-    clientes_qs = clientes_qs.filter(
+    
+
+    # Filtramos os envios conforme as condições
+    retencoes = clientes_com_ultimo_contrato.filter(
         envios_cliente_cl__status=3,
         envios_cliente_cl__tipo=2,
         envios_cliente_cl__data__range=(data_inicio, hoje),
         envios_cliente_cl__semana__gt=0
     )
 
-    # Para contar os meses distintos (usando a função TruncMonth)
-    clientes_qs = clientes_qs.annotate(
-        envio_month=TruncMonth('envios_cliente_cl__data')
+    # Pegamos o último envio relacionado ao contrato
+    retencoes = retencoes.annotate(
+        envio_month=TruncMonth('envios_cliente_cl__data'),
+        ultimo_envio=Subquery(ultimo_envio_qs)  # Último valor de envio
     )
 
-    # Agrupamos os dados e selecionamos os campos desejados,
-    # contando os envios (meses distintos) para cada cliente.
-    clientes_qs = clientes_qs.values(
+    # Agrupamos e contamos os envios distintos
+    retencoes = retencoes.values(
         'id',  # ID do Cliente
         'contratos__id',  # ID do Contrato
-        'contratos__valor_contrato',  # Valor do Contrato/
+        'contratos__valor_contrato',  # Valor do Contrato
         'contratos__tipo_contrato',  # Tipo do Contrato
         'contratos__porcentagem_contrato',  # Porcentagem do Contrato
-        'contratos__data_vencimento'  # Data de Vencimento do Contrato
+        'contratos__data_vencimento',  # Data de Vencimento do Contrato
+        'aluno__id',  # ID do Aluno
+        'ultimo_envio',  # Último valor de envio
     ).annotate(
         total_envios=Count('envio_month', distinct=True)
     ).filter(
-        total_envios__gt=1  # HAVING total_envios > 1
+        total_envios__gt=1
     ).order_by('-total_envios')
 
     # Obtém o campeonato vigente (ajuste o filtro conforme seu model)
@@ -184,86 +203,58 @@ def calculoRetencaoClientes(request):
     except Campeonato.DoesNotExist:
         campeonatoVigente = None
 
-    mensagem_email = []
-    contador_clientes = 1
-    log_msgs = []  # Lista para coletar mensagens de log
     now = timezone.now()
 
-    # Itera sobre cada cliente para aplicar a lógica
-    # for cliente in clientes_qs:
-    #     print(cliente.total_envios)
-        #if cliente.total_envios > 0:
-            #pass
-            # log_msgs.append(f"CONTADOR {contador_clientes}")
+    #Itera sobre cada cliente para aplicar a lógica
+    for cliente in retencoes:
+        if cliente['total_envios'] > 0:
+            # Se o tipo de contrato for 2 e houver porcentagem, calcula comissão
+            if cliente['contratos__tipo_contrato'] == 2 and float(cliente['contratos__porcentagem_contrato']) > 0:
+                valor_inicial = float(cliente['ultimo_envio'])
+                porcentagem = float(cliente['contratos__porcentagem_contrato'])
+                valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
+                valor_comissao = valor_inicial - valor_final
 
-            # # Se o tipo de contrato for 2 e houver porcentagem, calcula comissão
-            # if cliente['contratos__tipo_contrato'] == 2 and float(cliente['contratos__porcentagem_contrato']) > 0:
-            #     valor_inicial = float(cliente['valorEnvio'])
-            #     porcentagem = float(cliente['contratos__porcentagem_contrato'])
-            #     valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
-            #     valor_comissao = valor_inicial - valor_final
-
-            #     # Atualiza o valor do envio para o valor de comissão
-            #     cliente['valorEnvio'] = valor_comissao
-            #     pontos_cliente = gera_pontos_clientes(valor_comissao)
-            #     cliente['pontosCliente'] = pontos_cliente
-            # else:
-            #     # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
-            #     if not cliente['contratos__valor_contrato']:
-            #         pontos_cliente = gera_pontos_clientes(float(cliente['valorEnvio']))
-            #     else:
-            #         pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
-            #     cliente['pontosCliente'] = pontos_cliente
-
-            # # Exibe dados para debug (os nomes dos campos seguem os do .values())
-            # log_msgs.append(f"CLIENTE {cliente['id']}")
-            # log_msgs.append(f"CONTRATO {cliente['contratos__id']}")
-            # log_msgs.append(f"VENCIMENTO CONTRATO {cliente['contratos__data_vencimento']}")
-            # log_msgs.append(f"PONTOS GERADOS {pontos_cliente}")
-            # log_msgs.append(f"PONTOS CADASTRADOS {cliente['pontosCliente']}")
-            # log_msgs.append(f"ENVIOS {cliente['total_envios']}")
-            # # Para 'registros' (GROUP_CONCAT) você pode implementar uma consulta adicional se necessário
-            # log_msgs.append(f"VALOR ENVIO {cliente['valorEnvio']}")
+                # Atualiza o valor do envio para o valor de comissão
+                cliente['valorEnvio'] = valor_comissao
+                pontos_cliente = gera_pontos_clientes(valor_comissao)
+                cliente['pontosCliente'] = pontos_cliente
+            else:
+                # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
+                if not cliente['contratos__valor_contrato']:
+                    pontos_cliente = gera_pontos_clientes(float(cliente['ultimo_envio']))
+                else:
+                    pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
+                cliente['pontosCliente'] = pontos_cliente
 
             # # Se pontosCliente estiver vazio ou zero, garante que seja igual aos pontos calculados
-            # if not cliente['pontosCliente'] or cliente['pontosCliente'] == 0:
-            #     cliente['pontosCliente'] = pontos_cliente
+            if not cliente['pontosCliente'] or cliente['pontosCliente'] == 0:
+                cliente['pontosCliente'] = pontos_cliente
 
-            # # Calcula os pontos de retenção com base nos pontos do cliente
-            # pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
-            # # Conforme o código PHP final, usamos apenas pontos_retencao (apesar de haver comentário de multiplicação)
-            # pontos_soma = pontos_retencao
+            # Calcula os pontos de retenção com base nos pontos do cliente
+            pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
+            # Conforme o código PHP final, usamos apenas pontos_retencao (apesar de haver comentário de multiplicação)
+            pontos_soma = pontos_retencao
+            # Verifica quantos registros já existem para esse cliente na tabela de retenção
+            registros_count = Aluno_clientes_contratos.objects.filter(cliente_id=cliente['id']).count()
+            if registros_count < (cliente['total_envios'] - 1):
+                # Insere um novo registro na tabela de retenção
+                novo_registro, created = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
+                    aluno_id=cliente['aluno__id'],
+                    cliente_id=cliente['id'],
+                    campeonato=campeonatoVigente,
+                    data=now,
+                    defaults={
+                        "pontos": pontos_soma,
+                        "qtd_envios": int(cliente['total_envios']),
+                        "ids_envios": "",
+                        "semana": 21
+                    }
+                )
 
-            # # Verifica quantos registros já existem para esse cliente na tabela de retenção
-            # registros_count = AlunosClientesPontosMesesRetencao.objects.filter(cliente_id=cliente['id']).count()
-            # if registros_count < (cliente['total_envios'] - 1):
-            #     # Insere um novo registro na tabela de retenção
-            #     novo_registro = AlunosClientesPontosMesesRetencao.objects.create(
-            #         aluno_id=cliente['envios_cliente_cl__aluno'],
-            #         cliente_id=cliente['id'],
-            #         campeonato=campeonatoVigente,
-            #         data=now,
-            #         pontos=pontos_soma,
-            #         qtdEnvios=cliente['total_envios'],
-            #         idsEnvios="",  # Aqui você pode construir a string concatenada dos envios, se necessário
-            #         semana=campeonatoVigente.semanaVigente if campeonatoVigente else 0
-            #     )
-            #     sql_simulado = (
-            #         f"INSERT INTO alunosClientesPontosMesesRetencao "
-            #         f"(aluno, cliente, campeonato, data, pontos, qtdEnvios, idsEnvios, semana) "
-            #         f"VALUES ({cliente['envios_cliente_cl__aluno']}, {cliente['id']}, "
-            #         f"{campeonatoVigente.id if campeonatoVigente else 'NULL'}, '{now}', "
-            #         f"{pontos_soma}, {cliente['total_envios']}, '', "
-            #         f"{campeonatoVigente.semanaVigente if campeonatoVigente else 0})"
-            #     )
-            #     mensagem_email.append(sql_simulado)
-            #     log_msgs.append(sql_simulado)
 
-            # contador_clientes += 1
-            # log_msgs.append("<hr>")
 
-    # Exibe o log e as mensagens no template "envios_log.html"
-    return render(request, "envios.html", {"queryset": clientes_qs})
+    return render(request, "Retencao/retencao.html", {"retencoes": retencoes})
 
 def calculoRankingSemanaAluno(request):
     CAMPEONATO_ID = 5

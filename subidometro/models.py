@@ -94,6 +94,7 @@ class Aluno_clientes_contratos(models.Model):
     id_camp_anterior = models.IntegerField(null=True, blank=True) # Valdiar com Inventandus
 
 class Alunos_clientes_pontos_meses_retencao(models.Model):
+    id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
     cliente = models.ForeignKey(Aluno_clientes, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonatos_clientes")
