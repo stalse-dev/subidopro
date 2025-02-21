@@ -1,22 +1,11 @@
 from django.shortcuts import render, HttpResponse
-from django.http import JsonResponse
-from django.db.models.functions import Coalesce, DenseRank
-from django.db import connection
 from django.utils import timezone
-from datetime import datetime
 from .models import *
-from django.db.models import OuterRef, Subquery, Max, F, Value, Count, CharField, Q, IntegerField, Window, DecimalField
-from django.db.models.functions import Concat, ExtractYear, ExtractMonth
-from django.db.models import Count, Sum, Max, Value
+from django.db.models import OuterRef, Subquery, F, Count, Sum
 from django.db.models.functions import TruncMonth
-
-from django.db.models import Count, Max, F, Value
-from django.db.models.functions import Concat, Cast
-from django.db.models import CharField, ExpressionWrapper
 from datetime import date
-import time
-from django.utils.timezone import localtime
-from django.contrib.auth.decorators import login_required
+from .utils import *
+from collections import defaultdict
 
 
 def calcula_balanceamento(request):
@@ -139,15 +128,6 @@ def calculo_retencao(request):
     data_inicio = '2024-09-01'
     hoje = date.today()
 
-    # Subquery para pegar o último envio do contrato vigente
-    # ultimo_envio_qs = Aluno_envios.objects.filter(
-    #     contrato=OuterRef('contratos__id'),  
-    #     status=3,
-    #     tipo=2,
-    #     data__range=(data_inicio, hoje),
-    #     semana__gt=0
-    # ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
-
     ultimo_envio_qs = Aluno_envios.objects.filter(
         cliente=OuterRef('contratos__cliente'),  # Filtrando pelo cliente
         status=3,
@@ -156,7 +136,6 @@ def calculo_retencao(request):
         semana__gt=0
     ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
 
-
     # Filtramos os clientes ativos e contratos ativos
     clientes_com_ultimo_contrato = Aluno_clientes.objects.annotate(
         latest_contract_id=Subquery(latest_contract_id_qs),  # Pega o ID do último contrato
@@ -164,8 +143,6 @@ def calculo_retencao(request):
         status=1,  # Clientes ativos
         contratos__id=F('latest_contract_id')  # Filtra apenas o contrato mais recente
     ).distinct()
-
-    
 
     # Filtramos os envios conforme as condições
     retencoes = clientes_com_ultimo_contrato.filter(
@@ -197,14 +174,10 @@ def calculo_retencao(request):
         total_envios__gt=1
     ).order_by('-total_envios')
 
-    # Obtém o campeonato vigente (ajuste o filtro conforme seu model)
-    try:
-        campeonatoVigente = Campeonato.objects.get(id=5)
-    except Campeonato.DoesNotExist:
-        campeonatoVigente = None
+    campeonatoVigente, semana = calcular_semana_vigente()
 
     now = timezone.now()
-
+    contador = 0
     #Itera sobre cada cliente para aplicar a lógica
     for cliente in retencoes:
         if cliente['total_envios'] > 0:
@@ -236,10 +209,15 @@ def calculo_retencao(request):
             # Conforme o código PHP final, usamos apenas pontos_retencao (apesar de haver comentário de multiplicação)
             pontos_soma = pontos_retencao
             # Verifica quantos registros já existem para esse cliente na tabela de retenção
-            registros_count = Aluno_clientes_contratos.objects.filter(cliente_id=cliente['id']).count()
-            if registros_count < (cliente['total_envios'] - 1):
-                # Insere um novo registro na tabela de retenção
-                novo_registro, created = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
+            registros_count = Alunos_clientes_pontos_meses_retencao.objects.filter(cliente_id=cliente['id']).count()
+            opa = int(cliente['total_envios']) - 1
+            print(registros_count, opa)
+            if registros_count < (int(cliente['total_envios']) - 1):
+                contador += 1
+                print(f"Registros: novo registro {contador} de {len(retencoes)}")
+                
+                #Insere um novo registro na tabela de retenção
+                novo_registro = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
                     aluno_id=cliente['aluno__id'],
                     cliente_id=cliente['id'],
                     campeonato=campeonatoVigente,
@@ -256,88 +234,103 @@ def calculo_retencao(request):
 
     return render(request, "Retencao/retencao.html", {"retencoes": retencoes})
 
-def calculoRankingSemanaAluno(request):
-    CAMPEONATO_ID = 5
-    try:
-        campeonatoVigente = Campeonato.objects.get(id=CAMPEONATO_ID)
-    except Campeonato.DoesNotExist:
-        return render(request, "ranking.html", {"error": "Campeonato vigente não encontrado."})
+def calculo_ranking(request):
+    campeonato_vigente, semana = calcular_semana_vigente()
 
-    # IDs dos registros de mentoria_cla com definido = 1
-    mentoria_ids = Mentoria_cla.objects.filter(definido=1).values_list('id', flat=True)
+    resultado = calculo_ranking_def()
 
-    # Filtra os alunos conforme as condições:
-    alunos_qs = Alunos.objects.filter(
-        Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
-        nivel__lt=16,
-        cla__in=mentoria_ids
-    )
+    ### Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
+    for posicao in resultado:
+        pontos = posicao["totalPontosFinal"] if posicao["totalPontosFinal"] else 0
 
-    # Subquery para total de pontos (garantindo DecimalField)
-    subquery_pontos = Aluno_pontuacao.objects.filter(
-        aluno=OuterRef('pk'),
-        status=3,
-        semana__gt=0
-    ).filter(
-        Q(envio__campeonato_id=CAMPEONATO_ID) |
-        Q(desafio__campeonato_id=CAMPEONATO_ID) |
-        Q(certificacao__campeonato_id=CAMPEONATO_ID)
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
+        # Criar novo registro na tabela AlunosPosicoesSemana
+        Alunos_posicoes_semana.objects.create(
+            aluno_id=posicao['id'],
+            cla_id=campeonato_vigente.id,
+            semana=semana,
+            posicao=posicao["rank"],
+            tipo=1,
+            data=timezone.now(),
+            pontos=pontos,
+            campeonato_id=5
+        )
 
-    # Subquery para total de pontos clientes (garantindo DecimalField)
-    subquery_pontos_clientes = Aluno_clientes.objects.filter(
-        aluno=OuterRef('pk'),
-        status=1,
-        pontos__gt=0
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
+    clan_pontuacao = defaultdict(lambda: 0)
+    for aluno in resultado:
+        if aluno["cla"]:  # Garantir que o aluno tem um clã
+            clan_pontuacao[aluno["cla"]] += aluno["totalPontosFinal"]
 
-    # Subquery para total de pontos clientes retencao (garantindo DecimalField)
-    subquery_total_pontos_clientes_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        aluno=OuterRef('pk'),
-        campeonato_id=CAMPEONATO_ID,
-        pontos__gt=0
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
+    ranking_cla = sorted(clan_pontuacao.items(), key=lambda x: x[1], reverse=True)
+    ranking_cla_final = []
+    for i, (cla_id, pontos) in enumerate(ranking_cla, start=1):
+        ranking_cla_final.append({
+            "cla_id": cla_id,
+            "pontos": pontos,
+            "rank": i
+        })
 
-    # Aplicando as subqueries
-    alunos_qs = alunos_qs.annotate(
-        total_pontos=Coalesce(Subquery(subquery_pontos, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_clientes=Coalesce(Subquery(subquery_pontos_clientes, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_clientes_retencao=Coalesce(Subquery(subquery_total_pontos_clientes_retencao, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_final=F('total_pontos') + F('total_pontos_clientes') + F('total_pontos_clientes_retencao')
-    )
+    for posicao in ranking_cla_final:
+        pontos = posicao["pontos"] if posicao["pontos"] else 0
 
-    # Criando lista de dicionários
-    resultado = [
-        {
-            "id": aluno.id,
-            "nome": aluno.nome_completo,
-            "totalPontos": aluno.total_pontos,
-            "totalPontosClientes": aluno.total_pontos_clientes,
-            "totalPontosClientesRetencao": aluno.total_pontos_clientes_retencao,
-            "totalPontosFinal": aluno.total_pontos_final,
-        }
-        for aluno in alunos_qs
-    ]
+        Mentoria_cla_posicao_semana.objects.create(
+            cla_id=posicao['cla_id'],
+            semana=semana,  # Atualize conforme necessário
+            posicao=posicao["rank"],
+            data=timezone.now(),
+            pontos=pontos,
+            campeonato_id=campeonato_vigente.id
+        )
 
-    # Ordena a lista pelo totalPontosFinal (do maior para o menor)
-    resultado = sorted(resultado, key=lambda x: x["totalPontosFinal"], reverse=True)
-
-    # Atribui ranking (1 para o maior pontuador, 2 para o segundo, etc.)
-    for i, aluno in enumerate(resultado, start=1):
-        aluno["rank"] = i
 
     return render(request, "Ranking/ranking.html", {"alunos": resultado})
 
+def atualizar_subidometro(request):
+    campeonato_vigente, semana_subidometro = calcular_semana_vigente()
+
+    # Buscar todos os alunos
+    alunos = Alunos.objects.all()
+    
+    # Buscar todos os registros do Subidômetro para a semana e campeonato atuais
+    alunos_subidometro = Alunos_Subidometro.objects.filter(
+        semana=semana_subidometro, campeonato=campeonato_vigente
+    )
+    
+    # Criar um dicionário para acesso rápido aos registros existentes
+    alunos_subidometro_dict = {sub.aluno.id: sub for sub in alunos_subidometro}
+
+    # Processar cada aluno e atualizar/criar registros
+    for aluno in alunos:
+        cla = aluno.cla if aluno.cla else None
+        subidometro_entry = alunos_subidometro_dict.get(aluno.id)
+
+        if subidometro_entry:
+            nivel = subidometro_entry.nivel if subidometro_entry.nivel else aluno.nivel
+            subidometro_entry.nivel = nivel
+            subidometro_entry.save()
+        else:
+            Alunos_Subidometro.objects.create(
+                aluno=aluno,
+                campeonato=campeonato_vigente,
+                semana=semana_subidometro,
+                cla=cla,
+                nivel=aluno.nivel,
+                data=timezone.now(),
+            )
+
+    # Ordenar e atualizar os níveis dos alunos
+    alunos_subidometro_ordenado = Alunos_Subidometro.objects.filter(
+        semana=semana_subidometro, campeonato=campeonato_vigente
+    ).order_by("-pontuacao_geral")
+
+    for subidometro in alunos_subidometro_ordenado:
+        aluno = subidometro.aluno
+        aluno.nivel = subidometro.nivel
+        aluno.save()
+
+    
+    return render(request, "Ranking/ranking.html", {"alunos": alunos})
+
 
 def teste(request):
-
-
-    return render(request, "ranking.html", {"alunos": "resultado"})
-
-
+    campeonato, semana = calcular_semana_vigente()
+    return HttpResponse(f"Semana: {semana}, Campeonato: {campeonato}")

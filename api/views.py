@@ -384,38 +384,16 @@ def alterar_envio(envio_data):
 
     pontuacao.save()
 
-LOGS_PER_PAGE = 50
-
-
 @login_required
 def listar_logs(request):
-    
+    LOGS_PER_PAGE = 50
     logs = Log.objects.order_by('-criado_em')[:LOGS_PER_PAGE]
     return render(request, 'logs/logs.html', {'logs': logs})
 
-@api_view(['GET'])
-def carregar_mais_logs(request):
-    page = int(request.GET.get('page', 1))  # Número da página atual
-    logs = Log.objects.order_by('-criado_em')  # Todos os logs ordenados por data
-
-    paginator = Paginator(logs, LOGS_PER_PAGE)  # Paginação
-
-    if page > paginator.num_pages:
-        return JsonResponse({'logs': []})  # Nenhum log extra para carregar
-
-    logs_page = paginator.page(page)
-    logs_data = [
-        {
-            'acao': log.acao,
-            'tabela': log.tabela,
-            'status': log.status,
-            'criado_em': log.criado_em.strftime('%Y-%m-%d %H:%M:%S'),
-        }
-        for log in logs_page
-    ]
-
-    return JsonResponse({'logs': logs_data})
-
+@login_required
+def detalhes_log(request, log_id):
+    log = Log.objects.get(id=log_id)
+    return render(request, 'logs/detalhes_log.html', {'log': log})
 
 @api_view(['POST'])
 def receber_dados(request):

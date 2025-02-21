@@ -419,6 +419,7 @@ if($_GET['calculoRankingSemanaAluno']==1){
 	"); //WHERE ( alunos.status = 'ACTIVE' OR alunos.status = 'APPROVED' OR alunos.status = 'COMPLETE' OR alunos.dataExpiracao >= '".date("Y-m-d H:i:s")."' )
     // AND alunosClientes.semPontuacao != 1
     
+	$alunos = $con->selectList("SELECT alunos.id, alunos.cla FROM alunos");	
 	
 	$contador=1;
 	foreach($posicoesAlunos as $posicao){
@@ -527,3 +528,73 @@ if($_GET['calculoRankingSemanaAluno']==1){
 	
 	exit;
 }//NOVO CÓDIGO PARA TESTES
+
+
+
+if($_SESSION[SESSAO_UNICA_ALUNOS]['id']==1){
+    $campeonatoVigente = $con->selectRow("SELECT * FROM campeonatos WHERE id = 5");
+}else{
+    $campeonatoVigente = $con->selectRow("SELECT * FROM campeonatos WHERE id = 5");
+}
+//CONFIGURAÇÃO PARA ESTABELECER AS DATAS DA SEMANA
+/* 
+	///////// NUMERO DO DIA NA SEMANA /////////
+	0 = DOMINGO 
+	1 = SEGUNDA 
+	2 = TERCA
+	3 = QUARTA
+	4 = QUINTA
+	5 = SEXTA
+	6 = SABADO
+	///////// NUMERO DO DIA NA SEMANA /////////
+*/
+$numeroDiaSemana = date("w");
+
+
+
+if($_SESSION[SESSAO_UNICA_ALUNOS]['id']==1 ){
+    
+    //$dataHojeStr = strtotime(date("Y-m-d")." +6 days"); //COLOCAR MAIS DIAS PARA SIMULAR DATA FUTURA
+	$dataHojeStr = strtotime("2025-01-22"); //COLOCAR MAIS DIAS PARA SIMULAR DATA FUTURA
+	//$dataHojeStr = strtotime(date("Y-m-d")); //USAR PARA PEGAR HOJE
+	//$dataHojeStr = strtotime(date("Y-m-d")); //USAR PARA PEGAR HOJE
+}else{
+	$dataHojeStr = strtotime(date("Y-m-d")); //USAR PARA PEGAR HOJE
+}
+
+//$dataHojeStr = strtotime("2024-08-19"); //COLOCAR MAIS DIAS PARA SIMULAR DATA FUTURA
+
+/*
+if($_SESSION[SESSAO_UNICA_ALUNOS]['id']!=1){
+    if( date("Y-m-d") >= "2024-03-04" && date("Y-m-d") <= "2024-03-10" ){
+        $dataHojeStr = strtotime("2024-03-03");
+    }
+}*/
+$dataHoje = date("Y-m-d",$dataHojeStr);
+
+//$totalSemanas = (date( 'W', strtotime( $campeonatoVigente['dataInicio'] ) ) - date( 'W', strtotime( $campeonatoVigente['dataFim'] ) )-1);
+//$totalSemanas = (date( 'W', strtotime( $campeonatoVigente['dataFim'] ) ) - date( 'W', strtotime( $campeonatoVigente['dataInicio'] ) )-1);
+
+$totalSemanas = (date( 'W', strtotime( $campeonatoVigente['dataFim'] ) ) - date( 'W', strtotime( $campeonatoVigente['dataInicio'] ) )-1);
+$totalSemanas = str_replace("-","",$totalSemanas);
+
+
+
+//CRIA O ARRAY DAS SEMANAS E COLOCA NO CAMPEONATO OS DADOS DA SEMANA
+$semanasCampeonatoArr = $semanaVigente = array();
+for($semana=0;$semana<$totalSemanas;$semana++){ $periodoData = ""; $segunda = strtotime($campeonatoVigente['dataInicio']." +".$semana." weeks");
+											   
+	for($dia=0;$dia<7;$dia++){ 
+		if($dia==6){ $dia = 0;}else{ $dia = $dia+1;}
+		$semanasCampeonatoArr[($semana+1)]["datas"][$dia] = date("Y-m-d",strtotime(date("Y-m-d",$segunda)." +".$dia." days"));
+		if($dia==0){$dataInicialAtual = date("Y-m-d",strtotime(date("Y-m-d",$segunda)." +".$dia." days")); }
+		if($dia==6){$dataFinalAtual = date("Y-m-d",strtotime(date("Y-m-d",$segunda)." +".$dia." days")); }
+		$semanaVigenteArr[date("Y-m-d",strtotime(date("Y-m-d",$segunda)." +".$dia." days"))] = $semana+1;		
+	} 
+	ksort($semanasCampeonatoArr[($semana+1)]["datas"]);
+	$semanasCampeonatoArr[($semana+1)]["periodo"] = formatarPeriodo($dataInicialAtual,$dataFinalAtual);	
+}
+
+if( strtotime($dataHoje) < strtotime( $campeonatoVigente['dataInicio'] ) ){ $campeonatoVigente["semanaVigente"] = '0'; }else{ $campeonatoVigente["semanaVigente"] = $semanaVigenteArr[$dataHoje]; }
+$campeonatoVigente["totalSemanas"] = $totalSemanas;
+$campeonatoVigente["hoje"] = $dataHoje;

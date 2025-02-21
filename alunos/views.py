@@ -1,39 +1,201 @@
 from django.shortcuts import render
+from django.http import HttpResponse
 from subidometro.models import *
-from django.db.models.functions import Coalesce, TruncMonth
-from django.db.models import OuterRef, Subquery, F, Value, Q, DecimalField, Value, Sum, Count
+from subidometro.utils import *
+from django.db.models.functions import TruncMonth
+from django.db.models import OuterRef, Subquery, F, Sum, Count
 from django.contrib.auth.decorators import login_required
 from datetime import date
-from django.utils import timezone
+from django.core.paginator import Paginator
+import pandas as pd
+import xlsxwriter
 
 @login_required
 def home(request):
     return render(request, 'Home/home.html')
 
 @login_required
+def exportar_alunos(request):
+    alunos = Alunos.objects.all()
+    
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=alunos_subidopro.xlsx'
+
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
+
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Estilo para o conteúdo das células
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Ajustando a largura das colunas
+    for col in range(7):  # De A (0) até G (6)
+        worksheet.set_column(col, col, 24)
+
+    # Cabeçalhos das colunas
+    headers = ['ID', 'Nome Completo', 'Nível', 'Apelido', 'Email', 'Data Criação', 'Status']
+    
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+
+    # Preenchendo os dados
+    row = 1
+    for aluno in alunos:
+        # Remover o timezone dos datetimes
+        data_criacao = aluno.data_criacao.replace(tzinfo=None) if aluno.data_criacao else None
+        
+        worksheet.write(row, 0, aluno.id, cell_format)  # ID
+        worksheet.write(row, 1, aluno.nome_completo, cell_format)  # Nome Completo
+        worksheet.write(row, 2, aluno.nivel, cell_format)  # Nível
+        worksheet.write(row, 3, aluno.apelido, cell_format)  # Apelido
+        worksheet.write(row, 4, aluno.email, cell_format)  # Email
+        worksheet.write(row, 5, data_criacao.strftime('%d/%m/%Y %H:%M') if data_criacao else '', cell_format)  # Data Criação
+        worksheet.write(row, 6, 'Ativo' if aluno.status == 'ACTIVE' else 'Inativo', cell_format)  # Status
+        row += 1
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+    return response
+
+@login_required
 def alunos(request):
-    alunos = Alunos.objects.all().order_by('id')
+    query = request.GET.get('q', '')
+
+    alunos_list = Alunos.objects.all().order_by('id')
+    
+    if query:
+        alunos_list = alunos_list.filter(
+            Q(nome_completo__icontains=query) | 
+            Q(apelido__icontains=query) | 
+            Q(email__icontains=query)
+        )
+
+    paginator = Paginator(alunos_list, 20)
+    page_number = request.GET.get('page')
+    alunos = paginator.get_page(page_number)
+
     context = {
         'alunos': alunos,
+        'query': query
     }
     return render(request, 'Alunos/alunos.html', context)
 
 @login_required
-def aluno(request, aluno_id):
+def exportar_aluno_pontuacoes(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
-    campeonato = Campeonato.objects.get(id=5)
+    campeonato, semana = calcular_semana_vigente()
     pontuacoes = Aluno_pontuacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
 
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=aluno_pontuacoes_{aluno.id}_subidopro.xlsx'
+
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
+
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Estilo para o conteúdo das células
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Ajustando a largura das colunas
+    for col in range(9):  # De A (0) até I (8)
+        worksheet.set_column(col, col, 24)
+
+    # Cabeçalhos das colunas
+    headers = [
+        'ID', 'Tipo Pontuação', 'ID Vínculo', 'Descrição', 'Pontos',
+        'Data', 'Status', 'Status Motivo', 'Status Comentário'
+    ]
+
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+
+    # Preenchendo os dados
+    row = 1
+    for pontuacao in pontuacoes:
+        # Remover o timezone dos datetimes
+        data = pontuacao.data.replace(tzinfo=None) if pontuacao.data else None
+
+        # Determinar ID de vínculo
+        if pontuacao.tipo_pontuacao.id == 1:
+            id_vinculo = pontuacao.envio.id if pontuacao.envio else ''
+        elif pontuacao.tipo_pontuacao.id == 2:
+            id_vinculo = pontuacao.desafio.id if pontuacao.desafio else ''
+        elif pontuacao.tipo_pontuacao.id == 3:
+            id_vinculo = pontuacao.certificacao.id if pontuacao.certificacao else ''
+        else:
+            id_vinculo = ''
+
+        worksheet.write(row, 0, pontuacao.id, cell_format)  # ID
+        worksheet.write(row, 1, pontuacao.tipo_pontuacao.nome, cell_format)  # Tipo Pontuação
+        worksheet.write(row, 2, id_vinculo, cell_format)  # ID Vínculo
+        worksheet.write(row, 3, pontuacao.descricao, cell_format)  # Descrição
+        worksheet.write(row, 4, pontuacao.pontos, cell_format)  # Pontos
+        worksheet.write(row, 5, data.strftime('%d/%m/%Y %H:%M') if data else '', cell_format)  # Data
+        worksheet.write(row, 6, 'Aprovado' if pontuacao.status == 3 else 'Pendente', cell_format)  # Status
+        worksheet.write(row, 7, pontuacao.status_motivo, cell_format)  # Status Motivo
+        worksheet.write(row, 8, pontuacao.status_comentario, cell_format)  # Status Comentário
+        row += 1
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+    return response
+
+@login_required
+def aluno(request, aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    campeonato, semana = calcular_semana_vigente()
+    pontuacoes = Aluno_pontuacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
+    pontos_aluno = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana).first()
+    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
     context = {
         'aluno': aluno,
         'pontuacoes': pontuacoes,
+        'pontos_aluno': pontos_aluno,
+        'pontos_contratos': pontos_contratos,
     }
-    return render(request, 'Alunos/aluno.html', context)
+    return render(request, 'Alunos/aluno.html', context) 
 
 @login_required
 def clas(request):
+    query = request.GET.get('q', '')
+
     campeonato = Campeonato.objects.get(id=5)
-    clas = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
+    clas_list = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
+    if query:
+        clas_list = clas_list.filter(
+            Q(nome__icontains=query) 
+        )
+
 
     context = {
         'clas': clas,
@@ -54,11 +216,81 @@ def cla(request, cla_id):
     return render(request, 'Clas/cla.html', context)
 
 @login_required
+def exportar_clientes(request):
+    clientes = Aluno_clientes.objects.all()
+    
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=clientes_subidopro.xlsx'
+
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
+
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Estilo para o conteúdo das células
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Ajustando a largura das colunas
+    for col in range(7):  # De A (0) até G (6)
+        worksheet.set_column(col, col, 24)
+
+    # Cabeçalhos das colunas
+    headers = ['ID', 'Título', 'Documento', 'Data de Criação', 'Aluno', 'Pontos', 'Status']
+    
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+
+    # Preenchendo os dados
+    row = 1
+    for cliente in clientes:
+        # Remover o timezone dos datetimes
+        data_criacao = cliente.data_criacao.replace(tzinfo=None) if cliente.data_criacao else None
+        
+        worksheet.write(row, 0, cliente.id, cell_format)  # ID
+        worksheet.write(row, 1, cliente.titulo, cell_format)  # Título
+        worksheet.write(row, 2, cliente.documento, cell_format)  # Documento
+        worksheet.write(row, 3, data_criacao.strftime('%d/%m/%Y %H:%M') if data_criacao else '', cell_format)  # Data de Criação
+        worksheet.write(row, 4, cliente.aluno.nome_completo, cell_format)  # Aluno Res.
+        worksheet.write(row, 5, cliente.pontos, cell_format)  # Pontos
+        worksheet.write(row, 6, 'Ativo' if cliente.status == 1 else 'Inativo', cell_format)  # Status
+        row += 1
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+
+@login_required
 def clientes(request):
-    PAGE = 150
-    clientes = Aluno_clientes.objects.all().order_by('id')[:PAGE]
+    query = request.GET.get('q', '')
+
+    clientes_list = Aluno_clientes.objects.all().order_by('id')
+
+    if query:
+        clientes_list = clientes_list.filter(
+            Q(titulo__icontains=query) | 
+            Q(documento__icontains=query)
+        )
+
+    paginator = Paginator(clientes_list, 20)
+    page_number = request.GET.get('page')
+    clientes = paginator.get_page(page_number)
+
     context = {
         'clientes': clientes,
+        'query': query
     }
     return render(request, 'Clientes/clientes.html', context)
 
@@ -270,80 +502,158 @@ def retencao(request):
     return render(request, "Retencao/retencao.html", {"retencoes": retencoes})
 
 @login_required
-def ranking(request):
-    CAMPEONATO_ID = 5
-    try:
-        campeonatoVigente = Campeonato.objects.get(id=CAMPEONATO_ID)
-    except Campeonato.DoesNotExist:
-        return render(request, "ranking.html", {"error": "Campeonato vigente não encontrado."})
+def exportar_ranking(request):
+    alunos = calculo_ranking_def()
 
-    # IDs dos registros de mentoria_cla com definido = 1
-    mentoria_ids = Mentoria_cla.objects.filter(definido=1).values_list('id', flat=True)
+    campeonato, semana = calcular_semana_vigente()
 
-    # Filtra os alunos conforme as condições:
-    alunos_qs = Alunos.objects.filter(
-        Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
-        nivel__lt=16,
-        cla__in=mentoria_ids
-    )
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=ranking_subidopro.xlsx'
 
-    # Subquery para total de pontos (garantindo DecimalField)
-    subquery_pontos = Aluno_pontuacao.objects.filter(
-        aluno=OuterRef('pk'),
-        status=3,
-        semana__gt=0
-    ).filter(
-        Q(envio__campeonato_id=CAMPEONATO_ID) |
-        Q(desafio__campeonato_id=CAMPEONATO_ID) |
-        Q(certificacao__campeonato_id=CAMPEONATO_ID)
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
 
-    # Subquery para total de pontos clientes (garantindo DecimalField)
-    subquery_pontos_clientes = Aluno_clientes.objects.filter(
-        aluno=OuterRef('pk'),
-        status=1,
-        pontos__gt=0
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
 
-    # Subquery para total de pontos clientes retencao (garantindo DecimalField)
-    subquery_total_pontos_clientes_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        aluno=OuterRef('pk'),
-        campeonato_id=CAMPEONATO_ID,
-        pontos__gt=0
-    ).values('aluno').annotate(
-        total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
-    ).values('total')
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
 
-    # Aplicando as subqueries
-    alunos_qs = alunos_qs.annotate(
-        total_pontos=Coalesce(Subquery(subquery_pontos, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_clientes=Coalesce(Subquery(subquery_pontos_clientes, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_clientes_retencao=Coalesce(Subquery(subquery_total_pontos_clientes_retencao, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_final=F('total_pontos') + F('total_pontos_clientes') + F('total_pontos_clientes_retencao')
-    )
+    # Estilo para as células do corpo
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
 
-    # Criando lista de dicionários
-    resultado = [
-        {
-            "id": aluno.id,
-            "nome": aluno.nome_completo,
-            "totalPontos": aluno.total_pontos,
-            "totalPontosClientes": aluno.total_pontos_clientes,
-            "totalPontosClientesRetencao": aluno.total_pontos_clientes_retencao,
-            "totalPontosFinal": aluno.total_pontos_final,
-        }
-        for aluno in alunos_qs
+    # Ajustando a largura das colunas
+    for col in range(11):  # De A até K (0 a 10)
+        worksheet.set_column(col, col, 24)  # Define largura de 24
+
+    # Cabeçalhos das colunas
+    headers = [
+        'Posição', 'ID Aluno', 'Nome do Aluno', 'Clã', 
+        'PF Pontos potenciais', 'PF Pontos efetivos', 
+        'Pontos Desafios', 'Pontos Certificações',
+        'Pontos Contratos', 'Pontos Clientes Retenção', 'Pontos Final'
     ]
+    
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
 
-    # Ordena a lista pelo totalPontosFinal (do maior para o menor)
-    resultado = sorted(resultado, key=lambda x: x["totalPontosFinal"], reverse=True)
+    # Cabeçalhos das colunas
+    # worksheet.write('A1', 'Posição')
+    # worksheet.write('C1', 'Nome do Aluno')
+    # worksheet.write('B1', 'ID Aluno')
+    # worksheet.write('D1', 'Clã')
 
-    # Atribui ranking (1 para o maior pontuador, 2 para o segundo, etc.)
-    for i, aluno in enumerate(resultado, start=1):
-        aluno["rank"] = i
+    # worksheet.write('E1', 'PF Pontos potenciais')
+    # worksheet.write('F1', 'PF Pontos efetivos')
+    # worksheet.write('G1', 'Pontos Desafios')
+    # worksheet.write('H1', 'Pontos Certificações')
 
-    return render(request, "Ranking/ranking.html", {"alunos": resultado})
+    
+    # worksheet.write('I1', 'Pontos Clientes')
+    # worksheet.write('J1', 'Pontos Clientes Retenção')
+    # worksheet.write('K1', 'Pontos Final')
+
+    row = 1
+    for aluno in alunos:
+        worksheet.write(row, 0, aluno["rank"])
+        worksheet.write(row, 1, aluno["id"])
+        worksheet.write(row, 2, aluno["nome"])
+        worksheet.write(row, 3, aluno["cla_name"])
+
+        # Subqueries separadas por tipo de pontuação
+        pontos_envios_potenciais = Aluno_pontuacao.objects.filter(
+            aluno_id=aluno["id"],
+            status=3,
+            semana__gt=0,
+            tipo_pontuacao_id=1  # Envios
+        ).filter(
+            Q(envio__campeonato_id=campeonato.id) |
+            Q(desafio__campeonato_id=campeonato.id) |
+            Q(certificacao__campeonato_id=campeonato.id)
+        ).aggregate(total=Coalesce(Sum('pontos_previsto', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
+
+        # Subqueries separadas por tipo de pontuação
+        pontos_envios = Aluno_pontuacao.objects.filter(
+            aluno_id=aluno["id"],
+            status=3,
+            semana__gt=0,
+            tipo_pontuacao_id=1  # Envios
+        ).filter(
+            Q(envio__campeonato_id=campeonato.id) |
+            Q(desafio__campeonato_id=campeonato.id) |
+            Q(certificacao__campeonato_id=campeonato.id)
+        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
+
+        pontos_desafios = Aluno_pontuacao.objects.filter(
+            aluno_id=aluno["id"],
+            status=3,
+            semana__gt=0,
+            tipo_pontuacao_id=2  # Desafios
+        ).filter(
+            Q(envio__campeonato_id=campeonato.id) |
+            Q(desafio__campeonato_id=campeonato.id) |
+            Q(certificacao__campeonato_id=campeonato.id)
+        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
+
+        pontos_certificacoes = Aluno_pontuacao.objects.filter(
+            aluno_id=aluno["id"],
+            status=3,
+            semana__gt=0,
+            tipo_pontuacao_id=3  # Certificações
+        ).filter(
+            Q(envio__campeonato_id=campeonato.id) |
+            Q(desafio__campeonato_id=campeonato.id) |
+            Q(certificacao__campeonato_id=campeonato.id)
+        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
+
+        # Escrevendo os valores no Excel
+
+        worksheet.write(row, 4,  pontos_envios_potenciais)  
+        worksheet.write(row, 5, pontos_envios)  
+        worksheet.write(row, 6, pontos_desafios or 0)
+        worksheet.write(row, 7, pontos_certificacoes or 0)
+
+        worksheet.write(row, 8, aluno["totalPontosClientes"])
+        worksheet.write(row, 9, aluno["totalPontosClientesRetencao"])
+        worksheet.write(row, 10, aluno["totalPontosFinal"])
+
+        row += 1
+
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+    return response
+    
+@login_required
+def ranking(request):
+    alunos = calculo_ranking_def()
+    return render(request, "Ranking/ranking.html", {"alunos": alunos})
+
+@login_required
+def ranking_semana(request):
+    campeonato, semana = calcular_semana_vigente()
+    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=semana).all()
+    paginator = Paginator(semana_rank_list, 20)
+    page_number = request.GET.get('page')
+    semana_rank = paginator.get_page(page_number)
+    return render(request, "Ranking/ranking_semana.html", {"alunos": semana_rank, "semana": semana})
+
+@login_required
+def ranking_cla(request):
+    campeonato, semana = calcular_semana_vigente()
+    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=semana).all()
+    paginator = Paginator(cla_rank_list, 20)
+    page_number = request.GET.get('page')
+    cla_rank = paginator.get_page(page_number)
+    return render(request, "Ranking/ranking_cla.html", {"cla_rank": cla_rank, "semana": semana})

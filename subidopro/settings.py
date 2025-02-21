@@ -52,7 +52,6 @@ BASE_URL = env("BASE_URL", default="http://127.0.0.1:8000")
 # Application definition
 
 INSTALLED_APPS = [
-    #'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -66,21 +65,6 @@ INSTALLED_APPS = [
     'alunos',
 ]
 WSGI_APPLICATION = 'subidopro.wsgi.application'
-#ASGI_APPLICATION = 'subidopro.asgi.application'
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels.layers.InMemoryChannelLayer",
-#     },
-# }
-
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("10.0.0.3", 6379)],  # Substitua pelo IP interno do Cloud Memorystore
-#         },
-#     },
-# }
 
 
 MIDDLEWARE = [

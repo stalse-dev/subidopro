@@ -1,13 +1,17 @@
 from django.db import models
 
 class Campeonato(models.Model):
-    nome = models.CharField(max_length=100, unique=True)
+    identificacao = models.CharField(max_length=255)
     descricao = models.TextField(null=True, blank=True)
     data_inicio = models.DateField()
     data_fim = models.DateField(null=True, blank=True)
+    imagem = models.CharField(max_length=255)
+    regra_pdf = models.CharField(max_length=255)
+    turma = models.IntegerField(null=True, blank=True)
+
 
     def __str__(self):
-        return self.nome
+        return self.identificacao
 
 class Desafios(models.Model):
     titulo = models.CharField(max_length=500, unique=True)
@@ -33,6 +37,17 @@ class Mentoria_cla(models.Model):
     def __str__(self):
         return self.nome
 
+class Mentoria_cla_posicao_semana(models.Model):
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_posicoes_semana_cla')
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_posicoes_semana_campeonato")
+    semana = models.IntegerField(null=True, blank=True)
+    posicao = models.IntegerField(null=True, blank=True)
+    data = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.cla} - {self.semana} - {self.posicao}"
+
 class Alunos(models.Model):
     nome_completo = models.CharField(max_length=255, null=True, blank=True, db_column="nome_completo")
     nome_social = models.CharField(max_length=255, null=True, blank=True, db_column="nome_social")
@@ -49,7 +64,20 @@ class Alunos(models.Model):
 
     def __str__(self):
         return self.nome_completo
-    
+
+class Alunos_posicoes_semana(models.Model):
+    aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="alunos_posicoes_semana")
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_posicoes_semana_cla")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_posicoes_semana_campeonato")
+    semana = models.IntegerField(null=True, blank=True)
+    posicao = models.IntegerField(null=True, blank=True)
+    tipo = models.IntegerField(null=True, blank=True)
+    data = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"Aluno {self.aluno.id} - {self.aluno.nome_completo} - {self.posicao} - {self.tipo}"
+
 class Aluno_clientes(models.Model):
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonato_clientes")
     aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="envios_aluno")
@@ -185,6 +213,7 @@ class Aluno_pontuacao(models.Model):
 
     # Vínculo opcional com Certificações
     certificacao = models.ForeignKey("Aluno_certificacao", on_delete=models.SET_NULL, null=True, blank=True, related_name="pontuacoes_certificacoes")
+    
     campeonato = models.ForeignKey("Campeonato", on_delete=models.CASCADE, null=True, blank=True, related_name="pontuacoes_campeonato")
     descricao = models.CharField(max_length=255, null=True, blank=True)
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
@@ -200,5 +229,42 @@ class Aluno_pontuacao(models.Model):
     def __str__(self):
         return f"{self.aluno.nome_completo} - {self.tipo_pontuacao.nome} - {self.pontos} pts"
 
+class Alunos_Subidometro(models.Model):
+    aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunos_subidometro")
+    campeonato = models.ForeignKey("Campeonato", on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_subidometro_campeonato")
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_subidometro_cla")
+    semana = models.IntegerField(null=True, blank=True)
+    nivel = models.IntegerField(null=True, blank=True)
+    nivel_motivo = models.IntegerField(null=True, blank=True)
+    nivel_comentario = models.TextField(null=True, blank=True)
+    envios = models.IntegerField(null=True, blank=True)
+    cliente = models.IntegerField(null=True, blank=True)
+    faturamento = models.IntegerField(null=True, blank=True)
+    faturamento_valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontuacao_geral = models.IntegerField(null=True, blank=True)
+    pontuacao_cla = models.IntegerField(null=True, blank=True)
+    rastreador = models.IntegerField(null=True, blank=True)
+    data = models.DateField(null=True, blank=True, auto_now_add=True)
+    status_aluno = models.CharField(max_length=255, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.aluno.nome_completo} - {self.campeonato.identificacao}"
+
+class Aluno_contrato(models.Model):
+    campeonato = models.ForeignKey("Campeonato", on_delete=models.CASCADE, null=True, blank=True, related_name="campeonato_aluno_contrato")
+    aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="aluno_aluno_contrato")
+    cliente = models.ForeignKey(Aluno_clientes, on_delete=models.CASCADE, related_name="cliente_aluno_contrato")
+    contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, related_name="contrato_aluno_contrato", null=True, blank=True)
+    envio = models.ForeignKey(Aluno_envios, on_delete=models.CASCADE, related_name="envio_aluno_contrato", null=True, blank=True)
 
 
+    descricao = models.CharField(max_length=255, null=True, blank=True)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    data = models.DateField(null=True, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    pontos = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.aluno.nome_completo} - {self.contrato.nome}"

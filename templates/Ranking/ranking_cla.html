@@ -1,0 +1,64 @@
+{% extends 'main.html' %}
+{% block containerBodyMain %}
+    <div class="flex flex-col text-white min-h-screen pt-20">
+        <h1 class="text-3xl font-bold text-center mt-6">Lista de Ranking Semanal Clã {{ semana }}</h1>
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-6 py-3">ID Aluno</th>
+                                <th class="px-6 py-3">Nome do clã</th>
+                                <th class="px-6 py-3">Sigla</th>
+                                <th class="px-6 py-3">Pontuação</th>
+                                <th class="px-6 py-3">Rank</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cla in cla_rank %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
+                                onclick="window.location.href='{% url 'cla' cla.cla.id %}'">
+                                <td class="px-6 py-4">{{ cla.cla.id }}</td>
+                                <td class="px-6 py-4">{{ cla.cla.nome }}</td>
+                                <td class="px-6 py-4">{{ cla.cla.sigla }}</td>
+                                <td class="px-6 py-4">{{ cla.pontos }}</td>
+                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ cla.posicao }}°</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <p class="text-center">Nenhum aluno encontrado.</p>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flex flex-col items-center mt-6 mb-6">
+        <span class="text-lg text-white font-semibold mb-2">
+            Página {{ cla_rank.number }} de {{ cla_rank.paginator.num_pages }}
+        </span>
+    
+        <div class="flex gap-2">
+            {% if cla_rank.has_previous %}
+                <a href="?q={{ query }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
+                <a href="?q={{ query }}&page={{ cla_rank.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
+            {% endif %}
+    
+            {% for num in cla_rank.paginator.page_range %}
+                {% if cla_rank.number == num %}
+                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
+                {% elif num > cla_rank.number|add:"-3" and num < cla_rank.number|add:"3" %}
+                    <a href="?q={{ query }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if cla_rank.has_next %}
+                <a href="?q={{ query }}&page={{ cla_rank.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
+                <a href="?q={{ query }}&page={{ cla_rank.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'main.html' %}
+{% load tz %}
+
+{% block containerBodyMain %}
+<div class="flex flex-col text-white min-h-screen pt-20">
+    <h1 class="text-3xl font-bold text-center mt-6">Detalhes do Log</h1>
+    
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div class="w-[90%] max-w-4xl bg-gray-800 p-6 rounded-lg shadow-lg">
+            <!-- Informações Gerais do Log -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6">
+                <h2 class="text-2xl font-bold mb-2">Ação: {{ log.acao|upper }}</h2>
+                <p class="text-gray-400"><strong>Tabela:</strong> {{ log.tabela }}</p>
+                <p class="text-gray-400"><strong>Status:</strong> 
+                    {% if log.status == "sucesso" %}
+                        <span class="text-green-400">Sucesso</span>
+                    {% else %}
+                        <span class="text-red-400">Erro</span>
+                    {% endif %}
+                </p>
+                <p class="text-gray-400"><strong>Data:</strong> {{ log.criado_em|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i" }}</p>
+                {% if log.erro %}
+                    <p class="text-red-400 mt-4"><strong>Erro:</strong> {{ log.erro }}</p>
+                {% endif %}
+            </div>
+
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6">
+                {% if log.acao == "add" %}
+                    <h2 class="text-xl font-bold mb-4">Dados Novos</h2>
+                {% elif log.acao == "alt" %}
+                    <h2 class="text-xl font-bold mb-4">Dados Alterados</h2>
+                {% elif log.acao == "del" %}
+                    <h2 class="text-xl font-bold mb-4">Dados Apagados</h2>
+                {% endif %}
+                {% if log.dados_novos %}
+                    <div class="overflow-x-auto bg-gray-800 p-4 rounded-lg">
+                        <table class="w-full text-sm text-left text-gray-400">
+                            <thead class="text-xs uppercase bg-gray-600 text-gray-300">
+                                <tr>
+                                    <th class="px-6 py-3">Campo</th>
+                                    <th class="px-6 py-3">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, value in log.dados_novos.items %}
+                                    <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
+                                        <td class="px-6 py-4">{{ key }}</td>
+                                        <td class="px-6 py-4">{{ value }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% elif log.dados_anteriores %}
+                    <div class="overflow-x-auto bg-gray-800 p-4 rounded-lg">
+                        <table class="w-full text-sm text-left text-gray-400">
+                            <thead class="text-xs uppercase bg-gray-600 text-gray-300">
+                                <tr>
+                                    <th class="px-6 py-3">Campo</th>
+                                    <th class="px-6 py-3">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, value in log.dados_anteriores.items %}
+                                    <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
+                                        <td class="px-6 py-4">{{ key }}</td>
+                                        <td class="px-6 py-4">{{ value }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-gray-400">Nenhum dado novo registrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

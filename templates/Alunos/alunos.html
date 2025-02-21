@@ -1,8 +1,38 @@
 {% extends 'main.html' %}
 
 {% block containerBodyMain %}
-    <div class="flex flex-col bg-gray-900 text-white min-h-screen">
-        <h1 class="text-3xl font-bold text-center mt-6">Lista de Alunos</h1>
+    <div class="flex flex-col text-white min-h-screen pt-20">
+       
+        <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
+            
+            <!-- Botão de Download -->
+            <a href="{% url 'exportar_alunos' %}" 
+                class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600 h-15">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Baixar Excel
+            </a>
+    
+            <!-- Título Centralizado -->
+            <h1 class="text-3xl font-bold text-center flex-1">Lista de Alunos</h1>
+    
+            <!-- Formulário de Busca -->
+            <form method="GET" class="flex bg-gray-700 p-2 rounded-lg shadow-lg h-15">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar aluno..." 
+                        class="px-4 py-2 rounded-l-lg bg-gray-800 text-white focus:outline-none" />
+                <button type="submit" class="px-4 py-2 bg-[#1B469F] text-white rounded-r-lg font-bold">
+                    Buscar
+                </button>
+            </form>
+        </div>
+
+        
+        
+    
         <div class="flex-grow flex items-center justify-center p-4">
             <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
                 <div class="overflow-x-auto">
@@ -47,4 +77,33 @@
             </div>
         </div>
     </div>
+
+    <div class="flex flex-col items-center mt-6 mb-6">
+        <span class="text-lg text-white font-semibold mb-2">
+            Página {{ alunos.number }} de {{ alunos.paginator.num_pages }}
+        </span>
+    
+        <div class="flex gap-2">
+            {% if alunos.has_previous %}
+                <a href="?q={{ query }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
+                <a href="?q={{ query }}&page={{ alunos.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
+            {% endif %}
+    
+            {% for num in alunos.paginator.page_range %}
+                {% if alunos.number == num %}
+                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
+                {% elif num > alunos.number|add:"-3" and num < alunos.number|add:"3" %}
+                    <a href="?q={{ query }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if alunos.has_next %}
+                <a href="?q={{ query }}&page={{ alunos.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
+                <a href="?q={{ query }}&page={{ alunos.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    
+    
 {% endblock %}
