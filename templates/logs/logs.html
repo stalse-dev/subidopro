@@ -1,23 +1,94 @@
 {% extends 'main.html' %}
 {% load tz %}
 {% block containerBodyMain %}
-<div class="flex flex-col text-white min-h-screen pt-20">
-    <h1 class="text-3xl font-bold text-center mt-6">Logs de Endpoints</h1>
+    <div class="flex flex-col text-white min-h-screen pt-20">
+       
+        <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
+            <h1 class="text-3xl font-bold text-center flex-1">Logs de Endpoints</h1>
+        
+            <!-- Formulário de Busca e Filtro -->
+            <form method="GET" class="flex bg-gray-700 p-2 rounded-lg shadow-lg h-15">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar Logs..." 
+                        class="px-4 py-2 rounded-l-lg bg-gray-800 text-white focus:outline-none" />
+                <select name="status" class="px-2 py-2 bg-gray-800 text-white border-l border-gray-600 focus:outline-none">
+                    <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
+                    <option value="sucesso" {% if status_filter == "sucesso" %}selected{% endif %}>Sucesso</option>
+                    <option value="erro" {% if status_filter == "erro" %}selected{% endif %}>Erro</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-[#1B469F] text-white rounded-r-lg font-bold">
+                    Buscar
+                </button>
+            </form>
+        </div>
+
+        
+        
     
-    <div class="flex-grow flex items-center justify-center p-4">
-        <div class="w-[90%] max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg">
-            <div id="logs" class="space-y-2 h-full overflow-auto">
-                {% for log in logs %}
-                    <a href="{% url 'detalhes_log' log.id %}" class="block p-2 bg-gray-700 rounded-md">
-                        <strong>{{ log.acao }}</strong> na tabela 
-                        <strong>{{ log.tabela }}</strong> - Status: 
-                        <strong>{{ log.status }}</strong> - 
-                        {{ log.criado_em|timezone:"America/Sao_Paulo" }}
-                    </a>
-                {% endfor %}
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Tabela</th>
+                                <th class="px-6 py-3">Ação</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
+                                onclick="window.location.href='{% url 'detalhes_log' log.id %}'">
+                                <td class="px-6 py-4">{{ log.id }}</td>
+                                <td class="px-6 py-4">{{ log.tabela }}</td>
+                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ log.acao }}</td>
+                                {% if log.status == "sucesso" %}
+                                    <td class="px-6 py-4 text-green-400">Sucesso</td>
+                                {% else %}
+                                    <td class="px-6 py-4 text-red-400">Erro</td>
+                                {% endif %}
+                                <td class="px-6 py-4">{{ log.criado_em|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">Nenhum Log encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
+    <div class="flex flex-col items-center mt-6 mb-6">
+        <span class="text-lg text-white font-semibold mb-2">
+            Página {{ logs.number }} de {{ logs.paginator.num_pages }}
+        </span>
+    
+        <div class="flex gap-2">
+            {% if logs.has_previous %}
+                <a href="?q={{ query }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
+                <a href="?q={{ query }}&page={{ logs.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
+            {% endif %}
+    
+            {% for num in logs.paginator.page_range %}
+                {% if logs.number == num %}
+                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
+                {% elif num > logs.number|add:"-3" and num < logs.number|add:"3" %}
+                    <a href="?q={{ query }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if logs.has_next %}
+                <a href="?q={{ query }}&page={{ logs.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
+                <a href="?q={{ query }}&page={{ logs.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    
+    
 {% endblock %}

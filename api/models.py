@@ -14,6 +14,7 @@ class Log(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sucesso')
     erro = models.TextField(null=True, blank=True)  # Para armazenar a mensagem de erro, se houver
     criado_em = models.DateTimeField(default=now)
+    dados_geral = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.acao} - {self.tabela} - {self.status} - {self.criado_em}"

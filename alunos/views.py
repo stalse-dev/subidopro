@@ -763,18 +763,24 @@ def extrato(request, aluno_id):
         ])
 
     df = pd.DataFrame(extrato_list, columns=[
-        "Data", "Data Cadastro", "Aluno", "ID Aluno", "Tipo Pontuação", "Cliente",
+        "Data Recebimento", "Data Cadastro", "Aluno", "ID Aluno", "Tipo Pontuação", "Cliente",
         "ID Cliente", "ID Contrato", "Tipo Contrato", "Valor",
-        "Status", "Data Análise", "Rastreador Análise", "Pontos Previsto", "Pontos"
+        "Status", "Data Análise", "Rastreador Análise", "Pontos Previsto", "Pontos Efetivos"
     ])
 
     # Remover timezone das datas no DataFrame
-    df["Data"] = pd.to_datetime(df["Data"], errors="coerce")
+    df["Data Recebimento"] = pd.to_datetime(df["Data Recebimento"], errors="coerce")
     df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"], errors="coerce")
     df["Data Análise"] = pd.to_datetime(df["Data Análise"], errors="coerce")
 
+    df["Mês"] = df["Data Recebimento"].dt.month
+
+    # Reorganizar as colunas para que "Mês" fique em primeiro lugar
+    colunas_ordenadas = ["Mês"] + [col for col in df.columns if col != "Mês"]
+    df = df[colunas_ordenadas]
+
     # Ordenar pela data mais recente
-    df = df.sort_values(by="Data", ascending=False)
+    df = df.sort_values(by="Data Recebimento", ascending=False)
 
     # Criar resposta HTTP para download do Excel
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

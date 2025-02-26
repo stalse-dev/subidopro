@@ -408,11 +408,11 @@ def alterar_envio(envio_data):
         pontuacao = get_object_or_404(Aluno_pontuacao, desafio=desafio)
 
 
-        desafio = get_object_or_404(Aluno_desafio, id=int(envio_data.get("desafio")))
+        desafio_de_fato = get_object_or_404(Desafios, id=int(envio_data.get("desafio")))
 
         desafio.campeonato=campeonato
         desafio.aluno=aluno
-        desafio.desafio=desafio
+        desafio.desafio=desafio_de_fato
         desafio.status=envio_data.get("status")
         desafio.texto=envio_data.get("texto")
         desafio.data=envio_data.get("data")
@@ -429,8 +429,6 @@ def alterar_envio(envio_data):
     elif tipo == 3 or tipo == 5:
         certificado = get_object_or_404(Aluno_certificacao, id=int(envio_data.get("id")))
         pontuacao = get_object_or_404(Aluno_pontuacao, certificacao=certificado)
-
-        certificado = get_object_or_404(Aluno_certificacao, id=int(envio_data.get("certificado")))
 
         certificado.campeonato=campeonato
         certificado.aluno=aluno
@@ -474,9 +472,22 @@ def alterar_envio(envio_data):
 
 @login_required
 def listar_logs(request):
-    LOGS_PER_PAGE = 50
-    logs = Log.objects.order_by('-criado_em')[:LOGS_PER_PAGE]
-    return render(request, 'logs/logs.html', {'logs': logs})
+    logs_list = Log.objects.order_by('-criado_em')
+    
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+
+    if query:
+        logs_list = logs_list.filter(tabela__icontains=query)
+
+    if status_filter in ['sucesso', 'erro']:
+        logs_list = logs_list.filter(status=status_filter)
+
+    paginator = Paginator(logs_list, 50)
+    page_number = request.GET.get('page')
+    logs = paginator.get_page(page_number)
+
+    return render(request, 'logs/logs.html', {'logs': logs, 'query': query, 'status_filter': status_filter})
 
 @login_required
 def detalhes_log(request, log_id):
@@ -500,7 +511,7 @@ def receber_dados(request):
         if tabela in registro_atual:
             try:
                 if acao == 'add':
-                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela])  # Log antes da operação
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
                     if tabela == 'alunosClientes':
                         criar_aluno_cliente(registro_atual['alunosClientes'])
                     elif tabela == 'alunosClientesContratos':
@@ -510,7 +521,7 @@ def receber_dados(request):
 
                 elif acao == 'alt':
                     dados_anteriores = {}  # Buscar os dados antes da alteração, se necessário
-                    registrar_log(acao, tabela, dados_anteriores=dados_anteriores, dados_novos=registro_atual[tabela])
+                    registrar_log(acao, tabela, dados_anteriores=dados_anteriores, dados_novos=registro_atual[tabela], dados_geral=data)
                     if tabela == 'alunosClientes':
                         alterar_aluno_cliente(registro_atual['alunosClientes'])
                     elif tabela == 'alunosClientesContratos':
@@ -519,7 +530,7 @@ def receber_dados(request):
                         alterar_envio(registro_atual['alunosEnvios'])
 
                 elif acao == 'del':
-                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela])
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
                     if tabela == 'alunosClientes':
                         deletar_aluno_cliente(registro_atual['alunosClientes'])
                     elif tabela == 'alunosClientesContratos':
@@ -528,7 +539,7 @@ def receber_dados(request):
                         deletar_envio(registro_atual['alunosEnvios'])
 
             except Exception as e:
-                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e))
+                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
                 return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
