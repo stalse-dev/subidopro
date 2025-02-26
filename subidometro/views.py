@@ -1,4 +1,4 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, redirect
 from django.utils import timezone
 from .models import *
 from django.db.models import OuterRef, Subquery, F, Count, Sum
@@ -236,9 +236,11 @@ def calculo_retencao(request):
 
 def calculo_ranking(request):
     campeonato_vigente, semana = calcular_semana_vigente()
+    semana = semana + 1
 
     resultado = calculo_ranking_def()
 
+    print(semana)
     ### Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
     for posicao in resultado:
         pontos = posicao["totalPontosFinal"] if posicao["totalPontosFinal"] else 0
@@ -328,9 +330,10 @@ def atualizar_subidometro(request):
         aluno.save()
 
     
-    return render(request, "Ranking/ranking.html", {"alunos": alunos})
+    return redirect("home")
 
 
 def teste(request):
     campeonato, semana = calcular_semana_vigente()
-    return HttpResponse(f"Semana: {semana}, Campeonato: {campeonato}")
+    ponto = Aluno_pontuacao.objects.filter(id=8386).first()
+    return HttpResponse(f"Semana: {semana}, Campeonato: {campeonato}, data: {ponto.data_cadastro}")

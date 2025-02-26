@@ -17,7 +17,6 @@ class UserBackend(BaseBackend):
             return User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return None
-
         
 class TokenBackend(BaseBackend):
     def generate_token():
@@ -34,3 +33,4 @@ class TokenBackend(BaseBackend):
             re.search(r'[!@#$%^&*(),.?":{}|<>]', senha)):
             return True
         return False
+    

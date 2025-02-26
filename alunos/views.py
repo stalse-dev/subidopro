@@ -2,13 +2,18 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models.functions import TruncMonth
-from django.db.models import OuterRef, Subquery, F, Sum, Count
+from django.db.models.functions import TruncMonth, Cast
+from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField
+
 from django.contrib.auth.decorators import login_required
 from datetime import date
 from django.core.paginator import Paginator
 import pandas as pd
 import xlsxwriter
+from django.utils import timezone
+from datetime import timedelta
+from datetime import datetime
+
 
 @login_required
 def home(request):
@@ -176,7 +181,7 @@ def aluno(request, aluno_id):
     campeonato, semana = calcular_semana_vigente()
     pontuacoes = Aluno_pontuacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
     pontos_aluno = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana).first()
-    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
+    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, campeonato=campeonato, pontos__gt=0).order_by('-data')
     context = {
         'aluno': aluno,
         'pontuacoes': pontuacoes,
@@ -193,13 +198,19 @@ def clas(request):
     clas_list = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
     if query:
         clas_list = clas_list.filter(
-            Q(nome__icontains=query) 
+            Q(nome__icontains=query) |
+            Q(sigla__icontains=query)
         )
+    paginator = Paginator(clas_list, 20)
+    page_number = request.GET.get('page')
+    clas = paginator.get_page(page_number)
 
 
     context = {
         'clas': clas,
+        'query': query
     }
+
     return render(request, 'Clas/clas.html', context)
 
 @login_required
@@ -548,21 +559,6 @@ def exportar_ranking(request):
     for col_num, header in enumerate(headers):
         worksheet.write(0, col_num, header, header_format)
 
-    # Cabeçalhos das colunas
-    # worksheet.write('A1', 'Posição')
-    # worksheet.write('C1', 'Nome do Aluno')
-    # worksheet.write('B1', 'ID Aluno')
-    # worksheet.write('D1', 'Clã')
-
-    # worksheet.write('E1', 'PF Pontos potenciais')
-    # worksheet.write('F1', 'PF Pontos efetivos')
-    # worksheet.write('G1', 'Pontos Desafios')
-    # worksheet.write('H1', 'Pontos Certificações')
-
-    
-    # worksheet.write('I1', 'Pontos Clientes')
-    # worksheet.write('J1', 'Pontos Clientes Retenção')
-    # worksheet.write('K1', 'Pontos Final')
 
     row = 1
     for aluno in alunos:
@@ -657,3 +653,141 @@ def ranking_cla(request):
     page_number = request.GET.get('page')
     cla_rank = paginator.get_page(page_number)
     return render(request, "Ranking/ranking_cla.html", {"cla_rank": cla_rank, "semana": semana})
+
+
+@login_required
+def extrato(request, aluno_id):
+    campeonato, semana = calcular_semana_vigente()
+    data_limite = timezone.now() - timedelta(weeks=1)
+
+    # pontuacoes = Aluno_pontuacao.objects.filter(campeonato=campeonato, data_cadastro__gte=data_limite).order_by('-data_cadastro')
+    # contratos = Aluno_contrato.objects.filter(campeonato=campeonato, pontos__gt=0, data_cadastro__gte=data_limite).order_by('-data_cadastro')
+
+    pontuacoes = Aluno_pontuacao.objects.filter(campeonato=campeonato, aluno_id=aluno_id).order_by('-data_cadastro')
+    contratos = Aluno_contrato.objects.filter(campeonato=campeonato, aluno_id=aluno_id).order_by('-data_cadastro')
+
+    extrato_list = []
+    for pontuacao in pontuacoes:
+        tipo_pontuacao = {
+            1: "Comprovante de recebimento",
+            2: "Desafio",
+            3: "Certificação"
+        }.get(pontuacao.tipo_pontuacao.id, f"Outro ({pontuacao.tipo})")
+
+        cliente_titulo = pontuacao.envio.cliente.titulo if pontuacao.tipo_pontuacao.id == 1 else "Sem Cliente"
+        cliente_id = pontuacao.envio.cliente.id if pontuacao.tipo_pontuacao.id == 1 else "N/A"
+        contrato_id = pontuacao.envio.contrato.id if pontuacao.tipo_pontuacao.id == 1 else "Sem Contrato"
+        contrato_tipo = ("Fixo" if pontuacao.envio.contrato.tipo_contrato == 1 else "Contrato variável") if pontuacao.tipo_pontuacao.id == 1 else "Sem contrato"
+        valor = f"R$ {pontuacao.envio.valor:.2f}" if pontuacao.tipo_pontuacao.id == 1 else "R$ 0.00"
+
+        status = {
+            0: "Não analisado",
+            1: "Pendente de análise",
+            2: "Invalidado",
+            3: "Validado"
+        }.get(pontuacao.status, "Sem status")
+
+
+        data_pontuacao = pontuacao.data.replace(tzinfo=None) if pontuacao.data else None  # Variável renomeada
+
+        # Remover timezone da data_cadastro
+        data_cadastro = pontuacao.data_cadastro.replace(tzinfo=None) if pontuacao.data_cadastro else None
+
+        if pontuacao.envio and pontuacao.envio.data_analise is not None:
+            data_analise = pontuacao.envio.data_analise.replace(tzinfo=None)
+        else:
+            data_analise = None
+
+        if pontuacao.envio and pontuacao.envio.rastreador_analise is not None:
+            rastreador_analise = pontuacao.envio.rastreador_analise
+        else:
+            rastreador_analise = "N/A"
+
+        extrato_list.append([
+            data_pontuacao,
+            data_cadastro,
+            pontuacao.aluno.nome_completo,
+            pontuacao.aluno.id,
+            tipo_pontuacao,
+            cliente_titulo,
+            cliente_id,
+            contrato_id,
+            contrato_tipo,
+            valor,
+            status,
+            data_analise,
+            rastreador_analise,
+            pontuacao.pontos_previsto,
+            pontuacao.pontos
+        ])
+
+    for contrato in contratos:
+        contrato_tipo = "Fixo" if contrato.envio.contrato.tipo_contrato == 1 else "Contrato variável"
+        status = {
+            0: "Não analisado",
+            1: "Pendente de análise",
+            2: "Invalidado",
+            3: "Validado"
+        }.get(contrato.envio.status, "Sem status")
+
+        data_pontuacao = contrato.data if contrato.data else None
+
+
+        # Remover timezone da data_cadastro
+        data_cadastro = contrato.data_cadastro.replace(tzinfo=None) if contrato.data_cadastro else None
+
+
+        # Remover timezone da data_analise
+        if contrato.envio.data_analise == None:
+            data_analise = None
+        else:
+            data_analise = contrato.envio.data_analise.replace(tzinfo=None)
+        rastreador_analise = contrato.envio.rastreador_analise or "N/A"
+
+        extrato_list.append([
+            data_pontuacao,
+            data_cadastro,
+            contrato.aluno.nome_completo,
+            contrato.aluno.id,
+            "Contrato",
+            contrato.envio.cliente.titulo,
+            contrato.envio.cliente.id,
+            contrato.envio.contrato.id,
+            contrato_tipo,
+            f"R$ {contrato.envio.valor:.2f}",
+            status,
+            data_analise,
+            rastreador_analise,
+            contrato.pontos,
+            contrato.pontos
+        ])
+
+    df = pd.DataFrame(extrato_list, columns=[
+        "Data", "Data Cadastro", "Aluno", "ID Aluno", "Tipo Pontuação", "Cliente",
+        "ID Cliente", "ID Contrato", "Tipo Contrato", "Valor",
+        "Status", "Data Análise", "Rastreador Análise", "Pontos Previsto", "Pontos"
+    ])
+
+    # Remover timezone das datas no DataFrame
+    df["Data"] = pd.to_datetime(df["Data"], errors="coerce")
+    df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"], errors="coerce")
+    df["Data Análise"] = pd.to_datetime(df["Data Análise"], errors="coerce")
+
+    # Ordenar pela data mais recente
+    df = df.sort_values(by="Data", ascending=False)
+
+    # Criar resposta HTTP para download do Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=extrato_aluno_{aluno_id}.xlsx'
+
+    # Criar um arquivo Excel na resposta
+    with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Extrato', index=False)
+
+        # Ajustar a largura das colunas
+        workbook = writer.book
+        worksheet = writer.sheets['Extrato']
+        for i, column in enumerate(df.columns):
+            worksheet.set_column(i, i, 20)  # Define largura de 20 para cada coluna
+
+    return response

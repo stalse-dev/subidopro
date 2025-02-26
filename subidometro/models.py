@@ -210,7 +210,7 @@ class Aluno_pontuacao(models.Model):
     
     # Vínculo opcional com Desafios
     desafio = models.ForeignKey("Aluno_desafio", on_delete=models.SET_NULL, null=True, blank=True, related_name="pontuacoes_desafios")
-
+    
     # Vínculo opcional com Certificações
     certificacao = models.ForeignKey("Aluno_certificacao", on_delete=models.SET_NULL, null=True, blank=True, related_name="pontuacoes_certificacoes")
     
@@ -262,9 +262,9 @@ class Aluno_contrato(models.Model):
     descricao = models.CharField(max_length=255, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     data = models.DateField(null=True, blank=True)
-    data_cadastro = models.DateTimeField(auto_now_add=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.aluno.nome_completo} - {self.contrato.nome}"
+        return f"{self.aluno.nome_completo} - {self.pontos}"
