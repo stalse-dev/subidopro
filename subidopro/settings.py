@@ -78,9 +78,10 @@ MIDDLEWARE = [
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Permitir acesso sem autenticação
-    ]
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # Para garantir que o JSON também seja possível
+        'rest_framework.renderers.BrowsableAPIRenderer',  # Ativa a interface estilizada
+    ],
 }
 
 
@@ -196,15 +197,8 @@ LOGIN_URL = 'login'
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Pasta exclusiva para saída do collectstatic
-
-COMPRESS_ROOT = STATIC_ROOT
-
-COMPRESS_ENABLED = True
-
-STATICFILES_FINDERS = [
-    'compressor.finders.CompressorFinder',
-]
+#STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Pasta exclusiva para saída do collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Pasta onde você mantém seus arquivos estáticos locais

@@ -382,8 +382,7 @@ def balanceamento(request):
                 })
                 zerar_envios = True
 
-                #ATUALIZANDO O PONTO DO ENVIO NO BANCO
-                #Aluno_envios.objects.filter(id=envio_id).update(pontos=faltante)
+                print("O ID Envio: ", envio_id, "Vai receber: ", faltante)
             else:
                 ajustado.append({"id": envio_id, "pontos": pontos_envio})
                 ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
@@ -639,7 +638,7 @@ def ranking(request):
 @login_required
 def ranking_semana(request):
     campeonato, semana = calcular_semana_vigente()
-    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=semana).all()
+    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=semana).order_by('posicao')
     paginator = Paginator(semana_rank_list, 20)
     page_number = request.GET.get('page')
     semana_rank = paginator.get_page(page_number)
@@ -648,7 +647,7 @@ def ranking_semana(request):
 @login_required
 def ranking_cla(request):
     campeonato, semana = calcular_semana_vigente()
-    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=semana).all()
+    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=semana).order_by('posicao')
     paginator = Paginator(cla_rank_list, 20)
     page_number = request.GET.get('page')
     cla_rank = paginator.get_page(page_number)

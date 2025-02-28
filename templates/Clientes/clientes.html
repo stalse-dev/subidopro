@@ -38,7 +38,6 @@
                                 <th class="px-6 py-3">Documento</th>
                                 <th class="px-6 py-3">Data de Criação</th>
                                 <th class="px-6 py-3">Aluno Res.</th>
-                                <th class="px-6 py-3">Pontos</th>
                                 <th class="px-6 py-3">Status</th>
                             </tr>
                         </thead>
@@ -52,7 +51,6 @@
                                 <td class="px-6 py-4">{{ cliente.data_criacao|date:"d/m/Y H:i" }}</td>
 
                                 <td class="px-6 py-4">{{ cliente.aluno.apelido }}</td>
-                                <td class="px-6 py-4">{{ cliente.pontos }} pts</td>
                                 <td class="px-6 py-4">
                                     {% if cliente.status == 1 %}
                                         <span class="text-green-400">Ativo</span>

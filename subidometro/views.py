@@ -72,7 +72,7 @@ def calcula_balanceamento(request):
                 zerar_envios = True
 
                 #ATUALIZANDO O PONTO DO ENVIO NO BANCO
-                Aluno_pontuacao.objects.filter(envio_id=envio_id).update(pontos=faltante)
+                Aluno_pontuacao.objects.filter(envio_id=envio_id, ).update(pontos=faltante)
             else:
                 ajustado.append({"id": envio_id, "pontos": pontos_envio})
                 ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
