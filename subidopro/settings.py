@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, False))
 env_file = os.path.join(BASE_DIR, ".env")
+
 if os.path.isfile(env_file):
     # Use a local secret file, if provided
 
@@ -32,11 +33,23 @@ elif os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     client = secretmanager.SecretManagerServiceClient()
     settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
     name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
-    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+    payload = client.access_secret_version(name=name, timeout=3600).payload.data.decode("UTF-8")
 
     env.read_env(io.StringIO(payload))
 else:
     raise Exception("No local .env or GOOGLE_CLOUD_PROJECT detected. No secrets found.")
+
+# if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
+#     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+#     settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
+#     name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
+
+#     client = secretmanager.SecretManagerServiceClient()
+
+#     # Adicionando timeout na requisição
+#     payload = client.access_secret_version(request={"name": name}, timeout=30).payload.data.decode("UTF-8")
+
+#     env.read_env(io.StringIO(payload))
 
 
 
@@ -58,7 +71,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
     'api',
     'users',
     'subidometro',
@@ -68,21 +83,60 @@ WSGI_APPLICATION = 'subidopro.wsgi.application'
 
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CORS_ALLOW_CREDENTIALS = True
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers)
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]  # Permitir todos os métodos HTTP
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',  # Para garantir que o JSON também seja possível
-        'rest_framework.renderers.BrowsableAPIRenderer',  # Ativa a interface estilizada
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_COOKIE": "access_token",  # Nome do cookie para o access token
+    "AUTH_COOKIE_REFRESH": "refresh_token",  # Nome do cookie para o refresh token
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SECURE": False,  # Mude para True se estiver usando HTTPS
+    "AUTH_COOKIE_SAMESITE": "Lax",
+}
+
+# Configurações do Cookie
+JWT_AUTH_COOKIE = "access_token"
+JWT_AUTH_REFRESH_COOKIE = "refresh_token"
+JWT_AUTH_SAMESITE = "Lax"  # Ajuste conforme necessário
+JWT_AUTH_HTTPONLY = True  # Impede que o JavaScript acesse o token
+JWT_AUTH_SECURE = False  # Troque para True em produção com HTTPS
 
 
 USE_L10N = True
@@ -148,7 +202,7 @@ else:
 
 
     SECURE_SSL_REDIRECT = True
-    CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
+    CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
     CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_BROWSER_XSS_FILTER = True
@@ -166,6 +220,7 @@ else:
             'PORT': '5432',
         }
     }
+
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -197,12 +252,21 @@ LOGIN_URL = 'login'
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-#STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Pasta exclusiva para saída do collectstatic
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Pasta onde você mantém seus arquivos estáticos locais
-]
+COMPRESS_ROOT = os.path.join(BASE_DIR, 'static')
+
+COMPRESS_ENABLED = True
+
+STATICFILES_FINDERS = ('compressor.finders.CompressorFinder',)
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Pasta exclusiva para saída do collectstatic
+
+
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'static'),  # Pasta onde você mantém seus arquivos estáticos locais
+# ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

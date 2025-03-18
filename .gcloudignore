@@ -21,3 +21,5 @@ subidopro3db.sql
 teste.py
 db.ipynb
 migracao_db.ipynb
+.env
+api.http

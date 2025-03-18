@@ -4,75 +4,65 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Ranking dos Alunos</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 18px;
+            text-align: left;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
 </head>
 <body>
-    <h1>Pontuações</h1>
+
+    <h1>Ranking dos Alunos</h1>
+
     <table>
-        <tr>
-            <th>Data</th>
-            <th>Aluno</th>
-            <th>ID Aluno</th>
-            <th>Tipo</th>
-            <th>Cliente</th>
-            <th>ID Cliente</th>
-            <th>ID Contrato</th>
-            <th>Tipo contrato</th>
-            <th>Faturamento</th>
-            <th>Status</th>
-            <th>Data validação</th>
-            <th>Responsável pela validação</th>
-            <th>Pontos potenciais</th>
-            <th>Pontos efetivos</th>
-        </tr>
-        {% for pontuacao in pontuacoes %}
-        <tr>
-            <td>{{ pontuacao.data|date:"d/m/Y"|default:"N/A" }}</td>
-            <td>{{ pontuacao.aluno.nome_completo }}</td>
-            <td>{{ pontuacao.aluno.id }}</td>
-            {% if pontuacao.tipo_pontuacao.id == 1 %}
-                <td>Comprovante de recebimento</td>
-            {% elif pontuacao.tipo_pontuacao.id == 2 %}
-                <td>Desafio</td>
-            {% elif pontuacao.tipo_pontuacao.id == 3 %}
-                <td>Certificação</td>
-            {% else %}
-                <td>Outro ({{ pontuacao.tipo }})</td>
-            {% endif %}
-            <td>{% if pontuacao.tipo_pontuacao.id == 1 %} {{ pontuacao.envio.cliente.titulo }} {% else %} Sem Cliente {% endif %}</td>
-            <td>{% if pontuacao.tipo_pontuacao.id == 1 %} {{ pontuacao.envio.cliente.id }} {% else %} N/A {% endif %}</td>
-            <td>{% if pontuacao.tipo_pontuacao.id == 1 %} {{ pontuacao.envio.contrato.id }} {% else %} Sem Contrato {% endif %}</td>
-            <td>{% if pontuacao.tipo_pontuacao.id == 1 %}
-                 {% if pontuacao.envio.contrato.tipo_contrato == 1 %} Fixo
-                 {% else %} Contrato variável {% endif %}
-                {% else %} Sem contrato {% endif %}</td>
-            <td>R$ {% if pontuacao.tipo_pontuacao.id == 1 %}{{ pontuacao.envio.valor }}{% else %}0,00{% endif %}</td>
-            <td>{% if pontuacao.status == 0 %} Não analisado {% elif pontuacao.status == 1 %} Pendente de analise {% elif pontuacao.status == 2 %} Invalidado {% elif pontuacao.status == 3 %} Validado {% else %} Sem status {% endif %}</td>
-            <td>
-                {% if pontuacao.tipo_pontuacao.id == 1 %} 
-                    {{ pontuacao.envio.data_analise|date:"d/m/Y"|default:"N/A"  }} 
-                {% elif pontuacao.tipo_pontuacao.id == 2 %} 
-                    {{ pontuacao.desafio.data_analise|date:"d/m/Y"|default:"N/A"}}
-                {% elif pontuacao.tipo_pontuacao.id == 3 %} 
-                    {{ pontuacao.certificacao.data_analise|date:"d/m/Y"|default:"N/A"}} 
-                {% else %} N/A {% endif %}
-            </td>
-            <td>
-                {% if pontuacao.tipo_pontuacao.id == 1 %} 
-                    {{ pontuacao.envio.rastreador_analise|default:"N/A"  }} 
-                {% elif pontuacao.tipo_pontuacao.id == 2 %} 
-                    {{ pontuacao.desafio.rastreador_analise|default:"N/A"}}
-                {% elif pontuacao.tipo_pontuacao.id == 3 %} 
-                    {{ pontuacao.certificacao.rastreador_analise|default:"N/A"}} 
-                {% else %} N/A {% endif %}
-            </td>
-            <td>{{ pontuacao.pontos_previsto }}</td>
-            <td>{{ pontuacao.pontos }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5" class="text-center py-4">Nenhum registro de pontuação encontrado.</td>
-        </tr>
-        {% endfor %}
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>CLÃ ID</th>
+                <th>Pontos Recebimento</th>
+                <th>Pontos Desafio</th>
+                <th>Pontos Certificação</th>
+                <th>Pontos Manual</th>
+                <th>Pontos Contrato</th>
+                <th>Pontos Retenção</th>
+                <th>Total Pontos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aluno in alunos %}
+            <tr>
+                <td>{{ aluno.ranking }}</td>
+                <td>{{ aluno.id }}</td>
+                <td>{{ aluno.pontos_recebimento }}</td>
+                <td>{{ aluno.pontos_desafio }}</td>
+                <td>{{ aluno.pontos_certificacao }}</td>
+                <td>{{ aluno.pontos_manual }}</td>
+                <td>{{ aluno.pontos_contrato }}</td>
+                <td>{{ aluno.pontos_retencao }}</td>
+                <td>{{ aluno.pontos_totais }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align:center;">Nenhum aluno encontrado</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+
 </body>
+</html>

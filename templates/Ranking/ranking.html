@@ -25,26 +25,33 @@
                     <table class="w-full text-sm text-left text-gray-400">
                         <thead class="text-xs uppercase bg-gray-700 text-gray-400">
                             <tr>
+                                <th class="px-6 py-3">Rank</th>
                                 <th class="px-6 py-3">ID Aluno</th>
                                 <th class="px-6 py-3">Nome do Aluno</th>
-                                <th class="px-6 py-3">Total Pontos Envios</th>
-                                <th class="px-6 py-3">Total Pontos Clientes</th>
-                                <th class="px-6 py-3">Total Pontos Retenção</th>
-                                <th class="px-6 py-3">Total Pontos Final</th>
-                                <th class="px-6 py-3">Rank</th>
+                                <th class="px-6 py-3">Pontos Recebimento</th>
+                                <th class="px-6 py-3">Pontos Desafio</th>
+                                <th class="px-6 py-3">Pontos Certificação</th>
+                                <th class="px-6 py-3">Pontos Manual</th>
+                                <th class="px-6 py-3">Pontos Contrato</th>
+                                <th class="px-6 py-3">Pontos Retenção</th>
+                                <th class="px-6 py-3">Total Pontos</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for aluno in alunos %}
                             <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
                                 onclick="window.location.href='{% url 'aluno' aluno.id %}'">
+                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ aluno.ranking }}</td>
                                 <td class="px-6 py-4">{{ aluno.id }}</td>
-                                <td class="px-6 py-4">{{ aluno.nome }}</td>
-                                <td class="px-6 py-4">{{ aluno.totalPontos }}</td>
-                                <td class="px-6 py-4">{{ aluno.totalPontosClientes }}</td>
-                                <td class="px-6 py-4">{{ aluno.totalPontosClientesRetencao }}</td>
-                                <td class="px-6 py-4">{{ aluno.totalPontosFinal }}</td>
-                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ aluno.rank }}</td>
+                                <td class="px-6 py-4">{{ aluno.nome_completo }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_recebimento|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_desafio|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_certificacao|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_manual|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_contrato|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_retencao|floatformat:0 }}</td>
+                                <td class="px-6 py-4">{{ aluno.total_pontos_final|floatformat:0 }}</td>
+                                
                             </tr>
                             {% empty %}
                             <tr>

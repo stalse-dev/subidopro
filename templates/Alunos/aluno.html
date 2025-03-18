@@ -5,7 +5,7 @@
     <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
         <h1 class="text-3xl font-bold text-center flex-1">Perfil do Aluno</h1>
     </div>
-    
+
     <div class="flex-grow flex items-center justify-center p-4">
         <div class="w-[90%] max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg">
             <!-- Dados do Aluno -->
@@ -45,82 +45,173 @@
                     Baixar Excel
                 </a>
             </div>
-        
+            
             <!-- Pontuação pontoscontratos -->
             <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
                 <h2 class="text-xl font-bold mb-4">Pontuação pontos contrato</h2>
+                
                 <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-400">
-                    <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                        <tr>
-                            <th class="px-6 py-3">Data</th>
-                            <th class="px-6 py-3">Cliente</th>
-                            <th class="px-6 py-3">Descrição</th>
-                            <th class="px-6 py-3">valor</th>
-                            <th class="px-6 py-3">Pontos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pontos_contrato in pontos_contratos %}
-                        <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
-                            <td class="px-6 py-4">{{ pontos_contrato.data|date:"d/m/Y"|default:"N/A" }}</td>
-                            <td class="px-6 py-4">{{ pontos_contrato.cliente.titulo }}</td>
-                            <td class="px-6 py-4">{{ pontos_contrato.descricao|default:"Sem descrição" }}</td>
-                            <td class="px-6 py-4">R$ {{ pontos_contrato.valor|default:"0.00" }}</td>
-                            <td class="px-6 py-4">{{ pontos_contrato.pontos|default:"0" }} pts</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <p class="text-center">Nenhum ponto contrato encontrado.</p>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    <table class="w-full text-sm text-left text-gray-400 border-collapse" aria-label="Tabela de Pontuação de Contratos">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-4 py-3 text-center">Data</th>
+                                <th class="px-4 py-3 text-center">Cliente</th>
+                                <th class="px-4 py-3 text-center">Descrição</th>
+                                <th class="px-4 py-3 text-center">Valor</th>
+                                <th class="px-4 py-3 text-center">Pontos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pontos_contrato in pontos_contratos %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-600 transition duration-200 ease-in-out">
+                                <td class="px-4 py-3 text-center">{{ pontos_contrato.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-4 py-3 text-center">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
+                                <td class="px-4 py-3 text-center">{{ pontos_contrato.descricao|default:"Sem descrição" }}</td>
+                                <td class="px-4 py-3 text-center">R$ {{ pontos_contrato.valor|default:"0.00"|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-center font-bold text-green-400">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
+                            </tr>
+                            {% empty %}
+                            <tr class="bg-gray-800">
+                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">Nenhum ponto de contrato encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Histórico de Pontuação -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">Histórico de Pontuação</h2>
+            <!-- Recebimentos -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
+                <h2 class="text-xl font-bold mb-4">Recebimentos dos Alunos</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-600 text-gray-300">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
                             <tr>
+                                <th class="px-6 py-3">Tipo de contrato</th>
                                 <th class="px-6 py-3">Data</th>
-                                <th class="px-6 py-3">Tipo</th>
+                                <th class="px-6 py-3">Data Cadastro</th>
                                 <th class="px-6 py-3">Descrição</th>
-                                <th class="px-6 py-3">Pontos</th>
+                                <th class="px-6 py-3">Valor</th>
+                                <th class="px-6 py-3">Pontos P.</th>
+                                <th class="px-6 py-3">Pontos E.</th>
                                 <th class="px-6 py-3">Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for pontuacao in pontuacoes %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
-                                <td class="px-6 py-4">{{ pontuacao.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4 flex items-center">
-                                    {% if pontuacao.tipo_pontuacao.id == 1 %}
-                                        <span class="text-blue-400">📄 Envio de Documento</span>
-                                    {% elif pontuacao.tipo_pontuacao.id == 2 %}
-                                        <span class="text-green-400">🏆 Desafio</span>
-                                    {% elif pontuacao.tipo_pontuacao.id == 3 %}
-                                        <span class="text-yellow-400">🎓 Certificação</span>
-                                    {% else %}
-                                        <span class="text-gray-400">Outro ({{ pontuacao.tipo }})</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4">{{ pontuacao.descricao|default:"Sem descrição" }}</td>
-                                <td class="px-6 py-4">{{ pontuacao.pontos }} pts</td>
+                            {% for envio in pontos_recebimentos %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
+                                <td class="px-6 py-4">{{ envio.contrato.tipo_contrato }}</td>
+                                <td class="px-6 py-4">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
+                                <td class="px-6 py-4">R$ {{ envio.valor|default:"0.00" }}</td>
+                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
+                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
                                 <td class="px-6 py-4">
-                                    {% if pontuacao.status == 3 %}
-                                        <span class="text-green-400">Aprovado</span>
+                                    {% if envio.status == 3 %}
+                                        <span class="text-green-400 font-semibold">Validado</span>
+                                    {% elif envio.status == 2 %}
+                                        <span class="text-red-400 font-semibold">Invalidado</span>
+                                    {% elif envio.status == 1 %}
+                                        <span class="text-yellow-400 font-semibold">Pendente</span>
+                                    {% elif envio.status == 0 %}
+                                        <span class="text-gray-400 font-semibold">Não analisado</span>
                                     {% else %}
-                                        <span class="text-red-400">Pendente</span>
+                                        <span class="text-gray-400 font-semibold">Sem status</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center py-4">Nenhum registro de pontuação encontrado.</td>
+                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Desafios -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
+                <h2 class="text-xl font-bold mb-4">Desafios dos Alunos</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-6 py-3">Data Cadastro</th>
+                                <th class="px-6 py-3">Data</th>
+                                <th class="px-6 py-3">Descrição</th>
+                                <th class="px-6 py-3">Pontos E.</th>
+                                <th class="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for envio in pontos_desafio %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
+                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
+                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                                <td class="px-6 py-4">
+                                    {% if envio.status == 3 %}
+                                        <span class="text-green-400 font-semibold">Validado</span>
+                                    {% elif envio.status == 2 %}
+                                        <span class="text-red-400 font-semibold">Invalidado</span>
+                                    {% elif envio.status == 1 %}
+                                        <span class="text-yellow-400 font-semibold">Pendente</span>
+                                    {% elif envio.status == 0 %}
+                                        <span class="text-gray-400 font-semibold">Não analisado</span>
+                                    {% else %}
+                                        <span class="text-gray-400 font-semibold">Sem status</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Certificações -->
+            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
+                <h2 class="text-xl font-bold mb-4">Certificações dos Alunos</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th class="px-6 py-3">Data Cadastro</th>
+                                <th class="px-6 py-3">Descrição</th>
+                                <th class="px-6 py-3">Pontos E.</th>
+                                <th class="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for envio in pontos_certificacao %}
+                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
+                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
+                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                                <td class="px-6 py-4">
+                                    {% if envio.status == 3 %}
+                                        <span class="text-green-400 font-semibold">Validado</span>
+                                    {% elif envio.status == 2 %}
+                                        <span class="text-red-400 font-semibold">Invalidado</span>
+                                    {% elif envio.status == 1 %}
+                                        <span class="text-yellow-400 font-semibold">Pendente</span>
+                                    {% elif envio.status == 0 %}
+                                        <span class="text-gray-400 font-semibold">Não analisado</span>
+                                    {% else %}
+                                        <span class="text-gray-400 font-semibold">Sem status</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

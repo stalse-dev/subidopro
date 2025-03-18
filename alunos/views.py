@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from subidometro.models import *
 from subidometro.utils import *
 from django.db.models.functions import TruncMonth, Cast
-from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField
+from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField, Max
 
 from django.contrib.auth.decorators import login_required
 from datetime import date
@@ -13,8 +13,10 @@ import xlsxwriter
 from django.utils import timezone
 from datetime import timedelta
 from datetime import datetime
+from django.views.decorators.cache import never_cache
 
 
+@never_cache
 @login_required
 def home(request):
     return render(request, 'Home/home.html')
@@ -179,14 +181,23 @@ def exportar_aluno_pontuacoes(request, aluno_id):
 def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
-    pontuacoes = Aluno_pontuacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
-    pontos_aluno = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana).first()
-    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, campeonato=campeonato, pontos__gt=0).order_by('-data')
+ 
+    pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    
+    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
+    pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
+
+    pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
     context = {
         'aluno': aluno,
-        'pontuacoes': pontuacoes,
-        'pontos_aluno': pontos_aluno,
+        'pontos_recebimentos': pontos_recebimentos,
+        'pontos_desafio': pontos_desafio,
+        'pontos_certificacao': pontos_certificacao,
         'pontos_contratos': pontos_contratos,
+        'pontos_retencao': pontos_retencao,
+        'pontos_aluno_semana': pontos_aluno_semana,
     }
     return render(request, 'Alunos/aluno.html', context) 
 
@@ -320,84 +331,70 @@ def cliente(request, cliente_id):
 
 @login_required
 def balanceamento(request):
+    campeonato, semana = calcular_semana_vigente()
     limit = 3000
     pontuacoes = (
-        Aluno_pontuacao.objects
+        Aluno_envios.objects
         .annotate(mes=TruncMonth('data'))
         .values('aluno_id', 'mes')
-        .annotate(total_pontos=Sum('pontos'), total_envios=Count('envio_id', distinct=True))
-        .filter(total_pontos__gt=limit, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
+        .annotate(total_pontos=Sum('pontos'), total_envios=Count('id', distinct=True))
+        .filter(total_pontos__gt=limit, tipo=2, status=3, semana__gt=0, data__gte='2025-03-01', campeonato=campeonato)
         .order_by('aluno_id', 'mes')
     )
 
-    updates = []
-    zerados = []
     pontos_modificados = []  # Lista para armazenar alterações (DE -> PARA)
 
     for pontos in pontuacoes:
         aluno_id = pontos["aluno_id"]
         aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
-        mes = pontos["mes"].strftime("%B")  # Converte mês para extenso
+        mes_dt = pontos["mes"]  # Armazena o objeto datetime original
+        pontos["mes_dt"] = mes_dt  # Mantém o datetime para operações
         pontos["aluno_nome"] = aluno_nome  # Adiciona o nome do aluno
-        pontos["mes"] = mes  # Substitui pela versão por extenso
+        pontos["mes"] = mes_dt.strftime("%B")  # Substitui pela versão por extenso
 
     for pontos in pontuacoes:
         aluno_id = pontos["aluno_id"]
+        mes_atual = pontos["mes"]
+        mes_dt = pontos["mes_dt"]  # Usa o datetime armazenado
         pontos_detalhados = (
-            Aluno_pontuacao.objects
-            .filter(aluno_id=aluno_id, tipo=2, status=3, semana__gt=0, data__gte='2024-09-01')
-            .order_by('-pontos')  # Processar do maior para o menor
-            .values('envio_id', 'pontos')
-        )
-        aluno_nome = Alunos.objects.get(id=aluno_id).nome_completo
-        mes = pontos["mes"]
-        total = 0
-        ajustado = []
-        zerar_envios = False
+            Aluno_envios.objects
+            .filter(aluno_id=aluno_id, tipo=2, status=3, semana__gt=0, data__gte='2025-03-01', data__month=mes_dt.month)
+            .order_by('data_cadastro'))
 
-        ids_envios = []  # Lista com IDs de envios afetados
-        ids_envios_com_pontos = []  # IDs com pontuação mantida
 
-        for pontos_det in pontos_detalhados:
-            envio_id = pontos_det['envio_id']
-            pontos_envio = pontos_det['pontos']
-            ids_envios.append(envio_id)  # Todos os envios afetados
-
-            if zerar_envios or total + pontos_envio > limit:
-                if total < limit:
-                    #Falta um pouco de pontos
-                    faltante = limit - total
+        total_pontos_aluno = 0
+        for item in pontos_detalhados:
+            if total_pontos_aluno + item.pontos > limit:
+                restante = limit - total_pontos_aluno 
+                if restante > 0:
+                    pontos_fat = restante
+                    total_pontos_aluno += restante
                 else:
-                    faltante = 0
-                
-                total += pontos_envio
-                zerados.append({"id": envio_id, "pontos": faltante})
-                pontos_modificados.append({
-                    "id": envio_id,
-                    "aluno_id": aluno_id,
-                    "nome": aluno_nome,
-                    "mes": mes,
-                    "de": pontos_envio,
-                    "para": faltante
-                })
-                zerar_envios = True
+                    pontos_fat = 0
 
-                print("O ID Envio: ", envio_id, "Vai receber: ", faltante)
+                pontos_modificados.append({
+                    "id": item.id,
+                    "aluno_id": aluno_id,
+                    "nome": pontos["aluno_nome"],
+                    "mes": mes_atual,
+                    "de": item.pontos,
+                    "para": pontos_fat
+                })
+
+                # item.pontos = pontos_fat
+                # item.save()
+
             else:
-                ajustado.append({"id": envio_id, "pontos": pontos_envio})
-                ids_envios_com_pontos.append(envio_id)  # IDs mantidos com pontos
+                total_pontos_aluno += item.pontos
                 pontos_modificados.append({
-                    "id": envio_id,
+                    "id": item.id,
                     "aluno_id": aluno_id,
-                    "nome": aluno_nome,
-                    "mes": mes,
-                    "de": pontos_envio,
-                    "para": pontos_envio
+                    "nome": pontos["aluno_nome"],
+                    "mes": mes_atual,
+                    "de": item.pontos,
+                    "para": item.pontos,
                 })
-                total += pontos_envio
-
-        updates.extend(ajustado)
-
+                    
     return render(request, 'Balanceamento/balanceamento.html', {
         'pontuacoes': pontuacoes,
         'pontos_modificados': pontos_modificados,
@@ -429,13 +426,16 @@ def retencao(request):
         }
         return mapping.get(pontos, 0)
 
-    latest_contract_id_qs = Aluno_clientes_contratos.objects.filter(
-    cliente=OuterRef('pk'),
-    status=1
-    ).order_by('-data_contrato', '-id').values('id')[:1] 
+    campeonatoVigente, semana = calcular_semana_vigente()
+    #data_inicio = campeonatoVigente.data_inicio
 
-    data_inicio = '2024-09-01'
+    data_inicio = "2024-09-01"
     hoje = date.today()
+    # Subquery para obter a data do contrato mais recente (status = 1) para cada cliente
+    latest_contract_id_qs = Aluno_clientes_contratos.objects.filter(
+        cliente=OuterRef('pk'),  # Filtra contratos pelo cliente
+        status=1
+    ).order_by('-data_contrato', '-id').values('id')[:1] # Exclui contratos sem data
 
     ultimo_envio_qs = Aluno_envios.objects.filter(
         cliente=OuterRef('contratos__cliente'),  # Filtrando pelo cliente
@@ -443,15 +443,18 @@ def retencao(request):
         tipo=2,
         data__range=(data_inicio, hoje),
         semana__gt=0
+        
     ).exclude(valor__isnull=True).order_by('-data').values('valor')[:1]
 
+    # Filtramos os clientes ativos e contratos ativos
     clientes_com_ultimo_contrato = Aluno_clientes.objects.annotate(
-        latest_contract_id=Subquery(latest_contract_id_qs),
+        latest_contract_id=Subquery(latest_contract_id_qs),  # Pega o ID do último contrato
     ).filter(
-        status=1,
-        contratos__id=F('latest_contract_id')
+        status=1,  # Clientes ativos
+        contratos__id=F('latest_contract_id')  # Filtra apenas o contrato mais recente
     ).distinct()
 
+    # Filtramos os envios conforme as condições
     retencoes = clientes_com_ultimo_contrato.filter(
         envios_cliente_cl__status=3,
         envios_cliente_cl__tipo=2,
@@ -461,55 +464,86 @@ def retencao(request):
 
     retencoes = retencoes.annotate(
         envio_month=TruncMonth('envios_cliente_cl__data'),
-        ultimo_envio=Subquery(ultimo_envio_qs)  
+        ultimo_envio=Subquery(ultimo_envio_qs)  # Último valor de envio
     )
 
     retencoes = retencoes.values(
-        'id',
-        'contratos__id',  
-        'contratos__valor_contrato', 
-        'contratos__tipo_contrato', 
-        'contratos__porcentagem_contrato', 
-        'contratos__data_vencimento', 
-        'aluno__id',
-        'aluno__apelido',
-        'ultimo_envio',  
+        'id',  # ID do Cliente
+        'contratos__id',  # ID do Contrato
+        'contratos__valor_contrato',  # Valor do Contrato
+        'contratos__tipo_contrato',  # Tipo do Contrato
+        'contratos__porcentagem_contrato',  # Porcentagem do Contrato
+        'contratos__data_vencimento',  # Data de Vencimento do Contrato
+        'aluno__id',  # ID do Aluno
+        'aluno__nome_completo',  # Nome do Aluno
+        'ultimo_envio',  # Último valor de envio
     ).annotate(
         total_envios=Count('envio_month', distinct=True)
     ).filter(
         total_envios__gt=1
     ).order_by('-total_envios')
 
+
+    retencao_por_cliente = (
+        Alunos_clientes_pontos_meses_retencao.objects
+        .values("cliente_id")  # Agrupa por cliente
+        .annotate(total_envios_cl=Count("id"))  # Conta os registros de cada cliente
+        .order_by("-total_envios_cl")  # Opcional: ordena pelo total em ordem decrescente
+    )
+
+
+    # Criar um dicionário com os envios da segunda query (total de retenções)
+    historico_envios = {
+        int(item['cliente_id']): item['total_envios_cl']  # ID do Cliente -> Total de envios retidos
+        for item in retencao_por_cliente
+    }
+
+    # Lista de clientes onde os envios do contrato recente são menores que os envios retidos
+    clientes_que_vai_ser_retidos = []
+
+    now = timezone.now()
+
     for cliente in retencoes:
-        if cliente['total_envios'] > 0:
-            # Se o tipo de contrato for 2 e houver porcentagem, calcula comissão
-            if cliente['contratos__tipo_contrato'] == 2 and float(cliente['contratos__porcentagem_contrato']) > 0:
+        total_envios_historico = historico_envios.get(int(cliente['id']), 0)
+        if int(total_envios_historico) < (int(cliente['total_envios']) - 1):
+            comp = "Total de envios: " + str(int(cliente['total_envios']) - 1) + " - Total de envios retidos: " + str(total_envios_historico)
+
+            if cliente['contratos__tipo_contrato'] == 2:
                 valor_inicial = float(cliente['ultimo_envio'])
-                porcentagem = float(cliente['contratos__porcentagem_contrato'])
-                valor_final = valor_inicial - (valor_inicial * (porcentagem / 100))
-                valor_comissao = valor_inicial - valor_final
+                valor_final = valor_inicial * 0.1
 
                 # Atualiza o valor do envio para o valor de comissão
-                cliente['valorEnvio'] = valor_comissao
-                pontos_cliente = gera_pontos_clientes(valor_comissao)
+                cliente['valorEnvio'] = valor_final
+                pontos_cliente = gera_pontos_clientes(valor_final)
                 cliente['pontosCliente'] = pontos_cliente
             else:
                 # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
                 if not cliente['contratos__valor_contrato']:
+                    valor_final = float(cliente['ultimo_envio'])
                     pontos_cliente = gera_pontos_clientes(float(cliente['ultimo_envio']))
                 else:
+                    valor_final = float(cliente['contratos__valor_contrato'])
                     pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
+
+                cliente['valorEnvio'] = valor_final
                 cliente['pontosCliente'] = pontos_cliente
 
-            # # Se pontosCliente estiver vazio ou zero, garante que seja igual aos pontos calculados
-            if not cliente['pontosCliente'] or cliente['pontosCliente'] == 0:
-                cliente['pontosCliente'] = pontos_cliente
-
-            # Calcula os pontos de retenção com base nos pontos do cliente
             pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
-            cliente['PontosRetencao'] = pontos_retencao
 
-    return render(request, "Retencao/retencao.html", {"retencoes": retencoes})
+            tem_envio_camp = Aluno_envios.objects.filter(cliente_id=cliente['id'], campeonato=campeonatoVigente).exists()
+            if tem_envio_camp:
+                clientes_que_vai_ser_retidos.append({
+                    "aluno": cliente['aluno__nome_completo'],
+                    "cliente_id": cliente['id'],
+                    "contratos_id": cliente['contratos__id'],
+                    "total_envios": comp,
+                    "valor_envio": cliente['valorEnvio'],
+                    "pontos_cliente": int(cliente['pontosCliente']),
+                    "pontos_retencao": int(pontos_retencao)
+                })
+
+    context = {"retencoes": clientes_que_vai_ser_retidos}
+    return render(request, "Retencao/retencao.html", context)
 
 @login_required
 def exportar_ranking(request):
@@ -632,13 +666,17 @@ def exportar_ranking(request):
     
 @login_required
 def ranking(request):
-    alunos = calculo_ranking_def()
+    alunos = ranking_streamer()
     return render(request, "Ranking/ranking.html", {"alunos": alunos})
 
 @login_required
 def ranking_semana(request):
     campeonato, semana = calcular_semana_vigente()
-    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=semana).order_by('posicao')
+    # Obtendo a maior semana disponível para o campeonato vigente
+    maior_semana = Alunos_posicoes_semana.objects.filter(campeonato=campeonato).aggregate(Max('semana'))['semana__max']
+    print(f"Maior semana: {maior_semana}")
+    # Buscando os registros com a maior semana encontrada
+    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=maior_semana, campeonato=campeonato).order_by('posicao')
     paginator = Paginator(semana_rank_list, 20)
     page_number = request.GET.get('page')
     semana_rank = paginator.get_page(page_number)
@@ -647,12 +685,11 @@ def ranking_semana(request):
 @login_required
 def ranking_cla(request):
     campeonato, semana = calcular_semana_vigente()
-    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=semana).order_by('posicao')
+    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=semana, campeonato=campeonato).order_by('posicao')
     paginator = Paginator(cla_rank_list, 20)
     page_number = request.GET.get('page')
     cla_rank = paginator.get_page(page_number)
     return render(request, "Ranking/ranking_cla.html", {"cla_rank": cla_rank, "semana": semana})
-
 
 @login_required
 def extrato(request, aluno_id):
@@ -796,3 +833,10 @@ def extrato(request, aluno_id):
             worksheet.set_column(i, i, 20)  # Define largura de 20 para cada coluna
 
     return response
+
+@login_required
+def teste_gabriel(request):
+    
+    context = {}
+    return render(request, "Retencao/retencao.html", context)
+

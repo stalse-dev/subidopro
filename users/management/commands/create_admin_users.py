@@ -14,8 +14,10 @@ class Command(BaseCommand):
             "lia.piazza@subidopro.com.br",
             "gabrielle.rocha@subidopro.com.br",
             "mariana.campos@grupopermaneo.com.br",
+            "producao@inventandus.com.br",
             "thiago@stalse.com",
             "gabriel@stalse.com",
+            "nicole@stalse.com"
         ]
 
         password = "permaneo@123"

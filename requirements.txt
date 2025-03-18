@@ -6,6 +6,8 @@ Django
 django-appconf
 django-compressor
 djangorestframework
+django-cors-headers
+djangorestframework_simplejwt
 environ
 google-api-core
 google-auth

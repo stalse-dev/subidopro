@@ -22,7 +22,7 @@
                                 <td class="px-6 py-4">{{ aluno.aluno.id }}</td>
                                 <td class="px-6 py-4">{{ aluno.aluno.nome_completo }}</td>
                                 <td class="px-6 py-4">{{ aluno.cla }}</td>
-                                <td class="px-6 py-4">{{ aluno.pontos }}</td>
+                                <td class="px-6 py-4">{{ aluno.pontos_totais|floatformat:0 }}</td>
                                 <td class="px-6 py-4 text-yellow-400 font-bold">{{ aluno.posicao }}°</td>
                             </tr>
                             {% empty %}

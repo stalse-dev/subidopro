@@ -2,9 +2,8 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-    path('calcula_balanceamento', calcula_balanceamento, name='calcula_balanceamento'),
-    path('calculo_retencao', calculo_retencao, name='calculo_retencao'),
-    path('calculo_ranking', calculo_ranking, name='calculo_ranking'),
-    path('atualizar_subidometro', atualizar_subidometro, name='atualizar_subidometro'),
-    path('teste', teste, name='teste'),
+    path('calcula_balanceamento_func', calcula_balanceamento_func, name='calcula_balanceamento_func'),
+    path('calculo_retencao_func', calculo_retencao_func, name='calculo_retencao_func'),
+    path('calculo_ranking_func', calculo_ranking_func, name='calculo_ranking_func'),
+    path('atualizar_subidometro_func', atualizar_subidometro_func, name='atualizar_subidometro_func'),
 ]

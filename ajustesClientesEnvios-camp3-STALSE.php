@@ -598,3 +598,26 @@ for($semana=0;$semana<$totalSemanas;$semana++){ $periodoData = ""; $segunda = st
 if( strtotime($dataHoje) < strtotime( $campeonatoVigente['dataInicio'] ) ){ $campeonatoVigente["semanaVigente"] = '0'; }else{ $campeonatoVigente["semanaVigente"] = $semanaVigenteArr[$dataHoje]; }
 $campeonatoVigente["totalSemanas"] = $totalSemanas;
 $campeonatoVigente["hoje"] = $dataHoje;
+
+
+
+SELECT 
+lista.*, 
+(COALESCE(lista.totalPontosRecebimentos, 0) + COALESCE(lista.totalPontosEnvios, 0) + COALESCE(lista.totalPontosClientes, 0) + COALESCE(lista.totalPontosClientesRetencao, 0) ) AS totalPontosFinal,
+DENSE_RANK() OVER (ORDER BY (COALESCE(lista.totalPontosRecebimentos, 0) + COALESCE(lista.totalPontosEnvios, 0) + COALESCE(lista.totalPontosClientes, 0) + COALESCE(lista.totalPontosClientesRetencao, 0) ) DESC) AS rank 
+FROM (
+SELECT 
+	alunos.id, 
+	(SELECT SUM(pontos) AS totalPontos FROM alunosEnvios WHERE alunos.id = alunosEnvios.vinculoAluno AND alunosEnvios.campeonato = 5 AND alunosEnvios.status = 3 AND alunosEnvios.semana <> 0 AND alunosEnvios.tipo = 2 AND alunosEnvios.data >= '2024-09-01') AS totalPontosRecebimentos,
+				
+	(SELECT SUM(pontos) AS totalPontos FROM alunosEnvios WHERE alunos.id = alunosEnvios.vinculoAluno AND alunosEnvios.campeonato = 5 AND alunosEnvios.status = 3 AND alunosEnvios.semana <> 0 AND alunosEnvios.tipo != 2) AS totalPontosEnvios, 
+				
+	(SELECT SUM(alunosClientes.pontos) AS totalPontosClientes FROM alunosClientes WHERE alunos.id = alunosClientes.aluno AND alunosClientes.campeonato = 5 AND alunosClientes.status = 1 AND alunosClientes.pontos > 0) AS totalPontosClientes,
+				
+	(SELECT SUM(alunosClientesPontosMesesRetencao.pontos) AS totalPontosClientesRetencao FROM alunosClientesPontosMesesRetencao WHERE alunos.id = alunosClientesPontosMesesRetencao.aluno AND alunosClientesPontosMesesRetencao.campeonato = 5 AND alunosClientesPontosMesesRetencao.pontos > 0) AS totalPontosClientesRetencao
+	
+FROM alunos
+INNER JOIN `mentoriaCla_camp5-2025-03-06` ON `mentoriaCla_camp5-2025-03-06`.id = alunos.claAnterior
+WHERE ( alunos.status = 'ACTIVE' OR alunos.status = 'APPROVED' OR alunos.status = 'COMPLETE' OR alunos.dataExpiracao >= '2025-03-01' OR (alunos.dataExpiracao7Dias!= '' AND alunos.dataExpiracao7Dias >= '2025-03-01') ) AND alunos.nivel < 16 AND `mentoriaCla_camp5-2025-03-06`.definido = 1
+) AS lista 
+ORDER BY rank ASC
