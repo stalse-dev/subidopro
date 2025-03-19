@@ -836,7 +836,13 @@ def extrato(request, aluno_id):
 
 @login_required
 def teste_gabriel(request):
+    #Buscar todos clientes ativos
+    clientes = Aluno_clientes.objects.filter(status=1)
+
+    #Buscar todos envios de clientes desse mês
+    campeonato, semana = calcular_semana_vigente()
     
+
     context = {}
     return render(request, "Retencao/retencao.html", context)
 

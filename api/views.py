@@ -718,7 +718,7 @@ def painel_inicial_aluno(request, aluno_id):
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
     # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
+    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, campeonato_id=5).aggregate(total=Sum('valor'))['total'] or 0
     print(total_valor_envios)
 
     # Evolução do aluno
@@ -815,11 +815,13 @@ def meus_clientes(request, aluno_id):
 def meus_envios(request, aluno_id):
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
     campeonato, _ = calcular_semana_vigente()
-
+    semana = _ + 1
+    envios_da_semana = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, semana=semana).count()
     if not campeonato:
         return Response({"erro": "Nenhum campeonato encontrado."}, status=400)
 
     data_inicio = campeonato.data_inicio
+    
 
     #pontos_aluno = union_pontuacao(aluno, campeonato)
     pontos_aluno = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, data_cadastro__gte=data_inicio, status=3).order_by('-data_cadastro')
@@ -873,7 +875,12 @@ def meus_envios(request, aluno_id):
     # Ordenando as semanas da maior para a menor
     dados_ordenados = dict(sorted(dados_por_semana.items(), key=lambda x: int(x[0]), reverse=True))
 
-    return Response(dados_ordenados)
+    dados_geral = {
+        "totalEnvios": envios_da_semana,
+        "semanas": dados_ordenados
+    }
+
+    return Response(dados_geral)
 
 @api_view(['GET'])
 def subdometro_aluno(request, aluno_id):
