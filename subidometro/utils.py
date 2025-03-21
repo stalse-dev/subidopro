@@ -103,7 +103,7 @@ def calculo_ranking_def():
 def ranking_streamer():
     campeonato, semana = calcular_semana_vigente()
     mentoria_ids = Mentoria_cla.objects.filter(definido=1).values_list('id', flat=True)
-    print(campeonato, semana)
+
     alunos_qs = Alunos.objects.filter(
         Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
         nivel__lt=16,

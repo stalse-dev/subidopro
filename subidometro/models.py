@@ -261,3 +261,12 @@ class Aluno_contrato(models.Model):
 
     def __str__(self):
         return f"{self.aluno.nome_completo} - {self.pontos}"
+    
+class Aluno_camp_faturamento_anterior(models.Model):
+    aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="aluno_camp_faturamento_anterior")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    campeonato_turma = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.aluno.nome_completo} - {self.valor} - {self.campeonato_turma}"
+    

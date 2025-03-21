@@ -48,9 +48,9 @@ def union_pontuacao(aluno, campeonato):
 
 def mapear_status(status):
     status_dict = {
+        0: "pendente",
         1: "aprovado",
-        2: "pendente",
-        0: "invalido"
+        2: "invalidado",
     }
     return status_dict.get(status, "desconhecido")
 
@@ -718,8 +718,12 @@ def painel_inicial_aluno(request, aluno_id):
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
     # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, campeonato_id=5).aggregate(total=Sum('valor'))['total'] or 0
-    print(total_valor_envios)
+    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
+
+    #Buscar faturamento dos campeonatos antigos
+    total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+    total_todos_envios = total_valor_envios + total_valor_camp
+
 
     # Evolução do aluno
     total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
@@ -749,7 +753,7 @@ def painel_inicial_aluno(request, aluno_id):
     resposta = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_valor_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),  
         },
         "subidometro": {
@@ -794,7 +798,8 @@ def meus_clientes(request, aluno_id):
             "contratosAprovados": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=1).count()),
             "contratosPendentes": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=0).count()),
             "contratosReprovados": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=2).count()),
-            "status": mapear_status(cliente.status)
+            "status": mapear_status(cliente.status),
+            "int_status": cliente.status,
         }
         
         if cliente.status == 3:  # Caso o status seja "invalido"
@@ -824,7 +829,7 @@ def meus_envios(request, aluno_id):
     
 
     #pontos_aluno = union_pontuacao(aluno, campeonato)
-    pontos_aluno = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, data_cadastro__gte=data_inicio, status=3).order_by('-data_cadastro')
+    pontos_aluno = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, data_cadastro__gte=data_inicio).order_by('-data_cadastro')
     dados_por_semana = defaultdict(lambda: {"infos": {}, "itens": []})
 
     for envio in pontos_aluno:
@@ -899,6 +904,10 @@ def subdometro_aluno(request, aluno_id):
     # Soma os valores de todos os envios do aluno
     total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
 
+    #Buscar faturamento dos campeonatos antigos
+    total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+    total_todos_envios = total_valor_envios + total_valor_camp
+
     # Agrupar por mês e calcular a soma
     mes_mais_ganhou = (
         Aluno_envios.objects
@@ -913,9 +922,15 @@ def subdometro_aluno(request, aluno_id):
     mes_mais_ganhou_valor = mes_mais_ganhou['total_mes'] if mes_mais_ganhou else 0
 
 
-    # Filtrar os ganhos do aluno
-    todos_ganhos = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).order_by('-data')
+    # Buscar os envios do aluno com status=3 e data válida
+    todos_ganhos = Aluno_envios.objects.filter(
+        aluno=aluno, 
+        status=3, 
+        semana__gt=0, 
+        data__gte=data_int
+    ).order_by('-data')
 
+    # Dicionário para armazenar os valores por mês
     dados_por_mes = defaultdict(lambda: {"data": "", "valorAcumulado": 0})
 
     # Iterar sobre os ganhos e preencher os dados por mês
@@ -930,20 +945,15 @@ def subdometro_aluno(request, aluno_id):
 
         # Obter o identificador do mês (YYYY-MM)
         mes_key = data_local.strftime("%Y-%m")
-        
-        # Atualizar os valores do mês
+
+        # Atualizar os valores do mês corretamente somando os envios do mesmo mês
         dados_por_mes[mes_key]["data"] = mes_key
-        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor, 2)
+        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor or 0, 2)  # Evita erro se `valor` for None
 
-    # **Acumular valores progressivamente ao longo dos meses**
-    meses_ordenados = sorted(dados_por_mes.keys())  # Ordenar meses cronologicamente
-    valor_acumulado_geral = 0
+    # Ordenar os meses em ordem crescente
+    meses_ordenados = sorted(dados_por_mes.keys())
 
-    for mes in meses_ordenados:
-        valor_acumulado_geral += dados_por_mes[mes]["valorAcumulado"]
-        dados_por_mes[mes]["valorAcumulado"] = round(valor_acumulado_geral, 2)  # Atualiza com o acumulado progressivo
-
-    # Converter para lista ordenada se necessário
+    # Criar a lista final ordenada com os valores individuais de cada mês
     resultado_final = [dados_por_mes[mes] for mes in meses_ordenados]
 
     subdometro = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=Campeonato)
@@ -960,7 +970,7 @@ def subdometro_aluno(request, aluno_id):
     response_data = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_valor_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         },
         "evolucaoGanhos": resultado_final,

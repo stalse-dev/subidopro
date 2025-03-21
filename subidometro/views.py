@@ -78,31 +78,32 @@ def calcula_balanceamento_func(request):
         'pontos_modificados': pontos_modificados,
     })
     
-def gera_pontos_clientes(valor):
-    if valor >= 0 and valor < 1000:
-        return 60
-    elif valor >= 1000 and valor < 3000:
-        return 480
-    elif valor >= 3000 and valor < 5000:
-        return 1080
-    elif valor >= 5000 and valor < 9000:
-        return 1920
-    elif valor >= 9000:
-        return 2460
-    else:
-        return 0
+def calculo_retencao_func_v1(request):
 
-def gera_pontos_retencao(pontos):
-    mapping = {
-        60: 40,
-        480: 320,
-        1080: 720,
-        1920: 1280,
-        2460: 1640,
-    }
-    return mapping.get(pontos, 0)
+    def gera_pontos_clientes(valor):
+        if valor >= 0 and valor < 1000:
+            return 60
+        elif valor >= 1000 and valor < 3000:
+            return 480
+        elif valor >= 3000 and valor < 5000:
+            return 1080
+        elif valor >= 5000 and valor < 9000:
+            return 1920
+        elif valor >= 9000:
+            return 2460
+        else:
+            return 0
 
-def calculo_retencao_func(request):
+    def gera_pontos_retencao(pontos):
+        mapping = {
+            60: 40,
+            480: 320,
+            1080: 720,
+            1920: 1280,
+            2460: 1640,
+        }
+        return mapping.get(pontos, 0)
+    
     campeonatoVigente, semana = calcular_semana_vigente()
     #data_inicio = campeonatoVigente.data_inicio
     data_inicio = "2024-09-04"
@@ -233,9 +234,122 @@ def calculo_retencao_func(request):
     context = {"retencoes": clientes_que_vai_ser_retidos}
     return render(request, "Retencao/retencao.html", context)
 
+def calculo_retencao_func(request):
+    """
+        Regras para reter pontos do cliente
+        1º O cliente so recebe pontos se ele tiver enviado no mês passado e no mês atual
+        2º O cliente não recebe pontos se ele tiver enviado mais de uma vez no mês atual
+        3º Os clientes só é considerado apartir da data de criação 01/09/2024
+    """
+    
+    campeonatoVigente, semana = calcular_semana_vigente()
+    semana = semana  + 1
+    print(f"Semana: {semana} - Campeonato: {campeonatoVigente}")  
+    def gera_pontos_retencao(valor):
+        if valor >= 0 and valor < 1000:
+            return 40
+        elif valor >= 1000 and valor < 3000:
+            return 320
+        elif valor >= 3000 and valor < 5000:
+            return 720
+        elif valor >= 5000 and valor < 9000:
+            return 1280
+        elif valor >= 9000:
+            return 1640
+        else:
+            return 0
+    
+    # Obtém a data de hoje
+    hoje = timezone.now().date()
+    primeiro_dia_mes_atual = hoje.replace(day=1)
+    primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
+    ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
+
+
+    clientes = Aluno_clientes.objects.filter(data_criacao__gte='2024-09-01').order_by('id')
+
+    primeiro_envio_mes_passado_subquery = Aluno_envios.objects.filter(
+        cliente=OuterRef('pk'), 
+        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado], 
+        status=3
+    ).order_by('data').values('id')[:1]
+
+    primeiro_envio_mes_atual_subquery = Aluno_envios.objects.filter(
+        cliente=OuterRef('pk'), 
+        data__range=[primeiro_dia_mes_atual, hoje], 
+        status=3
+    ).order_by('data').values('id', 'valor', 'contrato__tipo_contrato', 'contrato__id')[:1]
+
+    retencao_clientes_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
+        cliente=OuterRef('pk'),
+        data__range=[primeiro_dia_mes_atual, hoje]
+    ).values('id')[:1]
+
+    clientes_nova_retencao = clientes.annotate(
+        primeiro_envio_mes_passado=Subquery(primeiro_envio_mes_passado_subquery),
+        primeiro_envio_mes_atual=Subquery(primeiro_envio_mes_atual_subquery.values('id')),
+        contrato_id_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__id')),
+        valor_envio=Subquery(primeiro_envio_mes_atual_subquery.values('valor')),
+        tipo_contrato_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__tipo_contrato')),
+        retencao_cliente_mes_atual=Subquery(retencao_clientes_mes_atual_subquery)
+    ).filter(
+        primeiro_envio_mes_passado__isnull=False,
+        primeiro_envio_mes_atual__isnull=False,
+        retencao_cliente_mes_atual__isnull=True,
+    )
+
+    clientes_que_vai_ser_retidos = []
+    for cli_retencao in clientes_nova_retencao:
+        if cli_retencao.tipo_contrato_anotado == 2:
+            valor_inicial = float(cli_retencao.valor_envio)
+            valor_final = valor_inicial * 0.1
+
+        else:
+            valor_final = float(cli_retencao.valor_envio)
+
+
+        pontos_retencao = gera_pontos_retencao(valor_final)
+
+        clientes_que_vai_ser_retidos.append({
+                "aluno": cli_retencao.aluno.nome_completo,
+                "aluno_id": cli_retencao.aluno.id,
+                "cliente_id": cli_retencao.id,
+                "contrato_id": cli_retencao.contrato_id_anotado,
+                "envio_id": cli_retencao.primeiro_envio_mes_atual,
+                "tipo_contrato": cli_retencao.tipo_contrato_anotado,
+                "valor_envio": cli_retencao.valor_envio,
+                "pontos_retencao": int(pontos_retencao),
+            })
+        
+        novo_registro = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
+                aluno_id=cli_retencao.aluno.id,
+                cliente_id=cli_retencao.id,
+                campeonato=campeonatoVigente,
+                data=hoje,
+                defaults={
+                    "pontos": pontos_retencao,
+                    "qtd_envios": 0,
+                    "ids_envios": "",
+                    "semana": semana
+                }
+            )
+
+
+    #Contar quantos clientes tem 
+    cont_clientes = clientes_nova_retencao.count()
+
+
+    context = {
+        "cont_retencoes": cont_clientes,
+        "retencoes": clientes_que_vai_ser_retidos
+    }
+
+    return render(request, "Retencao/retencao.html", context)
+
 def calculo_ranking_func(request):
     campeonato_vigente, semana = calcular_semana_vigente()
-    print(f"Semana: {semana}")
+
+    semana = semana + 1
     resultado = ranking_streamer()
     ### Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
     for posicao in resultado:

@@ -27,28 +27,27 @@
 </head>
 <body>
 
-    <h1>Ranking dos Alunos ({{ clientes_retorno|length }})</h1>
+    <h1>Ranking dos Alunos ({{ cont_clientes }})</h1>
 
     <table>
         <thead>
             <tr>
-                <th>cliente</th>
-                <th>Id envio mes passado</th>
-                <th>Id envio mes atual</th>
-                <th>Qnt Envio mes atual</th>
-                <th>Id ret mes atual</th>
+                <th>Aluno ID</th>
+                <th>Cliente ID</th>
+                <th>Id envio mês passado</th>
+                <th>Id envio mês atual</th>
+                <th>Id Recebidos mês atual</th>
             </tr>
         </thead>
         <tbody>
-            {% for cliente in clientes_retorno %}
+            {% for cliente in clientes %}
             <tr>
-                <td>{{ cliente.cliente }}</td>
-                <td>{{ cliente.id_envio_mes_passado }}</td>
-                <td>{{ cliente.id_envio_mes_atual }}</td>
-                <td>{{ cliente.qtd_envios_mes_atual }}</td>
-                <td>{{ cliente.id_retencao_mes }}</td>
+                <td>{{ cliente.aluno_id }}</td>
+                <td>{{ cliente.id }}</td>
+                <td>{{ cliente.primeiro_envio_mes_passado|default:"-" }}</td>
+                <td>{{ cliente.primeiro_envio_mes_atual|default:"-" }}</td>
+                <td>{{ cliente.retencao_cliente_mes_atual|default:"Cliente não Retido" }}</td>
             </tr>
-        
             {% empty %}
             <tr>
                 <td colspan="4" style="text-align:center;">Nenhum cliente encontrado</td>
@@ -56,6 +55,7 @@
             {% endfor %}
         </tbody>
     </table>
+    
 
 </body>
 </html>
