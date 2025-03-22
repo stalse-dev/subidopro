@@ -243,7 +243,7 @@ def calculo_retencao_func(request):
     """
     
     campeonatoVigente, semana = calcular_semana_vigente()
-    semana = semana  + 1
+
     print(f"Semana: {semana} - Campeonato: {campeonatoVigente}")  
     def gera_pontos_retencao(valor):
         if valor >= 0 and valor < 1000:
@@ -349,7 +349,6 @@ def calculo_retencao_func(request):
 def calculo_ranking_func(request):
     campeonato_vigente, semana = calcular_semana_vigente()
 
-    semana = semana + 1
     resultado = ranking_streamer()
     ### Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
     for posicao in resultado:

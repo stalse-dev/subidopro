@@ -409,8 +409,7 @@ def retencao(request):
     """
     
     campeonatoVigente, semana = calcular_semana_vigente()
-    semana = semana  + 1
-
+    
     def gera_pontos_retencao(valor):
         if valor >= 0 and valor < 1000:
             return 40
