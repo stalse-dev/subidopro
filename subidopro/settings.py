@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'users',
     'subidometro',
     'alunos',
+    'frontend',
 ]
 WSGI_APPLICATION = 'subidopro.wsgi.application'
 
