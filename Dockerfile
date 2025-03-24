@@ -4,17 +4,23 @@ FROM python:3.10
 # Define o diretório de trabalho dentro do container
 WORKDIR /subidopro
 
-# Copia os arquivos do projeto para o container
-COPY . /subidopro/
+# Copia apenas os arquivos essenciais primeiro (para otimizar o cache)
+COPY requirements.txt /subidopro/
 
-# Instala as dependências
+# Instala as dependências antes de copiar o restante do código
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Executa o comando collectstatic para coletar os arquivos estáticos
-RUN python manage.py collectstatic --noinput
+# Agora copia o restante do projeto
+COPY . /subidopro/
+
+# Garante que a pasta de arquivos estáticos exista
+RUN mkdir -p /subidopro/staticfiles
+
+# Adiciona variável de ambiente para evitar erro no settings.py
+ENV GOOGLE_CLOUD_PROJECT=default_project
 
 # Expõe a porta padrão do Django
 EXPOSE 8080
 
-# Comando para rodar o Django no Cloud Run
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "subidopro.wsgi:application"]
+# Comando de entrada do container
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8080 subidopro.wsgi:application"]
