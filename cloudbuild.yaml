@@ -1,0 +1,19 @@
+steps:
+  # Passo 1: Build da imagem e envio para o Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/subidopro/subidopro', '.']
+
+  # Passo 2: Push da imagem para o Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/subidopro/subidopro']
+
+  # Passo 3: Deploy para o Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['run', 'deploy', 'subidopro',
+           '--image', 'gcr.io/subidopro/subidopro',
+           '--platform', 'managed',
+           '--region', 'us-central1',
+           '--allow-unauthenticated']
+
+images:
+  - 'gcr.io/subidopro/subidopro'
