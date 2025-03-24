@@ -259,16 +259,17 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Use 'staticfiles' para a 
 
 # Diretórios adicionais onde Django procura arquivos estáticos
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Diretório de arquivos estáticos de desenvolvimento
+    os.path.join(BASE_DIR, "static"),  # Somente a pasta onde você coloca os arquivos estáticos
 ]
+
 
 # Compressor de arquivos estáticos (se estiver usando o compressor)
-COMPRESS_ENABLED = True
-COMPRESS_ROOT = os.path.join(BASE_DIR, 'static')  # Diretório onde os arquivos comprimidos são salvos
+# COMPRESS_ENABLED = True
+# COMPRESS_ROOT = os.path.join(BASE_DIR, 'static')  # Diretório onde os arquivos comprimidos são salvos
 
-STATICFILES_FINDERS = [
-    'compressor.finders.CompressorFinder',  # Adiciona o CompressorFinder
-]
+# STATICFILES_FINDERS = [
+#     'compressor.finders.CompressorFinder',  # Adiciona o CompressorFinder
+# ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
