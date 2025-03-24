@@ -15,3 +15,4 @@ EXPOSE 8080
 
 # Comando para rodar o Django no Cloud Run
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "subidopro.wsgi:application"]
+
