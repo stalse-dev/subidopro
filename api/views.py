@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime, parse_date
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models import Sum, Count, Func, CharField, IntegerField, Max
+from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q
 from django.db.models.functions import TruncMonth, TruncWeek, Cast
 from api.models import Log
 from api.utils import registrar_log
@@ -61,7 +61,7 @@ def gera_pontos(valor):
     """Calcula a pontuação com base no valor informado."""
     print(valor)
     valor = float(valor)  # Garante que o valor seja float antes do cálculo
-    return int((valor // 100) * 10)
+    return int((valor // 100) * 10)  # Usa divisão normal
 
 def gera_pontos_contrato(valor):
     if valor >= 0 and valor < 1000:
@@ -157,7 +157,6 @@ def criar_envio(envio_data):
     data_now = timezone.now()
 
     if tipo == 2: #Tabela de Envios tipo 2 = recebimento
-        print("Tipo de envio: Recebimento")
         cliente = get_object_or_404(Aluno_clientes, id=int(envio_data.get("vinculoCliente")))
         contrato = get_object_or_404(Aluno_clientes_contratos, id=int(envio_data.get("vinculoContrato")))
 
@@ -166,13 +165,16 @@ def criar_envio(envio_data):
             return Response({"message": f"Envio já existente! - '{envio.descricao}'"}, status=status.HTTP_400_BAD_REQUEST)
     
 
-        if contrato.tipo_contrato == 2:  # Co-produção/Multisserviços
+        if contrato.tipo_contrato == 2:
             valor_inicial = float(envio_data.get("valorPreenchido"))
+            print(valor_inicial)
             valor_minimo = valor_inicial * 0.1
+            print(valor_minimo)
             pontos = gera_pontos(valor_minimo)
+            print(pontos)
             pontos_previsto = pontos
         else:
-            pontos = gera_pontos(float(envio_data.get("valorPreenchido")))  # Garantindo float
+            pontos = gera_pontos(float(envio_data.get("valorPreenchido")))
             pontos_previsto = pontos
                 
         envio = Aluno_envios.objects.filter(id=int(envio_data.get("id"))).first()
@@ -379,6 +381,20 @@ def alterar_contrato(contrato_data):
     contrato_cliente.analise_data = parse_datetime(contrato_data.get("analiseData")) if contrato_data.get("analiseData") else None
     contrato_cliente.camp_anterior = int(contrato_data.get("campAnterior", contrato_cliente.camp_anterior))
     contrato_cliente.id_camp_anterior = int(contrato_data.get("idCampAnterior", contrato_cliente.id_camp_anterior)) if contrato_data.get("idCampAnterior") else None 
+    envio = Aluno_envios.objects.filter(contrato=contrato_cliente).order_by('-data_cadastro').first()
+
+    if contrato_cliente.tipo_contrato == 2:
+        valor_inicial = float(envio.valor)
+        valor_minimo = valor_inicial * 0.1
+        pontos = gera_pontos(valor_minimo)
+        envio.pontos = pontos
+        envio.pontos_previsto = pontos
+        envio.save()
+    else:
+        pontos = gera_pontos(envio.valor)
+        envio.pontos = pontos
+        envio.pontos_previsto = pontos
+        envio.save()
 
 
     contrato_cliente.save()
@@ -904,9 +920,36 @@ def subdometro_aluno(request, aluno_id):
     # Soma os valores de todos os envios do aluno
     total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
 
+    # # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    # total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
+    
+    # print("Faturamento total: ", float(total_valores_envios_contrato))
+
+    # total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
+    # print("Faturamento total: ", total_valores_envios_contrato_10)
+
+    # # # Somar valores de todos os envios onde o tipo_contrato seja diferente de 2
+    # total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
+    #         ~Q(contrato__tipo_contrato=2),
+    #         aluno=aluno,
+    #         status=3,
+    #         semana__gt=0,
+    #         data__gte=data_int
+    #     ).aggregate(total=Sum('valor'))['total'] or 0
+    
+    # print("Faturamento que não é contrato 2: ", total_valores_envios_contrato_1)
+    
+
+
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
     total_todos_envios = total_valor_envios + total_valor_camp
+
+    # calcular 10% do total_valores_envios_contrato
+    # total_valores_envios_contrato_10 = total_valores_envios_contrato * 0.1
+    # total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
+
+    # print("Faturamento total: ", total_total_total)
 
     # Agrupar por mês e calcular a soma
     mes_mais_ganhou = (
