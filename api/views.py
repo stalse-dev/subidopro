@@ -165,17 +165,25 @@ def criar_envio(envio_data):
             return Response({"message": f"Envio já existente! - '{envio.descricao}'"}, status=status.HTTP_400_BAD_REQUEST)
     
 
-        if contrato.tipo_contrato == 2:
-            valor_inicial = float(envio_data.get("valorPreenchido"))
-            print(valor_inicial)
-            valor_minimo = valor_inicial * 0.1
-            print(valor_minimo)
-            pontos = gera_pontos(valor_minimo)
-            print(pontos)
-            pontos_previsto = pontos
+        data = envio_data.get("data")  # Exemplo: "2024-03-10"
+        data_formatada = datetime.strptime(data, "%Y-%m-%d")  # Ajustando para o formato correto
+
+        if data_formatada > datetime(2025, 3, 1):  # Comparação correta
+            print("Data é : ", data_formatada)
+            print("Entrou aqui")
+            if contrato.tipo_contrato == 2:
+                valor_inicial = float(envio_data.get("valorPreenchido"))
+                valor_minimo = valor_inicial * 0.1
+                pontos = gera_pontos(valor_minimo)
+                pontos_previsto = pontos
+            else:
+                
+                pontos = gera_pontos(float(envio_data.get("valorPreenchido")))
+                pontos_previsto = pontos
         else:
-            pontos = gera_pontos(float(envio_data.get("valorPreenchido")))
-            pontos_previsto = pontos
+            print("Data é menor que 2025")
+            pontos = 0
+            pontos_previsto = 0
                 
         envio = Aluno_envios.objects.filter(id=int(envio_data.get("id"))).first()
         if envio:
@@ -442,8 +450,7 @@ def alterar_envio(envio_data):
             if aluno_contrato:
                 aluno_contrato.status = 3
                 aluno_contrato.save()
-
-
+                
     elif tipo == 4:
         desafio = get_object_or_404(Aluno_desafio, id=int(envio_data.get("id")))
         desafio_de_fato = get_object_or_404(Desafios, id=int(envio_data.get("desafio")))
@@ -461,7 +468,7 @@ def alterar_envio(envio_data):
         desafio.status_comentario=envio_data.get("statusComentario")
         desafio.semana=envio_data.get("semana")
         desafio.tipo=tipo
-
+        desafio.pontos=Decimal(envio_data.get("pontos"))
         desafio.save()
     elif tipo == 3 or tipo == 5:
         certificado = get_object_or_404(Aluno_certificacao, id=int(envio_data.get("id")))
@@ -476,9 +483,8 @@ def alterar_envio(envio_data):
         certificado.status_comentario=envio_data.get("statusComentario")
         certificado.semana=envio_data.get("semana")
         certificado.tipo=tipo
-        if tipo == 5:
-            certificado.pontos=Decimal(envio_data.get("pontos"))
-            certificado.pontos_previsto=Decimal(envio_data.get("pontosPreenchidos"))
+        certificado.pontos=Decimal(envio_data.get("pontos"))
+        certificado.pontos_previsto=Decimal(envio_data.get("pontosPreenchidos"))
 
         certificado.save()
     else:
