@@ -742,9 +742,28 @@ def painel_inicial_aluno(request, aluno_id):
     # Soma os valores de todos os envios do aluno
     total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
 
+
+    # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
+    
+    total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
+
+    total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
+            ~Q(contrato__tipo_contrato=2),
+            aluno=aluno,
+            status=3,
+            semana__gt=0,
+            data__gte=data_int
+        ).aggregate(total=Sum('valor'))['total'] or 0
+    
+
+    
+
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
     total_todos_envios = total_valor_envios + total_valor_camp
+
+    total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
 
 
     # Evolução do aluno
@@ -775,7 +794,7 @@ def painel_inicial_aluno(request, aluno_id):
     resposta = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_total_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),  
         },
         "subidometro": {
@@ -926,24 +945,21 @@ def subdometro_aluno(request, aluno_id):
     # Soma os valores de todos os envios do aluno
     total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
 
-    # # Somar Valores de todos os envios que o tipo de contrato seja = 2
-    # total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
+    # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
     
-    # print("Faturamento total: ", float(total_valores_envios_contrato))
+    print("Faturamento total: ", float(total_valores_envios_contrato))
 
-    # total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
-    # print("Faturamento total: ", total_valores_envios_contrato_10)
+    total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
 
-    # # # Somar valores de todos os envios onde o tipo_contrato seja diferente de 2
-    # total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
-    #         ~Q(contrato__tipo_contrato=2),
-    #         aluno=aluno,
-    #         status=3,
-    #         semana__gt=0,
-    #         data__gte=data_int
-    #     ).aggregate(total=Sum('valor'))['total'] or 0
-    
-    # print("Faturamento que não é contrato 2: ", total_valores_envios_contrato_1)
+    # # Somar valores de todos os envios onde o tipo_contrato seja diferente de 2
+    total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
+            ~Q(contrato__tipo_contrato=2),
+            aluno=aluno,
+            status=3,
+            semana__gt=0,
+            data__gte=data_int
+        ).aggregate(total=Sum('valor'))['total'] or 0
     
 
 
@@ -951,11 +967,8 @@ def subdometro_aluno(request, aluno_id):
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
     total_todos_envios = total_valor_envios + total_valor_camp
 
-    # calcular 10% do total_valores_envios_contrato
-    # total_valores_envios_contrato_10 = total_valores_envios_contrato * 0.1
-    # total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
 
-    # print("Faturamento total: ", total_total_total)
+    total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
 
     # Agrupar por mês e calcular a soma
     mes_mais_ganhou = (
@@ -1019,7 +1032,7 @@ def subdometro_aluno(request, aluno_id):
     response_data = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_total_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         },
         "evolucaoGanhos": resultado_final,

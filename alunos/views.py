@@ -511,68 +511,6 @@ def retencao(request):
 
     return render(request, "Retencao/retencao.html", context)
 
-
-    retencao_por_cliente = (
-        Alunos_clientes_pontos_meses_retencao.objects
-        .values("cliente_id")  # Agrupa por cliente
-        .annotate(total_envios_cl=Count("id"))  # Conta os registros de cada cliente
-        .order_by("-total_envios_cl")  # Opcional: ordena pelo total em ordem decrescente
-    )
-
-
-    # Criar um dicionário com os envios da segunda query (total de retenções)
-    historico_envios = {
-        int(item['cliente_id']): item['total_envios_cl']  # ID do Cliente -> Total de envios retidos
-        for item in retencao_por_cliente
-    }
-
-    # Lista de clientes onde os envios do contrato recente são menores que os envios retidos
-    clientes_que_vai_ser_retidos = []
-
-    now = timezone.now()
-
-    for cliente in retencoes:
-        total_envios_historico = historico_envios.get(int(cliente['id']), 0)
-        if int(total_envios_historico) < (int(cliente['total_envios']) - 1):
-            comp = "Total de envios: " + str(int(cliente['total_envios']) - 1) + " - Total de envios retidos: " + str(total_envios_historico)
-
-            if cliente['contratos__tipo_contrato'] == 2:
-                valor_inicial = float(cliente['ultimo_envio'])
-                valor_final = valor_inicial * 0.1
-
-                # Atualiza o valor do envio para o valor de comissão
-                cliente['valorEnvio'] = valor_final
-                pontos_cliente = gera_pontos_clientes(valor_final)
-                cliente['pontosCliente'] = pontos_cliente
-            else:
-                # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
-                if not cliente['contratos__valor_contrato']:
-                    valor_final = float(cliente['ultimo_envio'])
-                    pontos_cliente = gera_pontos_clientes(float(cliente['ultimo_envio']))
-                else:
-                    valor_final = float(cliente['contratos__valor_contrato'])
-                    pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
-
-                cliente['valorEnvio'] = valor_final
-                cliente['pontosCliente'] = pontos_cliente
-
-            pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
-
-            tem_envio_camp = Aluno_envios.objects.filter(cliente_id=cliente['id'], campeonato=campeonatoVigente).exists()
-            if tem_envio_camp:
-                clientes_que_vai_ser_retidos.append({
-                    "aluno": cliente['aluno__nome_completo'],
-                    "cliente_id": cliente['id'],
-                    "contratos_id": cliente['contratos__id'],
-                    "total_envios": comp,
-                    "valor_envio": cliente['valorEnvio'],
-                    "pontos_cliente": int(cliente['pontosCliente']),
-                    "pontos_retencao": int(pontos_retencao)
-                })
-
-    context = {"retencoes": clientes_que_vai_ser_retidos}
-    return render(request, "Retencao/retencao_v2.html", context)
-
 @login_required
 def exportar_ranking(request):
     alunos = calculo_ranking_def()
@@ -867,63 +805,6 @@ def extrato(request, aluno_id):
 
 @login_required
 def teste_gabriel(request):
-    # Obtém a data de hoje
-    hoje = timezone.now().date()
-    primeiro_dia_mes_atual = hoje.replace(day=1)
-    primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
-    ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
-
-    # Buscar primeiro envio do mês passado para cada cliente
-    envios_mes_passado = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado], status=3
-    ).values('cliente').annotate(id_envio=Min('id'))
-
-    # Buscar primeiro envio do mês atual para cada cliente
-    envios_mes_atual = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje], status=3
-    ).values('cliente').annotate(id_envio=Min('id'))
-
-    # Criar dicionários {cliente_id: id_envio} para ambos os meses
-    dict_envios_passado = {e['cliente']: e['id_envio'] for e in envios_mes_passado}
-    dict_envios_atual = {e['cliente']: e['id_envio'] for e in envios_mes_atual}
-
-    # Identificar clientes que enviaram nos dois meses consecutivos
-    clientes_retenção = set(dict_envios_passado.keys()).intersection(set(dict_envios_atual.keys()))
-
-    # Buscar clientes com envios repetitivos no mês atual
-    clientes_repetitivos = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje], status=3
-    ).values('cliente').annotate(qtd_envios=Count('id')).filter(qtd_envios__gt=1)
-
-    dict_clientes_repetitivos = {c['cliente']: c['qtd_envios'] for c in clientes_repetitivos}
-
-    # Buscar id_retencao_mes na tabela Alunos_clientes_pontos_meses_retencao
-    retencao_clientes = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje]
-    ).values('cliente', 'id')
-
-    dict_retencao_clientes = {r['cliente']: r['id'] for r in retencao_clientes}
-
-    # Montar a lista de retorno
-    clientes_retorno = [
-        {
-            "cliente": cliente,
-            "id_envio_mes_passado": dict_envios_passado.get(cliente, "Não enviado"),
-            "id_envio_mes_atual": dict_envios_atual.get(cliente, "Não enviado"),
-            "qtd_envios_mes_atual": dict_clientes_repetitivos.get(cliente, 1),
-            "id_retencao_mes": dict_retencao_clientes.get(cliente, "Não retido")
-        }
-        for cliente in clientes_retenção
-    ]
-
-    context = {
-        "clientes_retorno": clientes_retorno
-    }
-
-    return render(request, "test.html", context)
-
-@login_required
-def teste_gabriel_2(request):
     """
         Regras para reter pontos do cliente
         1º O cliente so recebe pontos se ele tiver enviado no mês passado e no mês atual
@@ -932,7 +813,7 @@ def teste_gabriel_2(request):
     """
     
     campeonatoVigente, semana = calcular_semana_vigente()
-
+    
     def gera_pontos_retencao(valor):
         if valor >= 0 and valor < 1000:
             return 40
@@ -1016,15 +897,11 @@ def teste_gabriel_2(request):
         #         data=hoje,
         #         defaults={
         #             "pontos": pontos_retencao,
-        #             "qtd_envios": "",
+        #             "qtd_envios": 0,
         #             "ids_envios": "",
         #             "semana": semana
         #         }
         #     )
-
-
-
-            
 
 
     #Contar quantos clientes tem 
@@ -1037,4 +914,3 @@ def teste_gabriel_2(request):
     }
 
     return render(request, "Retencao/retencao.html", context)
-
