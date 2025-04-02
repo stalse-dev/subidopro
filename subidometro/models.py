@@ -138,8 +138,8 @@ class Alunos_clientes_pontos_meses_retencao(models.Model):
     id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
     cliente = models.ForeignKey(Aluno_clientes, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
-    # envio = models.ForeignKey("Aluno_envios", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
-    # contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
+    envio = models.ForeignKey("Aluno_envios", on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
+    contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonatos_clientes")
     data = models.DateField(null=True, blank=True)
     pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

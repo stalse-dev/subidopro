@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime, parse_date
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q
+from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q, Case, When
 from django.db.models.functions import TruncMonth, TruncWeek, Cast
 from api.models import Log
 from api.utils import registrar_log
@@ -774,7 +774,15 @@ def painel_inicial_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(total_mes=Sum('valor'))  # Soma os valores por mês
+        .annotate(
+            total_mes=Sum(
+                Case(
+                    When(contrato__tipo_contrato=2, then=F('valor') * 0.1),  # Se contrato tipo 2, pega 10%
+                    default=F('valor'),  # Senão, pega o valor normal
+                    output_field=DecimalField()
+                )
+            )
+        )
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
@@ -976,7 +984,15 @@ def subdometro_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(total_mes=Sum('valor'))  # Soma os valores por mês
+        .annotate(
+            total_mes=Sum(
+                Case(
+                    When(contrato__tipo_contrato=2, then=F('valor') * 0.1),  # Se contrato tipo 2, pega 10%
+                    default=F('valor'),  # Senão, pega o valor normal
+                    output_field=DecimalField()
+                )
+            )
+        )
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
