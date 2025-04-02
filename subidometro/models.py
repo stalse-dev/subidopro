@@ -158,6 +158,7 @@ class Aluno_envios(models.Model):
     data = models.DateField(null=True, blank=True)
     descricao = models.CharField(max_length=255, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    valor_calculado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     arquivo1 = models.CharField(max_length=255, null=True, blank=True)
     arquivo1_motivo = models.IntegerField(null=True, blank=True)
     arquivo1_status = models.IntegerField(null=True, blank=True, default=0)

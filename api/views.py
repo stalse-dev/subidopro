@@ -169,21 +169,21 @@ def criar_envio(envio_data):
         data_formatada = datetime.strptime(data, "%Y-%m-%d")  # Ajustando para o formato correto
 
         if data_formatada > datetime(2025, 3, 1):  # Comparação correta
-            print("Data é : ", data_formatada)
-            print("Entrou aqui")
             if contrato.tipo_contrato == 2:
                 valor_inicial = float(envio_data.get("valorPreenchido"))
                 valor_minimo = valor_inicial * 0.1
                 pontos = gera_pontos(valor_minimo)
                 pontos_previsto = pontos
+                valor_calculado = valor_minimo  # Definindo valor_calculado
             else:
-                
                 pontos = gera_pontos(float(envio_data.get("valorPreenchido")))
                 pontos_previsto = pontos
+                valor_calculado = float(envio_data.get("valorPreenchido")) 
         else:
             print("Data é menor que 2025")
             pontos = 0
             pontos_previsto = 0
+            valor_calculado = float(envio_data.get("valorPreenchido"))  # Definindo valor_calculado
                 
         envio = Aluno_envios.objects.filter(id=int(envio_data.get("id"))).first()
         if envio:
@@ -199,6 +199,7 @@ def criar_envio(envio_data):
             data=envio_data.get("data"),
             descricao=envio_data.get("descricao"),
             valor=envio_data.get("valorPreenchido"),
+            valor_calculado=valor_calculado,
             arquivo1=envio_data.get("arquivo1", ""),
             arquivo1_motivo=envio_data.get("arquivo1Motivo", ""),
             arquivo1_status=envio_data.get("arquivo1Status", ""),
@@ -419,6 +420,22 @@ def alterar_envio(envio_data):
         cliente = get_object_or_404(Aluno_clientes, id=int(envio_data.get("vinculoCliente")))
         contrato = get_object_or_404(Aluno_clientes_contratos, id=int(envio_data.get("vinculoContrato")))
 
+        if float(envio.valor) != float(envio_data.get("valor")):
+            if contrato.tipo_contrato == 2:
+                valor_inicial = float(envio_data.get("valor"))
+                valor_minimo = valor_inicial * 0.1
+                pontos = gera_pontos(valor_minimo)
+                pontos_previsto = pontos
+                valor_calculado = valor_minimo
+            else:
+                pontos = gera_pontos(float(envio_data.get("valor")))
+                pontos_previsto = pontos
+                valor_calculado = float(envio_data.get("valor"))
+        else:
+            pontos = envio.pontos
+            pontos_previsto = envio.pontos_previsto
+            valor_calculado = envio.valor_calculado
+
         envio.campeonato=campeonato
         envio.aluno=aluno
         envio.cliente=cliente
@@ -426,6 +443,7 @@ def alterar_envio(envio_data):
         envio.data=envio_data.get("data")
         envio.descricao=envio_data.get("descricao")
         envio.valor=envio_data.get("valor")
+        envio.valor_calculado=valor_calculado
         envio.arquivo1=envio_data.get("arquivo1")
         envio.arquivo1_motivo=envio_data.get("arquivo1Motivo")
         envio.arquivo1_status=envio_data.get("arquivo1Status")
@@ -437,6 +455,10 @@ def alterar_envio(envio_data):
         envio.status_comentario=envio_data.get("statusComentario")
         envio.semana=envio_data.get("semana")
         envio.tipo=tipo
+        envio.pontos=pontos
+        envio.pontos_previsto=pontos_previsto
+
+
 
         if envio_data.get("acaoRastreador"):
             envio.pontos=envio_data.get("pontos")
@@ -739,32 +761,13 @@ def painel_inicial_aluno(request, aluno_id):
     campeonato_vigente, semana_subidometro = calcular_semana_vigente()
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
-    # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
-
-
-    # Somar Valores de todos os envios que o tipo de contrato seja = 2
-    total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
-    
-    total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
-
-    total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
-            ~Q(contrato__tipo_contrato=2),
-            aluno=aluno,
-            status=3,
-            semana__gt=0,
-            data__gte=data_int
-        ).aggregate(total=Sum('valor'))['total'] or 0
-    
-
-    
+    # Buscar faturamento dos envios# Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
 
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
-    total_todos_envios = total_valor_envios + total_valor_camp
 
-    total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
-
+    total_total_total = float(total_valores_envios) + float(total_valor_camp)
 
     # Evolução do aluno
     total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
@@ -774,15 +777,7 @@ def painel_inicial_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(
-            total_mes=Sum(
-                Case(
-                    When(contrato__tipo_contrato=2, then=F('valor') * 0.1),  # Se contrato tipo 2, pega 10%
-                    default=F('valor'),  # Senão, pega o valor normal
-                    output_field=DecimalField()
-                )
-            )
-        )
+        .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
@@ -950,33 +945,15 @@ def subdometro_aluno(request, aluno_id):
     # Contagem total de clientes
     total_clientes = clientes.count()
 
-    # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
-
     # Somar Valores de todos os envios que o tipo de contrato seja = 2
-    total_valores_envios_contrato = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int, contrato__tipo_contrato=2).aggregate(total=Sum('valor'))['total'] or 0
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
     
-    print("Faturamento total: ", float(total_valores_envios_contrato))
-
-    total_valores_envios_contrato_10 = float(total_valores_envios_contrato) * 0.1
-
-    # # Somar valores de todos os envios onde o tipo_contrato seja diferente de 2
-    total_valores_envios_contrato_1 = Aluno_envios.objects.filter(
-            ~Q(contrato__tipo_contrato=2),
-            aluno=aluno,
-            status=3,
-            semana__gt=0,
-            data__gte=data_int
-        ).aggregate(total=Sum('valor'))['total'] or 0
-    
-
 
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
-    total_todos_envios = total_valor_envios + total_valor_camp
 
 
-    total_total_total = float(total_valores_envios_contrato_1) + float(total_valores_envios_contrato_10) + float(total_valor_camp)
+    total_total_total = float(total_valores_envios) + float(total_valor_camp)
 
     # Agrupar por mês e calcular a soma
     mes_mais_ganhou = (
@@ -984,15 +961,7 @@ def subdometro_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(
-            total_mes=Sum(
-                Case(
-                    When(contrato__tipo_contrato=2, then=F('valor') * 0.1),  # Se contrato tipo 2, pega 10%
-                    default=F('valor'),  # Senão, pega o valor normal
-                    output_field=DecimalField()
-                )
-            )
-        )
+        .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
@@ -1026,7 +995,7 @@ def subdometro_aluno(request, aluno_id):
 
         # Atualizar os valores do mês corretamente somando os envios do mesmo mês
         dados_por_mes[mes_key]["data"] = mes_key
-        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor or 0, 2)  # Evita erro se `valor` for None
+        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor_calculado or 0, 2)  # Evita erro se `valor` for None
 
     # Ordenar os meses em ordem crescente
     meses_ordenados = sorted(dados_por_mes.keys())
