@@ -1184,6 +1184,48 @@ def ranking_semanal_claAPI(request):
     return Response(serializer.data)
 
 @api_view(['GET'])
+def meu_cla(request, aluno_id):
+    aluno = get_object_or_404(Alunos, id=int(aluno_id))
+    campeonato, semana = calcular_semana_vigente()
+    data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+    if not aluno.cla:
+        return Response({"error": "Este aluno não pertence a nenhum clã."}, status=404)
+
+    cla = aluno.cla
+
+    # Dados do clã
+    meu_cla_detalhes = {
+        "id": str(cla.id),
+        "titulo": cla.nome,
+        "sigla": cla.sigla or "",
+        "codigoBrasao": cla.brasao or "",
+        "qtdAlunos": str(cla.aluno_cla.count())
+    }
+
+    # Alunos do clã
+    alunos_data = {}
+    for aluno in cla.aluno_cla.all():
+        rank_semanal = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=campeonato, semana=semana).first()
+        qnt_envios_validos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, status=3, semana__gt=0, data__gte=data_int).count()
+
+        alunos_data[str(aluno.id)] = {
+            "id": str(aluno.id),
+            "nome": aluno.nome_completo or aluno.nome_social or aluno.apelido or "",
+            "nivel": str(aluno.nivel or 0),
+            "qtdEnviosValidosGeral": qnt_envios_validos,  
+            "pontos": rank_semanal.pontos_totais,
+            "ranking": rank_semanal.posicao,
+        }
+
+    return Response({
+        "meuClaDetalhes": meu_cla_detalhes,
+        "alunos": alunos_data
+    })
+
+
+
+
+@api_view(['GET'])
 def ranking_semanalAPI_test(request):
     #campeonato, semana = calcular_semana_vigente()
     campeonato = Campeonato.objects.get(id=5)

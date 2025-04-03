@@ -33,7 +33,7 @@ class Mentoria_cla(models.Model):
     rastreador = models.IntegerField(null=True, blank=True)
     rastreador_substituto = models.IntegerField(null=True, blank=True)
     definido = models.IntegerField(null=True, blank=True)
-    brasao = models.TextField(null=True, blank=True)
+    brasao = models.TextField(null= True, blank=True)
 
     def __str__(self):
         return self.nome
