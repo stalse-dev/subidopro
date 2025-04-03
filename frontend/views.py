@@ -2,7 +2,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from subidometro.models import *
-from .serializers import AlunosPosicoesSemanaSerializer
+from .serializers import *
 from subidometro.utils import *
 from math import ceil
 
@@ -80,3 +80,59 @@ class AlunosPosicoesSemanaListView(generics.ListAPIView):
 
         return queryset
 
+
+class ClansPosicoesSemanaPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+    def get_paginated_response(self, data):
+        total_items = self.page.paginator.count
+        total_pages = ceil(total_items / self.page_size)
+        page = self.page.number
+
+        campeonato, _ = calcular_semana_vigente()
+        semanas_disponiveis = (
+            Mentoria_cla_posicao_semana.objects
+            .filter(campeonato=campeonato)
+            .values_list("semana", flat=True)
+            .distinct()
+        )
+        
+        semanas = {str(semana): f"Semana {semana}" for semana in semanas_disponiveis}
+
+        return Response({
+            "count": total_items,
+            "total_pages": total_pages,
+            "current_page": page,
+            "next": self.get_next_link(),
+            "previous": self.get_previous_link(),
+            "results": data,
+            "pagination": {
+                "first": 1,
+                "last": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "pages": list(range(1, total_pages + 1))[:5]
+            },
+            "semanas_disponiveis": semanas
+        })
+    
+class ClansPosicoesSemanaListView(generics.ListAPIView):
+    serializer_class = MentoriaClaPosicaoSemanaSerializer
+    pagination_class = ClansPosicoesSemanaPagination
+
+    def get_queryset(self):
+        request = self.request
+        cla_nome = request.GET.get("q")
+        semana_param = request.GET.get("semana")
+
+        campeonato, semana_vigente = calcular_semana_vigente()
+        semana = int(semana_param) if semana_param and semana_param.isdigit() else semana_vigente
+
+        queryset = Mentoria_cla_posicao_semana.objects.filter(semana=semana, campeonato=campeonato).order_by("posicao")
+
+        if cla_nome:
+            queryset = queryset.filter(Q(cla__nome__icontains=cla_nome))
+
+        return queryset

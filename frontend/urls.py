@@ -3,4 +3,5 @@ from .views import *
 
 urlpatterns = [
     path("alunos-semana/", AlunosPosicoesSemanaListView.as_view(), name="alunos-semana"),
+    path("cla-semana/", ClansPosicoesSemanaListView.as_view(), name="cla-semana"),
 ]
