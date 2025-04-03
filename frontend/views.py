@@ -80,7 +80,6 @@ class AlunosPosicoesSemanaListView(generics.ListAPIView):
 
         return queryset
 
-
 class ClansPosicoesSemanaPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -134,5 +133,21 @@ class ClansPosicoesSemanaListView(generics.ListAPIView):
 
         if cla_nome:
             queryset = queryset.filter(Q(cla__nome__icontains=cla_nome))
+
+        return queryset
+
+class AlunosPosicoesStremerListView(generics.ListAPIView):
+    serializer_class = AlunosRankingStreamerSerializer
+
+    def get_queryset(self):
+        request = self.request
+        nome_email = request.GET.get("q")
+
+        # Busca o ranking dos streamers
+        queryset = ranking_streamer()
+
+        # Filtro opcional por nome/email
+        if nome_email:
+            queryset = queryset.filter(Q(nome_completo__icontains=nome_email))
 
         return queryset

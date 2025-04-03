@@ -26,3 +26,41 @@ class MentoriaClaPosicaoSemanaSerializer(serializers.ModelSerializer):
             "pontos_manual", "pontos_contrato", "pontos_retencao", 
             "pontos_totais", "data"
         ]
+
+class AlunosRankingStreamerSerializer(serializers.ModelSerializer):
+    pontos_recebimento = serializers.SerializerMethodField()
+    pontos_desafio = serializers.SerializerMethodField()
+    pontos_certificacoes = serializers.SerializerMethodField()
+    pontos_manual = serializers.SerializerMethodField()
+    pontos_contrato = serializers.SerializerMethodField()
+    pontos_retencao = serializers.SerializerMethodField()
+    total_pontos_final = serializers.SerializerMethodField()
+    ranking = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Alunos
+        fields = ['id', 'nome_completo', 'nivel', 'apelido', 'email', 'data_criacao', 'status', 'ranking', 'pontos_recebimento', 'pontos_desafio', 'pontos_certificacoes', 'pontos_manual', 'pontos_contrato', 'pontos_retencao', 'total_pontos_final']
+
+    def get_pontos_recebimento(self, obj):
+        return getattr(obj, 'pontos_recebimento', 0)
+
+    def get_pontos_desafio(self, obj):
+        return getattr(obj, 'pontos_desafio', 0)
+
+    def get_pontos_certificacoes(self, obj):
+        return getattr(obj, 'pontos_certificacoes', 0)
+
+    def get_pontos_manual(self, obj):
+        return getattr(obj, 'pontos_manual', 0)
+
+    def get_pontos_contrato(self, obj):
+        return getattr(obj, 'pontos_contrato', 0)
+
+    def get_pontos_retencao(self, obj):
+        return getattr(obj, 'pontos_retencao', 0)
+
+    def get_total_pontos_final(self, obj):
+        return getattr(obj, 'total_pontos_final', 0)
+
+    def get_ranking(self, obj):
+        return getattr(obj, 'ranking', None)
