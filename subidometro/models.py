@@ -33,7 +33,7 @@ class Mentoria_cla(models.Model):
     rastreador = models.IntegerField(null=True, blank=True)
     rastreador_substituto = models.IntegerField(null=True, blank=True)
     definido = models.IntegerField(null=True, blank=True)
-    brasao = models.TextField(null=True, blank=True)
+    brasao = models.TextField(null= True, blank=True)
 
     def __str__(self):
         return self.nome
@@ -138,6 +138,8 @@ class Alunos_clientes_pontos_meses_retencao(models.Model):
     id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
     cliente = models.ForeignKey(Aluno_clientes, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
+    envio = models.ForeignKey("Aluno_envios", on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
+    contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonatos_clientes")
     data = models.DateField(null=True, blank=True)
     pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -156,6 +158,7 @@ class Aluno_envios(models.Model):
     data = models.DateField(null=True, blank=True)
     descricao = models.CharField(max_length=255, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    valor_calculado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     arquivo1 = models.CharField(max_length=255, null=True, blank=True)
     arquivo1_motivo = models.IntegerField(null=True, blank=True)
     arquivo1_status = models.IntegerField(null=True, blank=True, default=0)

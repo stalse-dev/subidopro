@@ -20,5 +20,4 @@ urlpatterns = [
     path('exportar_ranking/', exportar_ranking, name='exportar_ranking'),
     path('extrato/<int:aluno_id>/', extrato, name='extrato'),
     path('teste_gabriel/', teste_gabriel, name='teste_gabriel'),
-    path('teste_gabriel_2/', teste_gabriel_2, name='teste_gabriel_2'),
 ]

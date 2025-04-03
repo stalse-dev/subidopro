@@ -12,6 +12,7 @@ urlpatterns = [
     path('ranking/', rankingAPI, name='ranking'),
     path('ranking_semanal/', ranking_semanalAPI, name='ranking_semanal'),
     path('ranking_semanal_cla/', ranking_semanal_claAPI, name='ranking_semanal_cla'),
+    path('meu_cla/<int:aluno_id>/', meu_cla, name='meu_cla'),
     path('ranking_semanal_test/', ranking_semanalAPI_test, name='ranking_semanal_test'),
     path('logsweb/', listar_logs, name='listar_logs'),
     path('detalhes-log/<int:log_id>/', detalhes_log, name='detalhes_log'),

@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from subidometro.models import *
 from subidometro.utils import *
 from django.db.models.functions import TruncMonth, Cast
-from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField, Max, Min
+from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField, Max, Exists
 from django.contrib.auth.decorators import login_required
 from datetime import date
 from django.core.paginator import Paginator
@@ -430,41 +430,57 @@ def retencao(request):
     primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
 
+    # Filtrando os envios aprovados desde 01/09/2024
+    envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01') 
 
-    clientes = Aluno_clientes.objects.filter(data_criacao__gte='2024-09-01').order_by('id')
 
-    primeiro_envio_mes_passado_subquery = Aluno_envios.objects.filter(
-        cliente=OuterRef('pk'), 
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado], 
+    # Verifica se o mesmo contrato teve envio no mês passado
+    envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(
+        cliente=OuterRef('cliente'),  # Agora filtra por contrato
+        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
         status=3
-    ).order_by('data').values('id')[:1]
+    ).values('id')[:1]  # Retorna qualquer envio válido
 
-    primeiro_envio_mes_atual_subquery = Aluno_envios.objects.filter(
-        cliente=OuterRef('pk'), 
-        data__range=[primeiro_dia_mes_atual, hoje], 
+    envio_mes_passado_CT_subquery = Aluno_envios.objects.filter(
+        contrato=OuterRef('contrato'),  # Agora filtra por contrato
+        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
+        status=3
+    ).values('id')[:1]  # R
+
+
+
+    # Primeiro envio do contrato no mês atual
+    envio_mes_atual_subquery = Aluno_envios.objects.filter(
+        id=OuterRef('pk'),
+        data__range=[primeiro_dia_mes_atual, hoje],
         status=3
     ).order_by('data').values('id', 'valor', 'contrato__tipo_contrato', 'contrato__id')[:1]
 
-    retencao_clientes_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        cliente=OuterRef('pk'),
+    # Verifica se já foi registrado na tabela de retenção
+    retencao_envios_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
+        envio=OuterRef('pk'),
         data__range=[primeiro_dia_mes_atual, hoje]
     ).values('id')[:1]
 
-    clientes_nova_retencao = clientes.annotate(
-        primeiro_envio_mes_passado=Subquery(primeiro_envio_mes_passado_subquery),
-        primeiro_envio_mes_atual=Subquery(primeiro_envio_mes_atual_subquery.values('id')),
-        contrato_id_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__id')),
-        valor_envio=Subquery(primeiro_envio_mes_atual_subquery.values('valor')),
-        tipo_contrato_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__tipo_contrato')),
-        retencao_cliente_mes_atual=Subquery(retencao_clientes_mes_atual_subquery)
+    # Anotando os resultados e filtrando os registros
+    envios_nova_retencao = envios.annotate(
+        envio_mes_passado_cl=Exists(envio_mes_passado_CL_subquery),
+        envio_mes_passado_ct=Exists(envio_mes_passado_CT_subquery),
+        envio_mes_atual=Subquery(envio_mes_atual_subquery.values('id')),
+        contrato_id_anotado=Subquery(envio_mes_atual_subquery.values('contrato__id')),
+        valor_envio=Subquery(envio_mes_atual_subquery.values('valor')),
+        tipo_contrato_anotado=Subquery(envio_mes_atual_subquery.values('contrato__tipo_contrato')),
+        retencao_envio_mes_atual=Exists(retencao_envios_mes_atual_subquery)
     ).filter(
-        primeiro_envio_mes_passado__isnull=False,
-        primeiro_envio_mes_atual__isnull=False,
-        retencao_cliente_mes_atual__isnull=True,
+        envio_mes_passado_cl=True,  # Garante que teve envio no mês passado
+        envio_mes_passado_ct=True,  # Garante que teve envio no mês passado
+        envio_mes_atual__isnull=False,  # Teve envio neste mês
+        retencao_envio_mes_atual=False  # Ainda não recebeu retenção
     )
 
     clientes_que_vai_ser_retidos = []
-    for cli_retencao in clientes_nova_retencao:
+    for cli_retencao in envios_nova_retencao:
+
         if cli_retencao.tipo_contrato_anotado == 2:
             valor_inicial = float(cli_retencao.valor_envio)
             valor_final = valor_inicial * 0.1
@@ -478,30 +494,32 @@ def retencao(request):
         clientes_que_vai_ser_retidos.append({
                 "aluno": cli_retencao.aluno.nome_completo,
                 "aluno_id": cli_retencao.aluno.id,
-                "cliente_id": cli_retencao.id,
+                "cliente_id": cli_retencao.cliente.id,
                 "contrato_id": cli_retencao.contrato_id_anotado,
-                "envio_id": cli_retencao.primeiro_envio_mes_atual,
+                "envio_id": cli_retencao.id,
                 "tipo_contrato": cli_retencao.tipo_contrato_anotado,
                 "valor_envio": cli_retencao.valor_envio,
                 "pontos_retencao": int(pontos_retencao),
             })
         
         # novo_registro = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
-        #         aluno_id=cli_retencao.aluno.id,
-        #         cliente_id=cli_retencao.id,
-        #         campeonato=campeonatoVigente,
-        #         data=hoje,
-        #         defaults={
-        #             "pontos": pontos_retencao,
-        #             "qtd_envios": 0,
-        #             "ids_envios": "",
-        #             "semana": semana
-        #         }
-        #     )
+        #     aluno_id=cli_retencao.aluno.id,
+        #     cliente_id=cli_retencao.cliente.id,
+        #     envio_id=cli_retencao.id,
+        #     contrato_id=cli_retencao.contrato_id_anotado,
+        #     campeonato=campeonatoVigente,
+        #     data=hoje,
+        #     defaults={
+        #         "pontos": pontos_retencao,
+        #         "qtd_envios": 0,
+        #         "ids_envios": "",
+        #         "semana": semana
+        #     }
+        # )
 
 
     #Contar quantos clientes tem 
-    cont_clientes = clientes_nova_retencao.count()
+    cont_clientes = envios_nova_retencao.count()
 
 
     context = {
@@ -510,68 +528,6 @@ def retencao(request):
     }
 
     return render(request, "Retencao/retencao.html", context)
-
-
-    retencao_por_cliente = (
-        Alunos_clientes_pontos_meses_retencao.objects
-        .values("cliente_id")  # Agrupa por cliente
-        .annotate(total_envios_cl=Count("id"))  # Conta os registros de cada cliente
-        .order_by("-total_envios_cl")  # Opcional: ordena pelo total em ordem decrescente
-    )
-
-
-    # Criar um dicionário com os envios da segunda query (total de retenções)
-    historico_envios = {
-        int(item['cliente_id']): item['total_envios_cl']  # ID do Cliente -> Total de envios retidos
-        for item in retencao_por_cliente
-    }
-
-    # Lista de clientes onde os envios do contrato recente são menores que os envios retidos
-    clientes_que_vai_ser_retidos = []
-
-    now = timezone.now()
-
-    for cliente in retencoes:
-        total_envios_historico = historico_envios.get(int(cliente['id']), 0)
-        if int(total_envios_historico) < (int(cliente['total_envios']) - 1):
-            comp = "Total de envios: " + str(int(cliente['total_envios']) - 1) + " - Total de envios retidos: " + str(total_envios_historico)
-
-            if cliente['contratos__tipo_contrato'] == 2:
-                valor_inicial = float(cliente['ultimo_envio'])
-                valor_final = valor_inicial * 0.1
-
-                # Atualiza o valor do envio para o valor de comissão
-                cliente['valorEnvio'] = valor_final
-                pontos_cliente = gera_pontos_clientes(valor_final)
-                cliente['pontosCliente'] = pontos_cliente
-            else:
-                # Se não houver valor de contrato, utiliza valorEnvio; caso contrário, utiliza valorContrato
-                if not cliente['contratos__valor_contrato']:
-                    valor_final = float(cliente['ultimo_envio'])
-                    pontos_cliente = gera_pontos_clientes(float(cliente['ultimo_envio']))
-                else:
-                    valor_final = float(cliente['contratos__valor_contrato'])
-                    pontos_cliente = gera_pontos_clientes(float(cliente['contratos__valor_contrato']))
-
-                cliente['valorEnvio'] = valor_final
-                cliente['pontosCliente'] = pontos_cliente
-
-            pontos_retencao = gera_pontos_retencao(cliente['pontosCliente'])
-
-            tem_envio_camp = Aluno_envios.objects.filter(cliente_id=cliente['id'], campeonato=campeonatoVigente).exists()
-            if tem_envio_camp:
-                clientes_que_vai_ser_retidos.append({
-                    "aluno": cliente['aluno__nome_completo'],
-                    "cliente_id": cliente['id'],
-                    "contratos_id": cliente['contratos__id'],
-                    "total_envios": comp,
-                    "valor_envio": cliente['valorEnvio'],
-                    "pontos_cliente": int(cliente['pontosCliente']),
-                    "pontos_retencao": int(pontos_retencao)
-                })
-
-    context = {"retencoes": clientes_que_vai_ser_retidos}
-    return render(request, "Retencao/retencao_v2.html", context)
 
 @login_required
 def exportar_ranking(request):
@@ -867,63 +823,6 @@ def extrato(request, aluno_id):
 
 @login_required
 def teste_gabriel(request):
-    # Obtém a data de hoje
-    hoje = timezone.now().date()
-    primeiro_dia_mes_atual = hoje.replace(day=1)
-    primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
-    ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
-
-    # Buscar primeiro envio do mês passado para cada cliente
-    envios_mes_passado = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado], status=3
-    ).values('cliente').annotate(id_envio=Min('id'))
-
-    # Buscar primeiro envio do mês atual para cada cliente
-    envios_mes_atual = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje], status=3
-    ).values('cliente').annotate(id_envio=Min('id'))
-
-    # Criar dicionários {cliente_id: id_envio} para ambos os meses
-    dict_envios_passado = {e['cliente']: e['id_envio'] for e in envios_mes_passado}
-    dict_envios_atual = {e['cliente']: e['id_envio'] for e in envios_mes_atual}
-
-    # Identificar clientes que enviaram nos dois meses consecutivos
-    clientes_retenção = set(dict_envios_passado.keys()).intersection(set(dict_envios_atual.keys()))
-
-    # Buscar clientes com envios repetitivos no mês atual
-    clientes_repetitivos = Aluno_envios.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje], status=3
-    ).values('cliente').annotate(qtd_envios=Count('id')).filter(qtd_envios__gt=1)
-
-    dict_clientes_repetitivos = {c['cliente']: c['qtd_envios'] for c in clientes_repetitivos}
-
-    # Buscar id_retencao_mes na tabela Alunos_clientes_pontos_meses_retencao
-    retencao_clientes = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        data__range=[primeiro_dia_mes_atual, hoje]
-    ).values('cliente', 'id')
-
-    dict_retencao_clientes = {r['cliente']: r['id'] for r in retencao_clientes}
-
-    # Montar a lista de retorno
-    clientes_retorno = [
-        {
-            "cliente": cliente,
-            "id_envio_mes_passado": dict_envios_passado.get(cliente, "Não enviado"),
-            "id_envio_mes_atual": dict_envios_atual.get(cliente, "Não enviado"),
-            "qtd_envios_mes_atual": dict_clientes_repetitivos.get(cliente, 1),
-            "id_retencao_mes": dict_retencao_clientes.get(cliente, "Não retido")
-        }
-        for cliente in clientes_retenção
-    ]
-
-    context = {
-        "clientes_retorno": clientes_retorno
-    }
-
-    return render(request, "test.html", context)
-
-@login_required
-def teste_gabriel_2(request):
     """
         Regras para reter pontos do cliente
         1º O cliente so recebe pontos se ele tiver enviado no mês passado e no mês atual
@@ -932,7 +831,7 @@ def teste_gabriel_2(request):
     """
     
     campeonatoVigente, semana = calcular_semana_vigente()
-
+    
     def gera_pontos_retencao(valor):
         if valor >= 0 and valor < 1000:
             return 40
@@ -948,46 +847,63 @@ def teste_gabriel_2(request):
             return 0
     
     # Obtém a data de hoje
-    hoje = timezone.now().date()
+    #hoje = timezone.now().date()
+    hoje = datetime(2025, 3, 31).date()
     primeiro_dia_mes_atual = hoje.replace(day=1)
     primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
 
+    # Filtrando os envios aprovados desde 01/09/2024
+    envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01') 
 
-    clientes = Aluno_clientes.objects.filter(data_criacao__gte='2024-09-01').order_by('id')
 
-    primeiro_envio_mes_passado_subquery = Aluno_envios.objects.filter(
-        cliente=OuterRef('pk'), 
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado], 
+    # Verifica se o mesmo contrato teve envio no mês passado
+    envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(
+        cliente=OuterRef('cliente'),  # Agora filtra por contrato
+        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
         status=3
-    ).order_by('data').values('id')[:1]
+    ).values('id')[:1]  # Retorna qualquer envio válido
 
-    primeiro_envio_mes_atual_subquery = Aluno_envios.objects.filter(
-        cliente=OuterRef('pk'), 
-        data__range=[primeiro_dia_mes_atual, hoje], 
+    envio_mes_passado_CT_subquery = Aluno_envios.objects.filter(
+        contrato=OuterRef('contrato'),  # Agora filtra por contrato
+        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
+        status=3
+    ).values('id')[:1]  # R
+
+
+
+    # Primeiro envio do contrato no mês atual
+    envio_mes_atual_subquery = Aluno_envios.objects.filter(
+        id=OuterRef('pk'),
+        data__range=[primeiro_dia_mes_atual, hoje],
         status=3
     ).order_by('data').values('id', 'valor', 'contrato__tipo_contrato', 'contrato__id')[:1]
 
-    retencao_clientes_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        cliente=OuterRef('pk'),
+    # Verifica se já foi registrado na tabela de retenção
+    retencao_envios_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
+        envio=OuterRef('pk'),
         data__range=[primeiro_dia_mes_atual, hoje]
     ).values('id')[:1]
 
-    clientes_nova_retencao = clientes.annotate(
-        primeiro_envio_mes_passado=Subquery(primeiro_envio_mes_passado_subquery),
-        primeiro_envio_mes_atual=Subquery(primeiro_envio_mes_atual_subquery.values('id')),
-        contrato_id_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__id')),
-        valor_envio=Subquery(primeiro_envio_mes_atual_subquery.values('valor')),
-        tipo_contrato_anotado=Subquery(primeiro_envio_mes_atual_subquery.values('contrato__tipo_contrato')),
-        retencao_cliente_mes_atual=Subquery(retencao_clientes_mes_atual_subquery)
+    # Anotando os resultados e filtrando os registros
+    envios_nova_retencao = envios.annotate(
+        envio_mes_passado_cl=Exists(envio_mes_passado_CL_subquery),
+        envio_mes_passado_ct=Exists(envio_mes_passado_CT_subquery),
+        envio_mes_atual=Subquery(envio_mes_atual_subquery.values('id')),
+        contrato_id_anotado=Subquery(envio_mes_atual_subquery.values('contrato__id')),
+        valor_envio=Subquery(envio_mes_atual_subquery.values('valor')),
+        tipo_contrato_anotado=Subquery(envio_mes_atual_subquery.values('contrato__tipo_contrato')),
+        retencao_envio_mes_atual=Exists(retencao_envios_mes_atual_subquery)
     ).filter(
-        primeiro_envio_mes_passado__isnull=False,
-        primeiro_envio_mes_atual__isnull=False,
-        retencao_cliente_mes_atual__isnull=True,
+        envio_mes_passado_cl=True,  # Garante que teve envio no mês passado
+        envio_mes_passado_ct=True,  # Garante que teve envio no mês passado
+        envio_mes_atual__isnull=False,  # Teve envio neste mês
+        retencao_envio_mes_atual=False  # Ainda não recebeu retenção
     )
 
     clientes_que_vai_ser_retidos = []
-    for cli_retencao in clientes_nova_retencao:
+    for cli_retencao in envios_nova_retencao:
+
         if cli_retencao.tipo_contrato_anotado == 2:
             valor_inicial = float(cli_retencao.valor_envio)
             valor_final = valor_inicial * 0.1
@@ -1001,40 +917,22 @@ def teste_gabriel_2(request):
         clientes_que_vai_ser_retidos.append({
                 "aluno": cli_retencao.aluno.nome_completo,
                 "aluno_id": cli_retencao.aluno.id,
-                "cliente_id": cli_retencao.id,
+                "cliente_id": cli_retencao.cliente.id,
                 "contrato_id": cli_retencao.contrato_id_anotado,
-                "envio_id": cli_retencao.primeiro_envio_mes_atual,
+                "envio_id": cli_retencao.id,
                 "tipo_contrato": cli_retencao.tipo_contrato_anotado,
                 "valor_envio": cli_retencao.valor_envio,
                 "pontos_retencao": int(pontos_retencao),
             })
-        
-        # novo_registro = Alunos_clientes_pontos_meses_retencao.objects.get_or_create(
-        #         aluno_id=cli_retencao.aluno.id,
-        #         cliente_id=cli_retencao.id,
-        #         campeonato=campeonatoVigente,
-        #         data=hoje,
-        #         defaults={
-        #             "pontos": pontos_retencao,
-        #             "qtd_envios": "",
-        #             "ids_envios": "",
-        #             "semana": semana
-        #         }
-        #     )
-
-
-
-            
 
 
     #Contar quantos clientes tem 
-    cont_clientes = clientes_nova_retencao.count()
-
+    cont_clientes = envios_nova_retencao.count()
 
     context = {
         "cont_retencoes": cont_clientes,
-        "retencoes": clientes_que_vai_ser_retidos
+        "retencoes": clientes_que_vai_ser_retidos,
     }
 
-    return render(request, "Retencao/retencao.html", context)
 
+    return render(request, "Retencao/retencao.html", context)

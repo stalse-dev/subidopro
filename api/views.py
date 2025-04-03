@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime, parse_date
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models import Sum, Count, Func, CharField, IntegerField, Max
+from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q, Case, When
 from django.db.models.functions import TruncMonth, TruncWeek, Cast
 from api.models import Log
 from api.utils import registrar_log
@@ -61,7 +61,7 @@ def gera_pontos(valor):
     """Calcula a pontuação com base no valor informado."""
     print(valor)
     valor = float(valor)  # Garante que o valor seja float antes do cálculo
-    return int((valor // 100) * 10)
+    return int((valor // 100) * 10)  # Usa divisão normal
 
 def gera_pontos_contrato(valor):
     if valor >= 0 and valor < 1000:
@@ -157,7 +157,6 @@ def criar_envio(envio_data):
     data_now = timezone.now()
 
     if tipo == 2: #Tabela de Envios tipo 2 = recebimento
-        print("Tipo de envio: Recebimento")
         cliente = get_object_or_404(Aluno_clientes, id=int(envio_data.get("vinculoCliente")))
         contrato = get_object_or_404(Aluno_clientes_contratos, id=int(envio_data.get("vinculoContrato")))
 
@@ -166,14 +165,25 @@ def criar_envio(envio_data):
             return Response({"message": f"Envio já existente! - '{envio.descricao}'"}, status=status.HTTP_400_BAD_REQUEST)
     
 
-        if contrato.tipo_contrato == 2:  # Co-produção/Multisserviços
-            valor_inicial = float(envio_data.get("valorPreenchido"))
-            valor_minimo = valor_inicial * 0.1
-            pontos = gera_pontos(valor_minimo)
-            pontos_previsto = pontos
+        data = envio_data.get("data")  # Exemplo: "2024-03-10"
+        data_formatada = datetime.strptime(data, "%Y-%m-%d")  # Ajustando para o formato correto
+
+        if data_formatada > datetime(2025, 3, 1):  # Comparação correta
+            if contrato.tipo_contrato == 2:
+                valor_inicial = float(envio_data.get("valorPreenchido"))
+                valor_minimo = valor_inicial * 0.1
+                pontos = gera_pontos(valor_minimo)
+                pontos_previsto = pontos
+                valor_calculado = valor_minimo  # Definindo valor_calculado
+            else:
+                pontos = gera_pontos(float(envio_data.get("valorPreenchido")))
+                pontos_previsto = pontos
+                valor_calculado = float(envio_data.get("valorPreenchido")) 
         else:
-            pontos = gera_pontos(float(envio_data.get("valorPreenchido")))  # Garantindo float
-            pontos_previsto = pontos
+            print("Data é menor que 2025")
+            pontos = 0
+            pontos_previsto = 0
+            valor_calculado = float(envio_data.get("valorPreenchido"))  # Definindo valor_calculado
                 
         envio = Aluno_envios.objects.filter(id=int(envio_data.get("id"))).first()
         if envio:
@@ -189,6 +199,7 @@ def criar_envio(envio_data):
             data=envio_data.get("data"),
             descricao=envio_data.get("descricao"),
             valor=envio_data.get("valorPreenchido"),
+            valor_calculado=valor_calculado,
             arquivo1=envio_data.get("arquivo1", ""),
             arquivo1_motivo=envio_data.get("arquivo1Motivo", ""),
             arquivo1_status=envio_data.get("arquivo1Status", ""),
@@ -209,7 +220,6 @@ def criar_envio(envio_data):
         #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
-            print("Criando novo contrato")
             if contrato.tipo_contrato == 2:
                 valor_inicial = float(envio_data.get("valorPreenchido"))
                 
@@ -344,6 +354,7 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente = get_object_or_404(Aluno_clientes, id=cliente_id)
     aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
 
+
     aluno_cliente.aluno = aluno
     aluno_cliente.titulo = aluno_data.get("titulo", aluno_cliente.titulo)
     aluno_cliente.estrangeiro = int(aluno_data.get("estrangeiro", aluno_cliente.estrangeiro))
@@ -354,6 +365,24 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente.telefone = aluno_data.get("telefone", aluno_cliente.telefone)
     aluno_cliente.email = aluno_data.get("email", aluno_cliente.email)
     aluno_cliente.status = int(aluno_data.get("status", aluno_cliente.status))
+
+    if int(aluno_data.get("status")) == 2:
+        ## preciso invalidar todos os envios se não existir  envios com status 3 
+        envios = Aluno_envios.objects.filter(cliente=aluno_cliente, status=3)
+        if not envios.exists():
+            envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
+            contratos_alterados = Aluno_clientes_contratos.objects.filter(cliente=aluno_cliente)
+
+            for envio in envios_alterados:
+                envio.status = 2
+                envio.save()
+
+            for contrato in contratos_alterados:
+                contrato.status = 2
+                contrato.save()
+
+
+        
 
     aluno_cliente.save()
 
@@ -379,6 +408,30 @@ def alterar_contrato(contrato_data):
     contrato_cliente.analise_data = parse_datetime(contrato_data.get("analiseData")) if contrato_data.get("analiseData") else None
     contrato_cliente.camp_anterior = int(contrato_data.get("campAnterior", contrato_cliente.camp_anterior))
     contrato_cliente.id_camp_anterior = int(contrato_data.get("idCampAnterior", contrato_cliente.id_camp_anterior)) if contrato_data.get("idCampAnterior") else None 
+    envio = Aluno_envios.objects.filter(contrato=contrato_cliente).order_by('-data_cadastro').first()
+
+    if int(contrato_data.get("status")) == 2:
+        envios_alterados = Aluno_envios.objects.filter(contrato=contrato_cliente)
+        for envio in envios_alterados:
+            envio.status = 2
+            envio.save()
+        
+        retencoes = Alunos_clientes_pontos_meses_retencao.objects.filter(contrato=contrato_cliente)
+        for retencao in retencoes:
+            retencao.delete()
+
+    if contrato_cliente.tipo_contrato == 2:
+        valor_inicial = float(envio.valor)
+        valor_minimo = valor_inicial * 0.1
+        pontos = gera_pontos(valor_minimo)
+        envio.pontos = pontos
+        envio.pontos_previsto = pontos
+        envio.save()
+    else:
+        pontos = gera_pontos(envio.valor)
+        envio.pontos = pontos
+        envio.pontos_previsto = pontos
+        envio.save()
 
 
     contrato_cliente.save()
@@ -395,6 +448,22 @@ def alterar_envio(envio_data):
         cliente = get_object_or_404(Aluno_clientes, id=int(envio_data.get("vinculoCliente")))
         contrato = get_object_or_404(Aluno_clientes_contratos, id=int(envio_data.get("vinculoContrato")))
 
+        if float(envio.valor) != float(envio_data.get("valor")):
+            if contrato.tipo_contrato == 2:
+                valor_inicial = float(envio_data.get("valor"))
+                valor_minimo = valor_inicial * 0.1
+                pontos = gera_pontos(valor_minimo)
+                pontos_previsto = pontos
+                valor_calculado = valor_minimo
+            else:
+                pontos = gera_pontos(float(envio_data.get("valor")))
+                pontos_previsto = pontos
+                valor_calculado = float(envio_data.get("valor"))
+        else:
+            pontos = envio.pontos
+            pontos_previsto = envio.pontos_previsto
+            valor_calculado = envio.valor_calculado
+
         envio.campeonato=campeonato
         envio.aluno=aluno
         envio.cliente=cliente
@@ -402,6 +471,7 @@ def alterar_envio(envio_data):
         envio.data=envio_data.get("data")
         envio.descricao=envio_data.get("descricao")
         envio.valor=envio_data.get("valor")
+        envio.valor_calculado=valor_calculado
         envio.arquivo1=envio_data.get("arquivo1")
         envio.arquivo1_motivo=envio_data.get("arquivo1Motivo")
         envio.arquivo1_status=envio_data.get("arquivo1Status")
@@ -413,6 +483,10 @@ def alterar_envio(envio_data):
         envio.status_comentario=envio_data.get("statusComentario")
         envio.semana=envio_data.get("semana")
         envio.tipo=tipo
+        envio.pontos=pontos
+        envio.pontos_previsto=pontos_previsto
+
+
 
         if envio_data.get("acaoRastreador"):
             envio.pontos=envio_data.get("pontos")
@@ -426,8 +500,7 @@ def alterar_envio(envio_data):
             if aluno_contrato:
                 aluno_contrato.status = 3
                 aluno_contrato.save()
-
-
+                
     elif tipo == 4:
         desafio = get_object_or_404(Aluno_desafio, id=int(envio_data.get("id")))
         desafio_de_fato = get_object_or_404(Desafios, id=int(envio_data.get("desafio")))
@@ -445,7 +518,7 @@ def alterar_envio(envio_data):
         desafio.status_comentario=envio_data.get("statusComentario")
         desafio.semana=envio_data.get("semana")
         desafio.tipo=tipo
-
+        desafio.pontos=Decimal(envio_data.get("pontos"))
         desafio.save()
     elif tipo == 3 or tipo == 5:
         certificado = get_object_or_404(Aluno_certificacao, id=int(envio_data.get("id")))
@@ -460,9 +533,8 @@ def alterar_envio(envio_data):
         certificado.status_comentario=envio_data.get("statusComentario")
         certificado.semana=envio_data.get("semana")
         certificado.tipo=tipo
-        if tipo == 5:
-            certificado.pontos=Decimal(envio_data.get("pontos"))
-            certificado.pontos_previsto=Decimal(envio_data.get("pontosPreenchidos"))
+        certificado.pontos=Decimal(envio_data.get("pontos"))
+        certificado.pontos_previsto=Decimal(envio_data.get("pontosPreenchidos"))
 
         certificado.save()
     else:
@@ -717,13 +789,13 @@ def painel_inicial_aluno(request, aluno_id):
     campeonato_vigente, semana_subidometro = calcular_semana_vigente()
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
-    # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
+    # Buscar faturamento dos envios# Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
 
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
-    total_todos_envios = total_valor_envios + total_valor_camp
 
+    total_total_total = float(total_valores_envios) + float(total_valor_camp)
 
     # Evolução do aluno
     total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
@@ -733,7 +805,7 @@ def painel_inicial_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(total_mes=Sum('valor'))  # Soma os valores por mês
+        .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
@@ -753,7 +825,7 @@ def painel_inicial_aluno(request, aluno_id):
     resposta = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_total_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),  
         },
         "subidometro": {
@@ -901,12 +973,15 @@ def subdometro_aluno(request, aluno_id):
     # Contagem total de clientes
     total_clientes = clientes.count()
 
-    # Soma os valores de todos os envios do aluno
-    total_valor_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor'))['total'] or 0
+    # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
+    
 
     #Buscar faturamento dos campeonatos antigos
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
-    total_todos_envios = total_valor_envios + total_valor_camp
+
+
+    total_total_total = float(total_valores_envios) + float(total_valor_camp)
 
     # Agrupar por mês e calcular a soma
     mes_mais_ganhou = (
@@ -914,7 +989,7 @@ def subdometro_aluno(request, aluno_id):
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
         .values('mes')  # Seleciona apenas o mês
-        .annotate(total_mes=Sum('valor'))  # Soma os valores por mês
+        .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
         .order_by('-total_mes')  # Ordena do maior para o menor
         .first()  # Pega o primeiro, que é o maior
     )
@@ -948,7 +1023,7 @@ def subdometro_aluno(request, aluno_id):
 
         # Atualizar os valores do mês corretamente somando os envios do mesmo mês
         dados_por_mes[mes_key]["data"] = mes_key
-        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor or 0, 2)  # Evita erro se `valor` for None
+        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor_calculado or 0, 2)  # Evita erro se `valor` for None
 
     # Ordenar os meses em ordem crescente
     meses_ordenados = sorted(dados_por_mes.keys())
@@ -970,7 +1045,7 @@ def subdometro_aluno(request, aluno_id):
     response_data = {
         "evolucao": {
             "clientes": f"{total_clientes} clientes",
-            "acumulou": f"R$ {total_todos_envios:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "acumulou": f"R$ {total_total_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         },
         "evolucaoGanhos": resultado_final,
@@ -1107,6 +1182,48 @@ def ranking_semanal_claAPI(request):
     serializer = RankingSemanalClaSerializer(alunos_rank_semanal, many=True)
     
     return Response(serializer.data)
+
+@api_view(['GET'])
+def meu_cla(request, aluno_id):
+    aluno = get_object_or_404(Alunos, id=int(aluno_id))
+    campeonato, semana = calcular_semana_vigente()
+    data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+    if not aluno.cla:
+        return Response({"error": "Este aluno não pertence a nenhum clã."}, status=404)
+
+    cla = aluno.cla
+
+    # Dados do clã
+    meu_cla_detalhes = {
+        "id": str(cla.id),
+        "titulo": cla.nome,
+        "sigla": cla.sigla or "",
+        "codigoBrasao": cla.brasao or "",
+        "qtdAlunos": str(cla.aluno_cla.count())
+    }
+
+    # Alunos do clã
+    alunos_data = {}
+    for aluno in cla.aluno_cla.all():
+        rank_semanal = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=campeonato, semana=semana).first()
+        qnt_envios_validos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, status=3, semana__gt=0, data__gte=data_int).count()
+
+        alunos_data[str(aluno.id)] = {
+            "id": str(aluno.id),
+            "nome": aluno.nome_completo or aluno.nome_social or aluno.apelido or "",
+            "nivel": str(aluno.nivel or 0),
+            "qtdEnviosValidosGeral": qnt_envios_validos,  
+            "pontos": rank_semanal.pontos_totais,
+            "ranking": rank_semanal.posicao,
+        }
+
+    return Response({
+        "meuClaDetalhes": meu_cla_detalhes,
+        "alunos": alunos_data
+    })
+
+
+
 
 @api_view(['GET'])
 def ranking_semanalAPI_test(request):
