@@ -220,7 +220,6 @@ def criar_envio(envio_data):
         #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
-            print("Criando novo contrato")
             if contrato.tipo_contrato == 2:
                 valor_inicial = float(envio_data.get("valorPreenchido"))
                 
@@ -355,6 +354,7 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente = get_object_or_404(Aluno_clientes, id=cliente_id)
     aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
 
+
     aluno_cliente.aluno = aluno
     aluno_cliente.titulo = aluno_data.get("titulo", aluno_cliente.titulo)
     aluno_cliente.estrangeiro = int(aluno_data.get("estrangeiro", aluno_cliente.estrangeiro))
@@ -365,6 +365,24 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente.telefone = aluno_data.get("telefone", aluno_cliente.telefone)
     aluno_cliente.email = aluno_data.get("email", aluno_cliente.email)
     aluno_cliente.status = int(aluno_data.get("status", aluno_cliente.status))
+
+    if int(aluno_data.get("status")) == 2:
+        ## preciso invalidar todos os envios se não existir  envios com status 3 
+        envios = Aluno_envios.objects.filter(cliente=aluno_cliente, status=3)
+        if not envios.exists():
+            envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
+            contratos_alterados = Aluno_clientes_contratos.objects.filter(cliente=aluno_cliente)
+
+            for envio in envios_alterados:
+                envio.status = 2
+                envio.save()
+
+            for contrato in contratos_alterados:
+                contrato.status = 2
+                contrato.save()
+
+
+        
 
     aluno_cliente.save()
 
@@ -391,6 +409,16 @@ def alterar_contrato(contrato_data):
     contrato_cliente.camp_anterior = int(contrato_data.get("campAnterior", contrato_cliente.camp_anterior))
     contrato_cliente.id_camp_anterior = int(contrato_data.get("idCampAnterior", contrato_cliente.id_camp_anterior)) if contrato_data.get("idCampAnterior") else None 
     envio = Aluno_envios.objects.filter(contrato=contrato_cliente).order_by('-data_cadastro').first()
+
+    if int(contrato_data.get("status")) == 2:
+        envios_alterados = Aluno_envios.objects.filter(contrato=contrato_cliente)
+        for envio in envios_alterados:
+            envio.status = 2
+            envio.save()
+        
+        retencoes = Alunos_clientes_pontos_meses_retencao.objects.filter(contrato=contrato_cliente)
+        for retencao in retencoes:
+            retencao.delete()
 
     if contrato_cliente.tipo_contrato == 2:
         valor_inicial = float(envio.valor)
