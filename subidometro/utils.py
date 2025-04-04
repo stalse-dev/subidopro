@@ -45,6 +45,14 @@ def ranking_streamer():
         total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField()))
     ).values('total')
 
+    subquery_pontos_potenciais = Aluno_envios.objects.filter(
+        aluno=OuterRef('pk'),
+        status=3,
+        campeonato__id=campeonato.id
+    ).values('aluno').annotate(
+        total=Coalesce(Sum('pontos_previsto', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+    ).values('total')
+
     subquery_pontos_desafio = Aluno_desafio.objects.filter(
         aluno=OuterRef('pk'),
         status=3,
@@ -91,6 +99,7 @@ def ranking_streamer():
 
     alunos_qs = alunos_qs.annotate(
         pontos_recebimento=Coalesce(Subquery(subquery_pontos_recebimento, output_field=DecimalField()), Value(0, output_field=DecimalField())),
+        pontos_potenciais=Coalesce(Subquery(subquery_pontos_potenciais, output_field=DecimalField()), Value(0, output_field=DecimalField())),
         pontos_desafio=Coalesce(Subquery(subquery_pontos_desafio, output_field=DecimalField()), Value(0, output_field=DecimalField())),
         pontos_certificacao=Coalesce(Subquery(subquery_pontos_certificacao, output_field=DecimalField()), Value(0, output_field=DecimalField())),
         pontos_manual=Coalesce(Subquery(subquery_pontos_manual, output_field=DecimalField()), Value(0, output_field=DecimalField())),
