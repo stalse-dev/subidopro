@@ -70,7 +70,33 @@ class AlunosRankingStreamerSerializer(serializers.ModelSerializer):
     def get_ranking(self, obj):
         return getattr(obj, 'ranking', None)
     
-class AlunosSerializer(serializers.ModelSerializer):
+class AlunoEnviosSerializer(serializers.ModelSerializer):
+    tipo_contrato = serializers.IntegerField(source="contrato.tipo_contrato", read_only=True)
+    cliente = serializers.CharField(source="cliente.nome", read_only=True)
+    class Meta:
+        model = Aluno_envios
+        fields = [
+            'id', 'campeonato', 'cliente', 'contrato', 'data', 'descricao', 'tipo_contrato',
+            'valor', 'valor_calculado', 'arquivo1', 'arquivo1_status', 
+            'data_cadastro', 'status', 'status_motivo', 'status_comentario', 
+            'semana', 'tipo', 'pontos', 'pontos_previsto'
+        ]
+
+class AlunoDesafioSerializer(serializers.ModelSerializer):
+    desafio = serializers.CharField(source="desafio.nome", read_only=True)
+    class Meta:
+        model = Aluno_desafio
+        fields = [
+            'id', 'campeonato', 'cliente', 'contrato', 'data', 'descricao', 'tipo_contrato',
+            'valor', 'valor_calculado', 'arquivo1', 'arquivo1_status', 
+            'data_cadastro', 'status', 'status_motivo', 'status_comentario', 
+            'semana', 'tipo', 'pontos'
+        ]
+
+
+class AlunoSerializer(serializers.ModelSerializer):
+    recebimentos = AlunoEnviosSerializer(source="envios_aluno_cl", many=True, read_only=True)
+
     class Meta:
         model = Alunos
         fields = '__all__'

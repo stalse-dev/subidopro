@@ -80,6 +80,28 @@ class AlunosPosicoesSemanaListView(generics.ListAPIView):
 
         return queryset
 
+class AlunosPosicoesSemanaSheetView(generics.ListAPIView):
+    serializer_class = AlunosPosicoesSemanaSerializer
+
+    def get_queryset(self):
+        request = self.request
+        nome_email = request.GET.get("q")
+        semana_param = request.GET.get("semana")
+
+        # Obtém campeonato e semana vigente
+        campeonato, semana_vigente = calcular_semana_vigente()
+        semana = int(semana_param) if semana_param and semana_param.isdigit() else semana_vigente
+
+        queryset = Alunos_posicoes_semana.objects.filter(semana=semana, campeonato=campeonato).order_by("posicao")
+
+        if nome_email:
+            queryset = queryset.filter(
+                Q(aluno__nome_completo__icontains=nome_email) | 
+                Q(aluno__email__icontains=nome_email)
+            )
+
+        return queryset
+
 class ClansPosicoesSemanaPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -136,7 +158,24 @@ class ClansPosicoesSemanaListView(generics.ListAPIView):
 
         return queryset
 
-# Classe de paginação personalizada para os alunos
+class ClansPosicoesSemanSheetaListView(generics.ListAPIView):
+    serializer_class = MentoriaClaPosicaoSemanaSerializer
+
+    def get_queryset(self):
+        request = self.request
+        cla_nome = request.GET.get("q")
+        semana_param = request.GET.get("semana")
+
+        campeonato, semana_vigente = calcular_semana_vigente()
+        semana = int(semana_param) if semana_param and semana_param.isdigit() else semana_vigente
+
+        queryset = Mentoria_cla_posicao_semana.objects.filter(semana=semana, campeonato=campeonato).order_by("posicao")
+
+        if cla_nome:
+            queryset = queryset.filter(Q(cla__nome__icontains=cla_nome))
+
+        return queryset
+
 class AlunosPosicoesStremerPagination(PageNumberPagination):
     page_size = 20  # Define o número de itens por página
     page_size_query_param = "page_size"
@@ -179,8 +218,23 @@ class AlunosPosicoesStremerListView(generics.ListAPIView):
             queryset = queryset.filter(Q(nome_completo__icontains=nome_email))
 
         return queryset
-    
+
+class AlunosRankingStreamerSheetView(generics.ListAPIView):
+    serializer_class = AlunosRankingStreamerSerializer
+
+    def get_queryset(self):
+        request = self.request
+        nome_email = request.GET.get("q")
+
+        # Busca o ranking dos streamers
+        queryset = ranking_streamer()
+
+        if nome_email:
+            queryset = queryset.filter(Q(nome_completo__icontains=nome_email))
+
+        return queryset
+
 class AlunosDetailView(generics.RetrieveAPIView):
-    queryset = Alunos.objects.all()
-    serializer_class = AlunosSerializer
-    lookup_field = 'id' 
+    queryset = Alunos.objects.prefetch_related('envios_aluno_cl')
+    serializer_class = AlunoSerializer
+    lookup_field = 'id'
