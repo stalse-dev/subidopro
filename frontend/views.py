@@ -136,8 +136,36 @@ class ClansPosicoesSemanaListView(generics.ListAPIView):
 
         return queryset
 
+# Classe de paginação personalizada para os alunos
+class AlunosPosicoesStremerPagination(PageNumberPagination):
+    page_size = 20  # Define o número de itens por página
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+    def get_paginated_response(self, data):
+        total_items = self.page.paginator.count
+        total_pages = ceil(total_items / self.page_size)
+        page = self.page.number
+
+        return Response({
+            "count": total_items,
+            "total_pages": total_pages,
+            "current_page": page,
+            "next": self.get_next_link(),
+            "previous": self.get_previous_link(),
+            "results": data,
+            "pagination": {
+                "first": 1,
+                "last": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "pages": list(range(1, total_pages + 1))[:5]  # Exibe as primeiras 5 páginas
+            }
+        })
+
 class AlunosPosicoesStremerListView(generics.ListAPIView):
     serializer_class = AlunosRankingStreamerSerializer
+    pagination_class = AlunosPosicoesStremerPagination
 
     def get_queryset(self):
         request = self.request
@@ -151,3 +179,8 @@ class AlunosPosicoesStremerListView(generics.ListAPIView):
             queryset = queryset.filter(Q(nome_completo__icontains=nome_email))
 
         return queryset
+    
+class AlunosDetailView(generics.RetrieveAPIView):
+    queryset = Alunos.objects.all()
+    serializer_class = AlunosSerializer
+    lookup_field = 'id' 

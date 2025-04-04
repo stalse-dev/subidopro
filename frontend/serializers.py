@@ -36,10 +36,11 @@ class AlunosRankingStreamerSerializer(serializers.ModelSerializer):
     pontos_retencao = serializers.SerializerMethodField()
     total_pontos_final = serializers.SerializerMethodField()
     ranking = serializers.SerializerMethodField()
+    cla = serializers.CharField(source="cla.nome", read_only=True)
 
     class Meta:
         model = Alunos
-        fields = ['id', 'nome_completo', 'nivel', 'apelido', 'email', 'data_criacao', 'status', 'ranking', 'pontos_recebimento', 'pontos_desafio', 'pontos_certificacoes', 'pontos_manual', 'pontos_contrato', 'pontos_retencao', 'total_pontos_final']
+        fields = ['id', 'nome_completo', 'cla', 'nivel', 'apelido', 'email', 'data_criacao', 'status', 'ranking', 'pontos_recebimento', 'pontos_desafio', 'pontos_certificacoes', 'pontos_manual', 'pontos_contrato', 'pontos_retencao', 'total_pontos_final']
 
     def get_pontos_recebimento(self, obj):
         return getattr(obj, 'pontos_recebimento', 0)
@@ -64,3 +65,8 @@ class AlunosRankingStreamerSerializer(serializers.ModelSerializer):
 
     def get_ranking(self, obj):
         return getattr(obj, 'ranking', None)
+    
+class AlunosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alunos
+        fields = '__all__'
