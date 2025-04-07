@@ -238,3 +238,8 @@ class AlunosDetailView(generics.RetrieveAPIView):
     queryset = Alunos.objects.prefetch_related('envios_aluno_cl')
     serializer_class = AlunoSerializer
     lookup_field = 'id'
+
+class ClansDetailView(generics.RetrieveAPIView):
+    queryset = Mentoria_cla.objects.all()
+    lookup_field = 'id'
+    serializer_class = ClaDetailSerializer

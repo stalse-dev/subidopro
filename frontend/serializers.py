@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from subidometro.models import *
+from django.db.models import Max
 
 class AlunosPosicoesSemanaSerializer(serializers.ModelSerializer):
     aluno_nome = serializers.CharField(source="aluno.nome_completo", read_only=True)
@@ -73,10 +74,11 @@ class AlunosRankingStreamerSerializer(serializers.ModelSerializer):
 class AlunoEnviosSerializer(serializers.ModelSerializer):
     tipo_contrato = serializers.IntegerField(source="contrato.tipo_contrato", read_only=True)
     cliente = serializers.CharField(source="cliente.nome", read_only=True)
+    cliente_id = serializers.IntegerField(source="cliente.id", read_only=True)
     class Meta:
         model = Aluno_envios
         fields = [
-            'id', 'campeonato', 'cliente', 'contrato', 'data', 'descricao', 'tipo_contrato',
+            'id', 'campeonato', 'cliente', 'cliente_id', 'contrato', 'data', 'descricao', 'tipo_contrato',
             'valor', 'valor_calculado', 'arquivo1', 'arquivo1_status', 
             'data_cadastro', 'status', 'status_motivo', 'status_comentario', 
             'semana', 'tipo', 'pontos', 'pontos_previsto'
@@ -93,10 +95,84 @@ class AlunoDesafioSerializer(serializers.ModelSerializer):
             'semana', 'tipo', 'pontos'
         ]
 
-
 class AlunoSerializer(serializers.ModelSerializer):
     recebimentos = AlunoEnviosSerializer(source="envios_aluno_cl", many=True, read_only=True)
 
     class Meta:
         model = Alunos
         fields = '__all__'
+
+
+class NivelDetalhesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mentoria_lista_niveis
+        fields = '__all__'
+
+class AlunoPosicoesSemanaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alunos_posicoes_semana
+        fields = '__all__'
+
+
+class AlunoUnicSerializer(serializers.ModelSerializer):
+    nivel_detalhes = serializers.SerializerMethodField()
+    pontuacoes_semanais_aluno = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Alunos
+        fields = ['id', 'nome_completo', 'apelido', 'email', 'nivel_detalhes', 'pontuacoes_semanais_aluno']
+
+    def get_nivel_detalhes(self, obj):
+        if obj.nivel:
+            nivel = Mentoria_lista_niveis.objects.filter(id=obj.nivel).first()
+            return NivelDetalhesSerializer(nivel).data if nivel else None
+        return None
+
+    def get_pontuacoes_semanais_aluno(self, obj):
+        # Pega o maior campeonato relacionado ao aluno
+        max_campeonato = obj.alunos_posicoes_semana.aggregate(Max('campeonato'))['campeonato__max']
+        
+        if max_campeonato is not None:
+            # Agora dentro do campeonato, pega a maior semana
+            max_semana = obj.alunos_posicoes_semana.filter(campeonato=max_campeonato).aggregate(Max('semana'))['semana__max']
+            
+            if max_semana is not None:
+                # Busca os registros filtrados por maior campeonato e maior semana
+                pontuacoes = obj.alunos_posicoes_semana.filter(
+                    campeonato=max_campeonato,
+                    semana=max_semana
+                )
+                return AlunoPosicoesSemanaSerializer(pontuacoes, many=True).data
+
+        return []
+
+
+class ClaPosicaoSemanaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mentoria_cla_posicao_semana
+        fields = [
+            'semana', 'posicao', 'pontos_recebimento', 'pontos_desafio',
+            'pontos_certificacao', 'pontos_manual', 'pontos_contrato',
+            'pontos_retencao', 'pontos_totais'
+        ]
+
+class ClaDetailSerializer(serializers.ModelSerializer):
+    alunos = AlunoUnicSerializer(source='aluno_cla', many=True, read_only=True)
+    pontuacoes_semanais = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Mentoria_cla
+        fields = '__all__'
+
+    def get_pontuacoes_semanais(self, obj):
+        # Busca o valor máximo da semana para o clã atual
+        max_semana = obj.mentoria_cla_posicoes_semana_cla.aggregate(Max('semana'))['semana__max']
+        
+        if max_semana is not None:
+            # Filtra apenas os dados da semana com maior número
+            dados = obj.mentoria_cla_posicoes_semana_cla.filter(semana=max_semana)
+            return ClaPosicaoSemanaSerializer(dados, many=True).data
+        return []
+
+
+

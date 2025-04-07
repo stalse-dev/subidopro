@@ -9,4 +9,5 @@ urlpatterns = [
     path("ranking-streamer/", AlunosPosicoesStremerListView.as_view(), name="ranking-streamer"),
     path("ranking-streamer-sheet/", AlunosRankingStreamerSheetView.as_view(), name="ranking-streamer-detail"),
     path('aluno/<int:id>/', AlunosDetailView.as_view(), name='aluno-detail'),
+    path('cla/<int:id>/', ClansDetailView.as_view(), name='cla-detail'),
 ]
