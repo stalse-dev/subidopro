@@ -11,7 +11,7 @@ Este projeto é continuamente inspecionado com SonarCloud para garantir a qualid
 
 ### Métricas Técnicas
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=stalse-dev_subidopro&metric=alert_status&token=4ab2c9812f4169a17e6e69ad7078039c8e1202ba)](https://sonarcloud.io/summary/new_code?id=stalse-dev_subidopro)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=stalse-dev_subidopro&metric=bugs&token=4ab2c9812f4169a17e6e69ad7078039c8e1202ba)](https://sonarcloud.io/summary/new_code?id=stalse-dev_subidopro)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=stalse-dev_subidopro&metric=vulnerabilities&token=4ab2c9812f4169a17e6e69ad7078039c8e1202ba)](https://sonarcloud.io/summary/new_code?id=stalse-dev_subidopro)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=stalse-dev_subidopro&metric=code_smells&token=4ab2c9812f4169a17e6e69ad7078039c8e1202ba)](https://sonarcloud.io/summary/new_code?id=stalse-dev_subidopro)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=stalse-dev_subidopro&metric=duplicated_lines_density&token=4ab2c9812f4169a17e6e69ad7078039c8e1202ba)](https://sonarcloud.io/summary/new_code?id=stalse-dev_subidopro)
