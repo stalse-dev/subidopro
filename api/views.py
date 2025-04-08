@@ -299,6 +299,7 @@ def criar_envio(envio_data):
             data_cadastro=envio_data.get("dataCadastro", data_now),
             rastreador_analise=envio_data.get("rastreadorAnalise", 0),
             data_analise=envio_data.get("dataAnalise", data_now),
+            status=envio_data.get("status", 0),
             status_motivo=envio_data.get("statusMotivo", 0),
             status_comentario=envio_data.get("statusComentario", 0),
             semana=envio_data.get("semana", 0),
