@@ -85,23 +85,15 @@ class AlunoEnviosSerializer(serializers.ModelSerializer):
         ]
 
 class AlunoDesafioSerializer(serializers.ModelSerializer):
-    desafio = serializers.CharField(source="desafio.nome", read_only=True)
+    descricao = serializers.CharField(source="desafio.titulo", read_only=True)
     class Meta:
         model = Aluno_desafio
-        fields = [
-            'id', 'campeonato', 'cliente', 'contrato', 'data', 'descricao', 'tipo_contrato',
-            'valor', 'valor_calculado', 'arquivo1', 'arquivo1_status', 
-            'data_cadastro', 'status', 'status_motivo', 'status_comentario', 
-            'semana', 'tipo', 'pontos'
-        ]
-
-class AlunoSerializer(serializers.ModelSerializer):
-    recebimentos = AlunoEnviosSerializer(source="envios_aluno_cl", many=True, read_only=True)
-
-    class Meta:
-        model = Alunos
         fields = '__all__'
 
+class AlunoCertificacaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Aluno_certificacao
+        fields = '__all__'
 
 class NivelDetalhesSerializer(serializers.ModelSerializer):
     class Meta:
@@ -113,8 +105,43 @@ class AlunoPosicoesSemanaSerializer(serializers.ModelSerializer):
         model = Alunos_posicoes_semana
         fields = '__all__'
 
+class AlunoDetailsSerializer(serializers.ModelSerializer):
+    nivel_detalhes = serializers.SerializerMethodField()
+    pontuacoes_semanais_aluno = serializers.SerializerMethodField()
+    recebimentos = AlunoEnviosSerializer(source="envios_aluno_cl", many=True, read_only=True)
+    desafios = AlunoDesafioSerializer(source="aluno_desafios", many=True, read_only=True)
+    certificacoes = AlunoCertificacaoSerializer(source="certificacoes_aluno", many=True, read_only=True)
 
-class AlunoUnicSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Alunos
+        fields = '__all__'
+
+    def get_nivel_detalhes(self, obj):
+        if obj.nivel:
+            nivel = Mentoria_lista_niveis.objects.filter(id=obj.nivel).first()
+            return NivelDetalhesSerializer(nivel).data if nivel else None
+        return None
+    
+    def get_pontuacoes_semanais_aluno(self, obj):
+        # Pega o maior campeonato relacionado ao aluno
+        max_campeonato = obj.alunos_posicoes_semana.aggregate(Max('campeonato'))['campeonato__max']
+        
+        if max_campeonato is not None:
+            # Agora dentro do campeonato, pega a maior semana
+            max_semana = obj.alunos_posicoes_semana.filter(campeonato=max_campeonato).aggregate(Max('semana'))['semana__max']
+            
+            if max_semana is not None:
+                # Busca os registros filtrados por maior campeonato e maior semana
+                pontuacoes = obj.alunos_posicoes_semana.filter(
+                    campeonato=max_campeonato,
+                    semana=max_semana
+                )
+                return AlunoPosicoesSemanaSerializer(pontuacoes, many=True).data
+
+        return []
+
+class AlunoSerializer(serializers.ModelSerializer):
     nivel_detalhes = serializers.SerializerMethodField()
     pontuacoes_semanais_aluno = serializers.SerializerMethodField()
 
@@ -146,7 +173,6 @@ class AlunoUnicSerializer(serializers.ModelSerializer):
 
         return []
 
-
 class ClaPosicaoSemanaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mentoria_cla_posicao_semana
@@ -157,7 +183,7 @@ class ClaPosicaoSemanaSerializer(serializers.ModelSerializer):
         ]
 
 class ClaDetailSerializer(serializers.ModelSerializer):
-    alunos = AlunoUnicSerializer(source='aluno_cla', many=True, read_only=True)
+    alunos = AlunoSerializer(source='aluno_cla', many=True, read_only=True)
     pontuacoes_semanais = serializers.SerializerMethodField()
 
     class Meta:

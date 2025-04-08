@@ -235,8 +235,8 @@ class AlunosRankingStreamerSheetView(generics.ListAPIView):
         return queryset
 
 class AlunosDetailView(generics.RetrieveAPIView):
-    queryset = Alunos.objects.prefetch_related('envios_aluno_cl')
-    serializer_class = AlunoSerializer
+    queryset = Alunos.objects.all()
+    serializer_class = AlunoDetailsSerializer
     lookup_field = 'id'
 
 class ClansDetailView(generics.RetrieveAPIView):
