@@ -147,7 +147,7 @@ class AlunoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Alunos
-        fields = ['id', 'nome_completo', 'apelido', 'email', 'nivel_detalhes', 'pontuacoes_semanais_aluno']
+        fields = '__all__'
 
     def get_nivel_detalhes(self, obj):
         if obj.nivel:
