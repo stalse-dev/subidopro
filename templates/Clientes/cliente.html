@@ -1,104 +1,296 @@
 {% extends 'main.html' %}
 
 {% block containerBodyMain %}
-    <div class="flex flex-col text-white min-h-screen pt-20">
-        <h1 class="text-3xl font-bold text-center">Detalhes do Cliente</h1>
-        <div class="w-full max-w-4xl bg-gray-800 p-6 rounded-lg shadow-lg mx-auto mt-6">
-            <h2 class="text-xl font-semibold text-yellow-400">{{ cliente.titulo }}</h2>
-            <p class="text-gray-300 mt-2"><strong>Documento:</strong> {{ cliente.documento }}</p>
-            <p class="text-gray-300"><strong>Email:</strong> {{ cliente.email|default:"N/A" }}</p>
-            <p class="text-gray-300"><strong>Telefone:</strong> {{ cliente.telefone|default:"N/A" }}</p>
-            <p class="text-gray-300"><strong>Status:</strong> 
-                {% if cliente.status == 1 %}
-                    <span class="text-green-400">Ativo</span>
-                {% else %}
-                    <span class="text-red-400">Inativo</span>
-                {% endif %}
-            </p>
-            <p class="text-gray-300"><strong>Data de Criação:</strong> {{ cliente.data_criacao|date:"d/m/Y H:i" }}</p>
-            <div class="text-center md:text-right">
-                <a href="{% url 'aluno' cliente.aluno.id %}" class="text-blue-400 hover:underline"><h3 class="text-xl font-bold">Aluno: {{ cliente.aluno.apelido }}</h3></a>
-
+<div class="flex flex-col min-h-screen pt-20">
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full bg-blue-800 p-6 rounded-lg shadow-lg">
+            <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-white text-center flex-1">Detalhes do Cliente</h1>
             </div>
-        </div>
 
-        <h2 class="text-2xl font-bold text-center mt-8">Contratos</h2>
-        <div class="w-full max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg mx-auto mt-4">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-400">
-                    <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                        <tr>
-                            <th class="px-6 py-3">ID</th>
-                            <th class="px-6 py-3">Tipo</th>
-                            <th class="px-6 py-3">Valor</th>
-                            <th class="px-6 py-3">Porcentagem</th>
-                            <th class="px-6 py-3">Data Contrato</th>
-                            <th class="px-6 py-3">Data Vencimento</th>
-                            <th class="px-6 py-3">Status</th>
+            <!-- Dados do Cliente -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6 text-sm text-gray-800">
+
+                <!-- TÍTULO FORA DA GRID -->
+                <h2 class="text-2xl font-bold text-yellow-400 mb-4 text-center">N° {{ cliente.id }} - {{ cliente.titulo }}</h2>
+
+                <!-- CONTEÚDO EM DUAS COLUNAS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p><strong>Documento:</strong> {{ cliente.documento }}</p>
+                        <p><strong>Email:</strong> {{ cliente.email|default:"N/A" }}</p>
+                        <p><strong>Data de cadastro:</strong> {{ cliente.data_criacao|date:"d/m/Y" }}</p>
+                        <p><strong>Status:</strong> 
+                            {% if cliente.status == 1 %}
+                                <span class="text-green-500 font-medium">Ativo</span>
+                            {% else %}
+                                <span class="text-red-500 font-medium">Inativo</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Data de Criação:</strong> {{ cliente.data_criacao|date:"d/m/Y" }}</p>
+                    </div>
+                    <div>
+                        <p><strong>Pontuação Cliente:</strong> <span class="text-green-600 font-bold">{{ cliente_pontos.pontos|default:"0"|floatformat:0 }} Pts</span></p>
+                        <a href="{% url 'aluno' cliente.aluno.id %}" class="text-blue-400 hover:underline">
+                            <h3 class="text-xl font-bold">Aluno: {{ cliente.aluno.nome_completo }}</h3>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retenção -->
+            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200 p-6">
+                <h2 class="text-2xl font-bold mb-4 text-center">Retenção Mensal - 2025</h2>
+                <table class="min-w-full text-center border border-gray-300 rounded">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            {% for mes in meses %}
+                                <th class="p-2 border">{{ mes }}</th>
+                            {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for contrato in contratos %}
-                        <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
-                            <td class="px-6 py-4">{{ contrato.id }}</td>
-                            <td class="px-6 py-4">{{ contrato.tipo_contrato }}</td>
-                            <td class="px-6 py-4">R$ {{ contrato.valor_contrato }}</td>
-                            <td class="px-6 py-4">{{ contrato.porcentagem_contrato|default:"0" }}%</td>
-                            <td class="px-6 py-4">{{ contrato.data_contrato|date:"d/m/Y" }}</td>
-                            <td class="px-6 py-4">{{ contrato.data_vencimento|date:"d/m/Y"|default:"Sem Validade" }}</td>
-                            <td class="px-6 py-4">
-                                {% if contrato.status == 1 %}
-                                    <span class="text-green-400">Ativo</span>
-                                {% else %}
-                                    <span class="text-red-400">Inativo</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-4">Nenhum contrato encontrado.</td>
+                            {% for pontos in lista_pontos_mes %}
+                                <td class="px-4 py-3 text-center font-bold text-gray-600 whitespace-nowrap">{{ pontos|default:"0"|floatformat:0 }} Pts</td>
+                            {% endfor %}
                         </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
-        <h2 class="text-2xl font-bold text-center mt-8">Histórico de Envios</h2>
-        <div class="w-full max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg mx-auto mt-4">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-400">
-                    <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                        <tr>
-                            <th class="px-6 py-3">ID</th>
-                            <th class="px-6 py-3">Data</th>
-                            <th class="px-6 py-3">Descrição</th>
-                            <th class="px-6 py-3">Valor</th>
-                            <th class="px-6 py-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for envio in envios %}
-                        <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
-                            <td class="px-6 py-4">{{ envio.id }}</td>
-                            <td class="px-6 py-4">{{ envio.data|date:"d/m/Y" }}</td>
-                            <td class="px-6 py-4">{{ envio.descricao|default:"N/A" }}</td>
-                            <td class="px-6 py-4">R$ {{ envio.valor|default:"0" }}</td>
-                            <td class="px-6 py-4">
-                                {% if envio.status == 3 %}
-                                    <span class="text-green-400">Aprovado</span>
-                                {% else %}
-                                    <span class="text-red-400">Pendente</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center py-4">Nenhum envio encontrado.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            
+
+
+            <!-- Contratos -->
+            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+                <button onclick="toggleTabelaContratos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Contratos
+                    </h2>
+                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <div id="tabela-contartos" class="hidden px-6 pb-6">
+                    <!-- Scroll Horizontal -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Contratos do Cliente">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Porcentagem</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Contrato</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Vencimento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contrato in contratos %}
+                                <tr class="hover:bg-gray-50 border-b">
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ contrato.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">
+                                        {% if contrato.status == 1 %}
+                                            <span class="text-green-600 font-semibold">Ativo</span>
+                                        {% else %}
+                                            <span class="text-red-600 font-semibold">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        {% if contrato.tipo_contrato == 1 %}
+                                            Valor Fixo Mensal
+                                        {% elif contrato.tipo_contrato == 2 %}
+                                            Coprodução / Multisserviços
+                                        {% elif contrato.tipo_contrato == 3 %}
+                                            Valor Variável
+                                        {% else %}
+                                            Outros
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">R$ {{ contrato.valor_contrato|default:"0.00" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ contrato.porcentagem_contrato|default:"0" }}%</td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ contrato.data_contrato|date:"d/m/Y"|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ contrato.data_vencimento|date:"d/m/Y"|default:"Sem Validade" }}</td>
+
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="px-4 py-4 text-center text-gray-400">Nenhum contrato encontrado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+
+
+            <!-- Recebimentos -->
+            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+                <button onclick="toggleTabelaRecebimentos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Recebimentos
+                    </h2>
+                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <div id="tabela-recebimentos" class="hidden px-6 pb-6">
+                    <!-- Scroll Horizontal -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Recebimentos dos Alunos">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos P.</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo de contrato</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Recebimento</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
+                                    
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for envio in recebimentos %}
+                                <tr class="hover:bg-gray-50 border-b">
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold text-gray-600 whitespace-nowrap">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
+                                    <td class="px-4 py-3 text-center font-bold {% if envio.status != 3 %} text-red-600 {% else %} text-green-600 {% endif %} whitespace-nowrap ">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        {% if envio.status == 3 %}
+                                            <span class="text-green-600 font-semibold">Validado</span>
+                                        {% elif envio.status == 2 %}
+                                            <span class="text-red-600 font-semibold">Invalidado</span>
+                                        {% elif envio.status == 1 %}
+                                            <span class="text-yellow-500 font-semibold">Pendente</span>
+                                        {% elif envio.status == 0 %}
+                                            <span class="text-gray-500 font-semibold">Não analisado</span>
+                                        {% else %}
+                                            <span class="text-gray-500 font-semibold">Sem status</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ envio.valor|default:"0.00" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        {% if envio.contrato.tipo_contrato == 1 %}
+                                            Valor Fixo Mensal
+                                        {% elif envio.contrato.tipo_contrato == 2 %}
+                                            Coprodução / Multisserviços
+                                        {% elif envio.contrato.tipo_contrato == 3 %}
+                                            Valor Variável
+                                        {% else %}
+                                            Outros
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        {% if envio.descricao|length > 50 %}
+                                            {{ envio.descricao|slice:":50" }}...
+                                        {% else %}
+                                            {{ envio.descricao|default:"Sem descrição" }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Retenção -->
+            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+                <button onclick="toggleTabelaRetencao()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Retenção
+                    </h2>
+                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                
+                <div id="tabela-retencao" class="hidden px-6 pb-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Retenção dos Alunos">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Recebimento Id</th>            
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Contrato ID</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo Contrato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for envio in pontos_retencao %}
+                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.contrato.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                                        {% if envio.contrato.tipo_contrato == 1 %}
+                                            Valor Fixo Mensal
+                                        {% elif envio.contrato.tipo_contrato == 2 %}
+                                            Coprodução / Multisserviços
+                                        {% elif envio.contrato.tipo_contrato == 3 %}
+                                            Valor Variável
+                                        {% else %}
+                                            Outros
+                                        {% endif %}
+                                    </td>
+                                    
+
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhuma retenção encontrada.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
+
+    <script>
+        function toggleTabelaRecebimentos() {
+            const content = document.getElementById("tabela-recebimentos");
+            const icon = document.getElementById("icon-recebimentos");
+            content.classList.toggle("hidden");
+            icon.classList.toggle("rotate-180");
+        }
+
+        function toggleTabelaContratos() {
+            const content = document.getElementById("tabela-contartos");
+            const icon = document.getElementById("icon-recebimentos");
+            content.classList.toggle("hidden");
+            icon.classList.toggle("rotate-180");
+        }
+
+        function toggleTabelaRetencao() {
+            const content = document.getElementById("tabela-retencao");
+            const icon = document.getElementById("icon-retencao");
+            content.classList.toggle("hidden");
+            icon.classList.toggle("rotate-180");
+        }
+    </script>
+
 {% endblock %}

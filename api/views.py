@@ -59,7 +59,6 @@ def format_currency(value):
 
 def gera_pontos(valor):
     """Calcula a pontuação com base no valor informado."""
-    print(valor)
     valor = float(valor)  # Garante que o valor seja float antes do cálculo
     return int((valor // 100) * 10)  # Usa divisão normal
 
@@ -117,7 +116,6 @@ def criar_aluno_cliente(aluno_data):
 def criar_contrato(contrato_data):
     contrato_existente = Aluno_clientes_contratos.objects.filter(id=int(contrato_data.get("id"))).exists()
     if contrato_existente:
-        print("Contrato já existente!")
         return contrato_existente
     cliente = get_object_or_404(Aluno_clientes, id=int(contrato_data.get("cliente")))
     # Criando um novo registro no modelo Aluno_clientes
@@ -181,7 +179,6 @@ def criar_envio(envio_data):
                 pontos_previsto = pontos
                 valor_calculado = float(envio_data.get("valorPreenchido")) 
         else:
-            print("Data é menor que 2025")
             pontos = 0
             pontos_previsto = 0
             valor_calculado = float(envio_data.get("valorPreenchido"))  
@@ -221,30 +218,31 @@ def criar_envio(envio_data):
         #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
-            if contrato.tipo_contrato == 2:
-                valor_inicial = float(envio_data.get("valorPreenchido"))
+            if cliente.data_criacao > datetime(2025, 3, 1):
+                if contrato.tipo_contrato == 2:
+                    valor_inicial = float(envio_data.get("valorPreenchido"))
+                    
+                    valor_final = valor_inicial * 0.1
+
+                    pontos = int(gera_pontos_contrato(valor_final))
+                    contrato.valor_contrato = valor_final
+                    contrato.save()
+                else:
+                    valor_final = float(envio_data.get("valorPreenchido"))
+                    pontos = gera_pontos_contrato(float(envio_data.get("valor")))
+
+                Aluno_contrato_novo = Aluno_contrato.objects.create(
+                    campeonato=campeonato, 
+                    aluno=aluno, cliente=cliente, 
+                    contrato=contrato, 
+                    envio=novo_envio, 
+                    descricao=envio_data.get("descricao"), 
+                    valor=envio_data.get("valorPreenchido"), 
+                    data=envio_data.get("data"),
+                    data_cadastro=envio_data.get("dataCadastro"), 
+                    pontos=pontos, status=0)
                 
-                valor_final = valor_inicial * 0.1
-
-                pontos = int(gera_pontos_contrato(valor_final))
-                contrato.valor_contrato = valor_final
-                contrato.save()
-            else:
-                valor_final = float(envio_data.get("valorPreenchido"))
-                pontos = gera_pontos_contrato(float(envio_data.get("valor")))
-
-            Aluno_contrato_novo = Aluno_contrato.objects.create(
-                campeonato=campeonato, 
-                aluno=aluno, cliente=cliente, 
-                contrato=contrato, 
-                envio=novo_envio, 
-                descricao=envio_data.get("descricao"), 
-                valor=envio_data.get("valorPreenchido"), 
-                data=envio_data.get("data"),
-                data_cadastro=envio_data.get("dataCadastro"), 
-                pontos=pontos, status=0)
-            
-            Aluno_contrato_novo.save()
+                Aluno_contrato_novo.save()
 
     elif tipo == 4: #Tabela de Desafios tipo 4 = envio de desafio
 
@@ -356,7 +354,31 @@ def alterar_aluno_cliente(aluno_data):
     
     aluno_cliente = get_object_or_404(Aluno_clientes, id=cliente_id)
     aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
+    novo_status = int(aluno_data.get("status"))
+    #Validar alteração de Status
+    if aluno_cliente.status != novo_status:
+        if novo_status == 2:
+            envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
+            contratos_alterados = Aluno_clientes_contratos.objects.filter(cliente=aluno_cliente)
+            
+            retencoes = Alunos_clientes_pontos_meses_retencao.objects.filter(cliente=aluno_cliente)
+            for retencao in retencoes:
+                retencao.delete()
 
+            for envio in envios_alterados:
+                envio.status = 2
+                envio.pontos = 0
+                envio.save()
+
+            for contrato in contratos_alterados:
+                contrato.status = 2
+                contrato.save()
+            
+            contratos = Aluno_contrato.objects.filter(cliente=aluno_cliente)
+            for contrato in contratos:
+                print('Invalidou o contrato ', contrato)
+                contrato.status = 2
+                contrato.save()
 
     aluno_cliente.aluno = aluno
     aluno_cliente.titulo = aluno_data.get("titulo", aluno_cliente.titulo)
@@ -368,29 +390,6 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente.telefone = aluno_data.get("telefone", aluno_cliente.telefone)
     aluno_cliente.email = aluno_data.get("email", aluno_cliente.email)
     aluno_cliente.status = int(aluno_data.get("status", aluno_cliente.status))
-
-    if int(aluno_data.get("status")) == 2:
-        ## preciso invalidar todos os envios se não existir  envios com status 3 
-        envios = Aluno_envios.objects.filter(cliente=aluno_cliente, status=3)
-        if not envios.exists():
-            envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
-            contratos_alterados = Aluno_clientes_contratos.objects.filter(cliente=aluno_cliente)
-            contratos = Aluno_contrato.objects.filter(cliente=aluno_cliente)
-
-
-            for envio in envios_alterados:
-                envio.status = 2
-                envio.save()
-
-            for contrato in contratos_alterados:
-                contrato.status = 2
-                contrato.save()
-            
-            for contrato in contratos:
-                contrato.status = 2
-                contrato.save()
-
-
         
 
     aluno_cliente.save()
@@ -442,6 +441,25 @@ def alterar_contrato(contrato_data):
                         envio.valor_calculado = envio.valor
                         envio.save()
 
+    novo_status = int(contrato_data.get("status"))
+    #Validar alteração de Status
+    if contrato_cliente.status != novo_status:
+        if int(contrato_data.get("status")) == 2:
+            envios_alterados = Aluno_envios.objects.filter(contrato=contrato_cliente)
+            for envio in envios_alterados:
+                envio.status = 2
+                envio.pontos = 0
+                envio.save()
+                
+            retencoes = Alunos_clientes_pontos_meses_retencao.objects.filter(contrato=contrato_cliente)
+            for retencao in retencoes:
+                retencao.delete()
+            
+            contratos = Aluno_contrato.objects.filter(contrato=contrato_cliente)
+            for contrato in contratos:
+                contrato.status = 2
+                contrato.save()
+
     contrato_cliente.cliente = cliente
     contrato_cliente.tipo_contrato = int(contrato_data.get("tipoContrato", contrato_cliente.tipo_contrato)) if contrato_data.get("tipoContrato") else None
     contrato_cliente.valor_contrato = Decimal(contrato_data.get("valorContrato", "0.00"))
@@ -460,17 +478,6 @@ def alterar_contrato(contrato_data):
     contrato_cliente.id_camp_anterior = int(contrato_data.get("idCampAnterior", contrato_cliente.id_camp_anterior)) if contrato_data.get("idCampAnterior") else None 
     
 
-    if int(contrato_data.get("status")) == 2:
-        envios_alterados = Aluno_envios.objects.filter(contrato=contrato_cliente)
-        for envio in envios_alterados:
-            envio.status = 2
-            envio.save()
-        
-        retencoes = Alunos_clientes_pontos_meses_retencao.objects.filter(contrato=contrato_cliente)
-        for retencao in retencoes:
-            retencao.delete()
-
-
     contrato_cliente.save()
 
 def alterar_envio(envio_data):
@@ -486,20 +493,63 @@ def alterar_envio(envio_data):
         contrato = get_object_or_404(Aluno_clientes_contratos, id=int(envio_data.get("vinculoContrato")))
 
         if float(envio.valor) != float(envio_data.get("valor")):
-            if contrato.tipo_contrato == 2:
-                valor_inicial = float(envio_data.get("valor"))
-                valor_minimo = valor_inicial * 0.1
-                pontos = gera_pontos(valor_minimo)
-                pontos_previsto = pontos
-                valor_calculado = valor_minimo
+            if envio.data > datetime(2025, 3, 1).date():
+                if contrato.tipo_contrato == 2:
+                    valor_inicial = float(envio_data.get("valor"))
+                    valor_minimo = valor_inicial * 0.1
+                    pontos = gera_pontos(valor_minimo)
+                    pontos_previsto = pontos
+                    valor_calculado = valor_minimo
+                else:
+                    pontos = gera_pontos(float(envio_data.get("valor")))
+                    pontos_previsto = pontos
+                    valor_calculado = float(envio_data.get("valor"))
             else:
-                pontos = gera_pontos(float(envio_data.get("valor")))
-                pontos_previsto = pontos
-                valor_calculado = float(envio_data.get("valor"))
+                if contrato.tipo_contrato == 2:
+                    valor_inicial = float(envio_data.get("valor"))
+                    valor_minimo = valor_inicial * 0.1
+                    pontos = 0
+                    pontos_previsto = 0
+                    valor_calculado = valor_minimo
+                else:
+                    pontos = 0
+                    pontos_previsto = 0
+                    valor_calculado = float(envio_data.get("valor"))
         else:
             pontos = envio.pontos
             pontos_previsto = envio.pontos_previsto
             valor_calculado = envio.valor_calculado
+        
+        novo_status = int(envio_data.get("status"))
+
+        if envio.status != novo_status:
+            if novo_status == 2:
+                pontos = 0
+            elif novo_status == 3 and envio.status == 2:
+                if envio.data > datetime(2025, 3, 1).date():
+                    if contrato.tipo_contrato == 2:
+                        valor_inicial = float(envio_data.get("valor"))
+                        valor_minimo = valor_inicial * 0.1
+                        pontos = gera_pontos(valor_minimo)
+                        pontos_previsto = pontos
+                        valor_calculado = valor_minimo
+                    else:
+                        pontos = gera_pontos(float(envio_data.get("valor")))
+                        pontos_previsto = pontos
+                        valor_calculado = float(envio_data.get("valor"))
+                else:
+                    if contrato.tipo_contrato == 2:
+                        valor_inicial = float(envio_data.get("valor"))
+                        valor_minimo = valor_inicial * 0.1
+                        pontos = 0
+                        pontos_previsto = 0
+                        valor_calculado = valor_minimo
+                    else:
+                        pontos = 0
+                        pontos_previsto = 0
+                        valor_calculado = float(envio_data.get("valor"))
+
+        
 
         envio.campeonato=campeonato
         envio.aluno=aluno
@@ -537,6 +587,9 @@ def alterar_envio(envio_data):
             if aluno_contrato:
                 aluno_contrato.status = 3
                 aluno_contrato.save()
+        
+        if int(envio_data.get("status")) == 2:
+            pontos = 0
                 
     elif tipo == 4:
         desafio = get_object_or_404(Aluno_desafio, id=int(envio_data.get("id")))
@@ -1193,7 +1246,6 @@ def ranking_semanalAPI(request):
     campeonato, semana = calcular_semana_vigente()
     # Obtendo a maior semana disponível para o campeonato vigente
     maior_semana = Alunos_posicoes_semana.objects.filter(campeonato=campeonato).aggregate(Max('semana'))['semana__max']
-    print(f"Maior semana: {maior_semana}")
     
     # Usando select_related para otimizar queries relacionadas
     alunos_rank_semanal = Alunos_posicoes_semana.objects.filter(
@@ -1230,6 +1282,10 @@ def meu_cla(request, aluno_id):
 
     cla = aluno.cla
 
+    # Verifica se o clã é o fake (id == 1000)
+    if cla.id == 1000:
+        return Response({})
+
     # Dados do clã
     meu_cla_detalhes = {
         "id": str(cla.id),
@@ -1242,16 +1298,31 @@ def meu_cla(request, aluno_id):
     # Alunos do clã
     alunos_data = {}
     for aluno in cla.aluno_cla.all():
-        rank_semanal = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=campeonato, semana=semana).first()
-        qnt_envios_validos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato, status=3, semana__gt=0, data__gte=data_int).count()
+        rank_semanal = Alunos_posicoes_semana.objects.filter(
+            aluno=aluno,
+            campeonato=campeonato,
+            semana=semana
+        ).first()
+
+        qnt_envios_validos = Aluno_envios.objects.filter(
+            aluno=aluno,
+            campeonato=campeonato,
+            status=3,
+            semana__gt=0,
+            data__gte=data_int
+        ).count()
+
+        if not rank_semanal:
+            print(f"Sem posição para aluno ID {aluno.id}, nome {aluno.nome_completo}")
+
 
         alunos_data[str(aluno.id)] = {
             "id": str(aluno.id),
             "nome": aluno.nome_completo or aluno.nome_social or aluno.apelido or "",
             "nivel": str(aluno.nivel or 0),
-            "qtdEnviosValidosGeral": qnt_envios_validos,  
-            "pontos": rank_semanal.pontos_totais,
-            "ranking": rank_semanal.posicao,
+            "qtdEnviosValidosGeral": qnt_envios_validos,
+            "pontos": rank_semanal.pontos_totais if rank_semanal else 0,
+            "ranking": rank_semanal.posicao if rank_semanal else None,
         }
 
     return Response({

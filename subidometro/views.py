@@ -372,13 +372,14 @@ def calculo_retencao_func(request):
     
     # Obtém a data de hoje
     hoje = timezone.now().date()
+    #hoje = timezone.make_aware(datetime(2025, 3, 31)).date()
     primeiro_dia_mes_atual = hoje.replace(day=1)
     primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
 
     # Filtrando os envios aprovados desde 01/09/2024
     envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01') 
-
+    #envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01', data_cadastro__range=[primeiro_dia_mes_atual, hoje]).order_by('-data')
 
     # Verifica se o mesmo contrato teve envio no mês passado
     envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(

@@ -29,7 +29,7 @@
     
         .loading-screen span {
             font-size: 1.5rem;
-            color: #1e293b;
+            color: #1C46A0;
             font-weight: bold;
         }
     
@@ -39,7 +39,7 @@
     
         /* Nova cor de fundo ao invés do GIF */
         body.loaded {
-            background-color:rgb(0, 1, 39); /* Cinza claro, pode mudar para outra cor */
+            background-color: #ffffff; /* Cinza claro, pode mudar para outra cor */
         }
     </style>
 </head>
@@ -47,7 +47,7 @@
     <div class="loading-screen">
         <span>Carregando...</span>
     </div>
-    <nav class="bg-[#1e293b] shadow-lg fixed top-0 left-0 w-full z-50">
+    <nav class="bg-[#1C46A0] shadow-lg fixed top-0 left-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-20">
                 <div class="flex">
@@ -61,12 +61,9 @@
                     <!-- Links do menu -->
                     <div class="hidden md:flex space-x-8 ml-12 items-center">
                         {% if user.is_authenticated %}
-                            <a href="{% url 'alunos' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Alunos</a>
-                            <a href="{% url 'ranking_semana' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Ranking Semanal</a>
-                            <a href="{% url 'ranking_cla' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Ranking Clã</a>
-                            <a href="{% url 'clas' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Clãs</a>
-                            <a href="{% url 'clientes' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Clientes</a>
-                            <a href="{% url 'listar_logs' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Logs</a>
+                            <a href="{% url 'ranking_semana' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Ranking semanal individual</a>
+                            <a href="{% url 'ranking_cla' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Ranking semanal clã</a>
+                            <a href="{% url 'ranking' %}" class="text-white hover:text-blue-400 font-semibold text-lg">Ranking real time</a>
                         {% endif %}
                     </div>
                 </div>
@@ -82,8 +79,10 @@
                     </button>
 
                     <!-- Dropdown menu -->
-                    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-[#1e293b] border border-gray-700 rounded-lg shadow-lg">
-                        <a href="" class="block text-white px-4 py-2 hover:bg-gray-700">Perfil</a>
+                    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-[#1C46A0] border border-gray-700 rounded-lg shadow-lg">
+                        <a href="{% url 'alunos' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Alunos</a>
+                        <a href="{% url 'clientes' %}" class="block text text-white px-4 py-2 hover:bg-gray-700">Clientes</a>
+                        <a href="{% url 'listar_logs' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Logs</a>
                         <a href="{% url 'logout' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Sair</a>
                     </div>
                 </div>
@@ -101,7 +100,7 @@
         </div>
 
         <!-- Dropdown mobile -->
-        <div id="mobile-menu" class="hidden md:hidden bg-[#1e293b] border-t border-gray-600">
+        <div id="mobile-menu" class="hidden md:hidden bg-[#1C46A0] border-t border-gray-600">
             {% if user.is_authenticated %}
                 <a href="{% url 'alunos' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Alunos</a>
                 <a href="{% url 'ranking_semana' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Ranking Semanal</a>

@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models.functions import TruncMonth, Cast
+from django.db.models.functions import TruncMonth, ExtractMonth
 from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField, Max, Exists
 from django.contrib.auth.decorators import login_required
 from datetime import date
@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
+import calendar
 
 
 @never_cache
@@ -177,18 +178,68 @@ def exportar_aluno_pontuacoes(request, aluno_id):
     return response
 
 @login_required
+def exportar_excel_aluno(request, aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    campeonato, semana = calcular_semana_vigente()
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=aluno_pontuacoes_{aluno.id}_subidopro.xlsx'
+
+    workbook = xlsxwriter.Workbook(response, {'in_memory': True})
+
+    # Função auxiliar para criar aba com dados
+    def adicionar_aba(nome_aba, queryset, campos):
+        worksheet = workbook.add_worksheet(nome_aba[:31])  # nome da aba com no máximo 31 caracteres
+        header_format = workbook.add_format({'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'border': 1})
+        
+        # Cabeçalhos
+        for col, campo in enumerate(campos):
+            worksheet.write(0, col, campo, header_format)
+
+        # Dados
+        for row, item in enumerate(queryset, start=1):
+            for col, campo in enumerate(campos):
+                valor = getattr(item, campo)
+                worksheet.write(row, col, str(valor))
+
+    # Páginas para cada queryset
+    adicionar_aba("Recebimentos", 
+                  Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro'),
+                  ['id', 'cliente', 'contrato', 'data', 'data_cadastro', 'valor', 'pontos', 'status', 'status_motivo', 'status_comentario', 'semana'])
+
+    adicionar_aba("Desafios", 
+                  Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro'),
+                  ['id', 'data_cadastro', 'pontos', 'desafio', 'status', 'status_motivo', 'status_comentario', 'semana'])
+
+    adicionar_aba("Certificações", 
+                  Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=3).order_by('-data_cadastro'),
+                  ['id', 'data_cadastro', 'pontos', 'descricao'])
+
+    adicionar_aba("Contratos", 
+                  Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro'),
+                  ['id', 'cliente', 'contrato', 'envio', 'data_cadastro', 'pontos'])
+
+    adicionar_aba("Retenção", 
+                  Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data'),
+                  ['id', 'cliente', 'contrato', 'envio', 'data', 'pontos', 'semana'])
+
+    workbook.close()
+    return response
+
+@login_required
 def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
  
     pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
     pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
-    pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=3).order_by('-data_cadastro')
     
     pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
     pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
 
     pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
+
     context = {
         'aluno': aluno,
         'pontos_recebimentos': pontos_recebimentos,
@@ -317,14 +368,51 @@ def clientes(request):
 
 @login_required
 def cliente(request, cliente_id):
-    
     cliente = Aluno_clientes.objects.get(id=cliente_id)
+    ano_atual = timezone.now().year
+
+    # Lista dos meses para exibição no template
+    meses = [calendar.month_abbr[i].capitalize() for i in range(1, 13)]
+    numeros_meses = list(range(1, 13))
+
+    # Agregando pontos de retenção por mês
+    retencao_mensal = (
+        Alunos_clientes_pontos_meses_retencao.objects
+        .filter(cliente=cliente, envio__data__year=ano_atual)
+        .annotate(mes=ExtractMonth('envio__data'))
+        .values('mes')
+        .annotate(total_pontos=Sum('pontos'))
+        .order_by('mes')
+    )
+
+    # Filtra apenas de março (3) a agosto (8)
+    meses_filtrados = range(3, 9)
+    retencao_por_mes = {i: 0 for i in meses_filtrados}
+
+    for item in retencao_mensal:
+        mes = item['mes']
+        if mes in retencao_por_mes:
+            retencao_por_mes[mes] = float(item['total_pontos'])
+
+    lista_pontos_mes = [retencao_por_mes[i] for i in meses_filtrados]
+    meses = [calendar.month_abbr[i].capitalize() for i in meses_filtrados]
+    numeros_meses = list(meses_filtrados)
+
+
+    cliente_pontos = Aluno_contrato.objects.filter(cliente=cliente).first()
     contratos = Aluno_clientes_contratos.objects.filter(cliente=cliente).order_by('-data_contrato')
-    envios = Aluno_envios.objects.filter(cliente=cliente).order_by('-data')
+    recebimentos = Aluno_envios.objects.filter(cliente=cliente).order_by('-data')
+    pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(cliente=cliente).order_by('-data')
+
     context = {
         'cliente': cliente,
         'contratos': contratos,
-        'envios': envios,
+        'recebimentos': recebimentos,
+        'cliente_pontos': cliente_pontos,
+        'numeros_meses': numeros_meses,
+        'meses': meses,
+        'lista_pontos_mes': lista_pontos_mes,
+        'pontos_retencao': pontos_retencao,
     }
     return render(request, 'Clientes/cliente.html', context)
 
@@ -426,12 +514,14 @@ def retencao(request):
     
     # Obtém a data de hoje
     hoje = timezone.now().date()
+    #hoje = timezone.make_aware(datetime(2025, 3, 31)).date()
     primeiro_dia_mes_atual = hoje.replace(day=1)
     primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
 
     # Filtrando os envios aprovados desde 01/09/2024
     envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01') 
+    #envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01', data_cadastro__range=[primeiro_dia_mes_atual, hoje]).order_by('-data') 
 
 
     # Verifica se o mesmo contrato teve envio no mês passado
@@ -655,16 +745,55 @@ def ranking(request):
 
 @login_required
 def ranking_semana(request):
-    campeonato, semana = calcular_semana_vigente()
-    # Obtendo a maior semana disponível para o campeonato vigente
-    maior_semana = Alunos_posicoes_semana.objects.filter(campeonato=campeonato).aggregate(Max('semana'))['semana__max']
-    print(f"Maior semana: {maior_semana}")
-    # Buscando os registros com a maior semana encontrada
-    semana_rank_list = Alunos_posicoes_semana.objects.filter(semana=maior_semana, campeonato=campeonato).order_by('posicao')
+    campeonato, _ = calcular_semana_vigente()
+
+    # Lista de semanas disponíveis
+    semanas_disponiveis = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato
+    ).values_list('semana', flat=True).distinct().order_by('-semana')
+
+    # Semana vinda do filtro (GET)
+    semana_param = request.GET.get('semana')
+    if semana_param and semana_param.isdigit():
+        semana_filtrada = int(semana_param)
+    else:
+        semana_filtrada = semanas_disponiveis.first()
+
+    # Campo de busca
+    q = request.GET.get('q', '').strip()
+
+    # Base da query
+    semana_rank_list = Alunos_posicoes_semana.objects.filter(
+        semana=semana_filtrada,
+        campeonato=campeonato
+    )
+
+    # Aplica filtro de busca se houver
+    if q:
+        semana_rank_list = semana_rank_list.filter(
+            Q(aluno__nome_completo__icontains=q) |
+            Q(aluno__email__icontains=q) |
+            Q(aluno__id__iexact=q)
+        )
+
+    semana_rank_list = semana_rank_list.order_by('posicao')
+
+    # Paginação
     paginator = Paginator(semana_rank_list, 20)
     page_number = request.GET.get('page')
     semana_rank = paginator.get_page(page_number)
-    return render(request, "Ranking/ranking_semana.html", {"alunos": semana_rank, "semana": maior_semana})
+
+    ultima_att = semana_rank_list.first().data if semana_rank_list.exists() else None
+
+    context = {
+        "alunos": semana_rank,
+        "semana": semana_filtrada,
+        "semanas_disponiveis": semanas_disponiveis,
+        "q": q,
+        "ultima_att": ultima_att,
+    }
+
+    return render(request, "Ranking/ranking_semana.html", context)
 
 @login_required
 def ranking_cla(request):

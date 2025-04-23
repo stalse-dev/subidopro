@@ -50,7 +50,7 @@
                         </thead>
                         <tbody>
                             {% for aluno in alunos %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
+                            <tr class="bg-gray-800 border-b border-gray-700 cursor-pointer" 
                                 onclick="window.location.href='{% url 'aluno' aluno.id %}'">
                                 <td class="px-6 py-4">{{ aluno.id }}</td>
                                 <td class="px-6 py-4">{{ aluno.nome_completo }}</td>

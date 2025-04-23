@@ -2,7 +2,7 @@ from django.urls import path, include
 from .views import *
 
 urlpatterns = [
-    path('', home, name='home'),
+    path('', ranking_semana, name='ranking_semana_home'),
     path('alunos/', alunos, name='alunos'),
     path('aluno/<int:aluno_id>/', aluno, name='aluno'),
     path('balanceamento/', balanceamento, name='balanceamento'),
@@ -18,6 +18,6 @@ urlpatterns = [
     path('exportar-clientes/', exportar_clientes, name='exportar_clientes'),
     path('exportar-aluno-pontuacoes/<int:aluno_id>/', exportar_aluno_pontuacoes, name='exportar_aluno_pontuacoes'),
     path('exportar_ranking/', exportar_ranking, name='exportar_ranking'),
-    path('extrato/<int:aluno_id>/', extrato, name='extrato'),
+    path('extrato/<int:aluno_id>/', exportar_excel_aluno, name='extrato'),
     path('teste_gabriel/', teste_gabriel, name='teste_gabriel'),
 ]
