@@ -740,8 +740,29 @@ def exportar_ranking(request):
     
 @login_required
 def ranking(request):
-    alunos = ranking_streamer()
-    return render(request, "Ranking/ranking.html", {"alunos": alunos})
+    alunos_list  = ranking_streamer()
+
+    q = request.GET.get('q', '').strip()
+
+    if q:
+        if q.isdigit():
+            alunos_list = alunos_list.filter(Q(id=int(q)) | Q(nome_completo__icontains=q))
+        else:
+            alunos_list = alunos_list.filter(Q(nome_completo__icontains=q))
+
+    # Contagem de todos os alunos
+    cont_rank = alunos_list.count()
+
+    paginator = Paginator(alunos_list, 50)
+    page_number = request.GET.get('page')
+    semana_rank = paginator.get_page(page_number)
+
+    context = {
+        "alunos": semana_rank,
+        "q": q,
+        "cont_rank": cont_rank,
+    }
+    return render(request, "Ranking/ranking.html", context)
 
 @login_required
 def ranking_semana(request):
@@ -776,6 +797,9 @@ def ranking_semana(request):
             Q(aluno__id__iexact=q)
         )
 
+    # Contagem de todos os alunos
+    cont_rank = semana_rank_list.count()
+
     semana_rank_list = semana_rank_list.order_by('posicao')
 
     # Paginação
@@ -784,9 +808,13 @@ def ranking_semana(request):
     semana_rank = paginator.get_page(page_number)
 
     ultima_att = semana_rank_list.first().data if semana_rank_list.exists() else None
+    
+    
+
 
     context = {
         "alunos": semana_rank,
+        "cont_rank": cont_rank,
         "semana": semana_filtrada,
         "semanas_disponiveis": semanas_disponiveis,
         "q": q,
@@ -797,15 +825,58 @@ def ranking_semana(request):
 
 @login_required
 def ranking_cla(request):
-    campeonato, semana = calcular_semana_vigente()
+    campeonato, _ = calcular_semana_vigente()
 
-    maior_semana = Mentoria_cla_posicao_semana.objects.filter(campeonato=campeonato).aggregate(Max('semana'))['semana__max']
+    # Lista de semanas disponíveis
+    semanas_disponiveis = Mentoria_cla_posicao_semana.objects.filter(
+        campeonato=campeonato
+    ).values_list('semana', flat=True).distinct().order_by('-semana')
 
-    cla_rank_list = Mentoria_cla_posicao_semana.objects.filter(semana=maior_semana, campeonato=campeonato).order_by('posicao')
-    paginator = Paginator(cla_rank_list, 20)
+    # Semana vinda do filtro (GET)
+    semana_param = request.GET.get('semana')
+    if semana_param and semana_param.isdigit():
+        semana_filtrada = int(semana_param)
+    else:
+        semana_filtrada = semanas_disponiveis.first()
+
+    # Campo de busca
+    q = request.GET.get('q', '').strip()
+
+    # Base da query
+    semana_rank_list = Mentoria_cla_posicao_semana.objects.filter(
+        semana=semana_filtrada,
+        campeonato=campeonato
+    )
+
+        # Aplica filtro de busca se houver
+    if q:
+        semana_rank_list = semana_rank_list.filter(
+            Q(cla__nome__icontains=q) |
+            Q(cla__sigla__icontains=q) |
+            Q(cla__id__iexact=q)
+        )
+    
+    # Contagem de todos os alunos
+    cont_rank = semana_rank_list.count()
+
+    semana_rank_list = semana_rank_list.order_by('posicao')
+
+    paginator = Paginator(semana_rank_list, 20)
     page_number = request.GET.get('page')
     cla_rank = paginator.get_page(page_number)
-    return render(request, "Ranking/ranking_cla.html", {"cla_rank": cla_rank, "semana": maior_semana})
+
+    ultima_att = semana_rank_list.first().data if semana_rank_list.exists() else None
+
+    context = {
+        "cla_rank": cla_rank,
+        "semana": semana_filtrada,
+        "cont_rank": cont_rank,
+        "semanas_disponiveis": semanas_disponiveis,
+        "q": q,
+        "ultima_att": ultima_att,
+    }
+    
+    return render(request, "Ranking/ranking_cla.html", context)
 
 @login_required
 def extrato(request, aluno_id):

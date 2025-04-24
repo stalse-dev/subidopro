@@ -10,6 +10,7 @@ from .utils import *
 from django.views.decorators.csrf import csrf_exempt
 from users.models import User
 import json
+from django.contrib import messages
 
 
 def login_view(request):
@@ -19,7 +20,7 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return redirect("home")
+            return redirect("ranking_semana_home")
         else:
             messages.error(request, "E-mail ou senha inválidos.")
 

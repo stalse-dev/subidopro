@@ -1489,7 +1489,7 @@ def meu_cla(request, aluno_id):
 
     # Alunos do clã
     alunos_data = {}
-    for aluno in cla.aluno_cla.all():
+    for aluno in cla.aluno_cla.filter(status='ACTIVE'):
         rank_semanal = Alunos_posicoes_semana.objects.filter(
             aluno=aluno,
             campeonato=campeonato,

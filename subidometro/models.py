@@ -240,7 +240,7 @@ class Alunos_Subidometro(models.Model):
     pontuacao_geral = models.IntegerField(null=True, blank=True)
     pontuacao_cla = models.IntegerField(null=True, blank=True)
     rastreador = models.IntegerField(null=True, blank=True)
-    data = models.DateField(null=True, blank=True, auto_now_add=True)
+    data = models.DateTimeField(null=True, blank=True, auto_now_add=True)
     status_aluno = models.CharField(max_length=255, null=True, blank=True)
     
     def __str__(self):
@@ -272,4 +272,18 @@ class Aluno_camp_faturamento_anterior(models.Model):
 
     def __str__(self):
         return f"{self.aluno.nome_completo} - {self.valor} - {self.campeonato_turma}"
+    
+class Mentoria_lista_niveis(models.Model):
+    titulo = models.CharField(max_length=255, null=True, blank=True)
+    estrela = models.IntegerField(default=1, null=True, blank=True)
+    cor = models.CharField(max_length=255, null=True, blank=True)
+    ordem = models.IntegerField(null=True, blank=True)
+    checklist = models.TextField(null=True, blank=True)
+    ultimo_nivel = models.IntegerField(default=0, null=True, blank=True)
+    nivel_grupo = models.IntegerField(null=True, blank=True)
+    id_circle = models.CharField(max_length=255, null=True, blank=True)
+    id_intercom = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return self.titulo or f"Nível {self.id}"
     
