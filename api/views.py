@@ -165,9 +165,10 @@ def criar_envio(envio_data):
 
         data = envio_data.get("data")
 
-        data_formatada = datetime.strptime(data, "%Y-%m-%d")  # Ajustando para o formato correto
+        data_formatada = make_aware(datetime.strptime(data, "%Y-%m-%d"))
+        data_limite = make_aware(datetime(2025, 3, 1))
 
-        if data_formatada > datetime(2025, 3, 1):  # Comparação correta
+        if data_formatada > data_limite:
             if contrato.tipo_contrato == 2:
                 valor_inicial = float(envio_data.get("valorPreenchido"))
                 valor_minimo = valor_inicial * 0.1
@@ -218,7 +219,8 @@ def criar_envio(envio_data):
         #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
-            if cliente.data_criacao > datetime(2025, 3, 1):
+            data_limite = make_aware(datetime(2025, 3, 1))
+            if cliente.data_criacao > data_limite:
                 if contrato.tipo_contrato == 2:
                     valor_inicial = float(envio_data.get("valorPreenchido"))
                     
@@ -314,6 +316,63 @@ def criar_envio(envio_data):
     else: #Tipo de envio não encontrado
         return Response({"message": "Tipo de envio não encontrado!"}, status=status.HTTP_400_BAD_REQUEST)
 
+def criar_aluno_subidometro(aluno_data):
+    # Validar se aluno existe
+    aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
+    campeonato = get_object_or_404(Campeonato, id=int(aluno_data.get("campeonato")))
+    cla = get_object_or_404(Mentoria_cla, id=int(aluno_data.get("cla")))
+
+    novo_aluno_subidometro = Alunos_Subidometro.objects.create(
+        id=int(aluno_data.get("id")),
+        campeonato=campeonato,
+        aluno=aluno,
+        cla=cla,
+        data=aluno_data.get("data"),
+        semana=aluno_data.get("semana"),
+        nivel=aluno_data.get("nivel"),
+        nivel_motivo=aluno_data.get("nivelMotivo"),
+        nivel_comentario=aluno_data.get("nivelComentario"),
+        envios=aluno_data.get("envios"),
+        cliente=aluno_data.get("cliente"),
+        faturamento=aluno_data.get("faturamento"),
+        faturamento_valor=aluno_data.get("faturamentoValor"),
+        pontos=aluno_data.get("pontos"),
+        pontuacao_geral=aluno_data.get("pontuacaoGeral"),
+        pontuacao_cla=aluno_data.get("pontuacaoCla"),
+        rastreador=aluno_data.get("rastreador"),
+        status_aluno=aluno_data.get("statusAluno"),
+    )
+    
+    novo_aluno_subidometro.save()
+    return novo_aluno_subidometro
+
+def criar_aluno(aluno_data):
+    aluno = Alunos.objects.filter(id=int(aluno_data.get("id"))).first()
+    if aluno:
+        return Response({"message": f"Aluno já existente! - '{aluno.nome}'"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    cla = get_object_or_404(Mentoria_cla, id=int(aluno_data.get("cla")))
+
+    novo_aluno = Alunos.objects.create(
+        id=int(aluno_data.get("id")),
+        cla=cla,
+        nome_completo=aluno_data.get("nomeCompleto"),
+        nome_social=aluno_data.get("nomeSocial"),
+        apelido=aluno_data.get("apelido"),
+        email=aluno_data.get("email"),
+        data_criacao=parse_datetime(aluno_data.get("dataCriacao")) if aluno_data.get("dataCriacao") else None,
+        status=aluno_data.get("status"),
+        hotmart=aluno_data.get("hotmart"),
+        termo_aceito=aluno_data.get("termoAceito"),
+        nivel=aluno_data.get("nivel"),
+        aluno_consultor=aluno_data.get("alunoConsultor"),
+        tags_interna=aluno_data.get("tagsInterna"),
+ 
+    )
+    
+    novo_aluno.save()
+    return novo_aluno
+
 def deletar_aluno_cliente(aluno_data):
     cliente_existente = Aluno_clientes.objects.filter(id=int(aluno_data.get("id"))).first()
     if cliente_existente: 
@@ -348,7 +407,21 @@ def deletar_envio(envio_data):
 
     else:
         return Response({"message": "Tipo de envio não encontrado!"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
+def deletar_aluno_subidometro(aluno_data):
+    aluno_subidometro = Alunos_Subidometro.objects.filter(id=int(aluno_data.get("id"))).first()
+    if aluno_subidometro: 
+        aluno_subidometro.delete()
+        return aluno_subidometro
+    else: return None
+
+def deletar_aluno(aluno_data):
+    aluno = Alunos.objects.filter(id=int(aluno_data.get("id"))).first()
+    if aluno: 
+        #aluno.delete()
+        return aluno
+    else: return None
+
 def alterar_aluno_cliente(aluno_data):
     cliente_id = int(aluno_data.get("id"))
     
@@ -630,6 +703,51 @@ def alterar_envio(envio_data):
     else:
         return Response({"message": "Tipo de envio não encontrado!"}, status=status.HTTP_400_BAD_REQUEST)
 
+def alterar_aluno_subidometro(aluno_data):
+    aluno_subidometro = get_object_or_404(Alunos_Subidometro, id=int(aluno_data.get("id")))
+    aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
+    cla = get_object_or_404(Mentoria_cla, id=int(aluno_data.get("cla")))
+    campeonato = get_object_or_404(Campeonato, id=int(aluno_data.get("campeonato")))
+
+    aluno_subidometro.campeonato=campeonato
+    aluno_subidometro.aluno=aluno 
+    aluno_subidometro.cla=cla
+    aluno_subidometro.data=aluno_data.get("data")
+    aluno_subidometro.semana=aluno_data.get("semana")
+    aluno_subidometro.nivel=aluno_data.get("nivel")
+    aluno_subidometro.nivel_motivo=aluno_data.get("nivelMotivo")
+    aluno_subidometro.nivel_comentario=aluno_data.get("nivelComentario")
+    aluno_subidometro.envios=aluno_data.get("envios")
+    aluno_subidometro.cliente=aluno_data.get("cliente")
+    aluno_subidometro.faturamento=aluno_data.get("faturamento")
+    aluno_subidometro.faturamento_valor=aluno_data.get("faturamentoValor")
+    aluno_subidometro.pontuacao_geral=aluno_data.get("pontuacaoGeral")
+    aluno_subidometro.pontuacao_cla=aluno_data.get("pontuacaoCla")
+    aluno_subidometro.rastreador=aluno_data.get("rastreador")
+    aluno_subidometro.status_aluno=aluno_data.get("statusAluno")
+    aluno_subidometro.save()
+
+    return aluno_subidometro
+    
+def alterar_aluno(aluno_data):
+    aluno = get_object_or_404(Alunos, id=int(aluno_data.get("id")))
+    cla = get_object_or_404(Mentoria_cla, id=int(aluno_data.get("cla")))
+
+    aluno.cla=cla
+    aluno.nome_completo=aluno_data.get("nomeCompleto")
+    aluno.nome_social=aluno_data.get("nomeSocial")
+    aluno.apelido=aluno_data.get("apelido")
+    aluno.email=aluno_data.get("email")
+    aluno.data_criacao=parse_datetime(aluno_data.get("dataCriacao")) if aluno_data.get("dataCriacao") else None
+    aluno.status=aluno_data.get("status")
+    aluno.hotmart=aluno_data.get("hotmart")
+    aluno.termo_aceito=aluno_data.get("termoAceito")
+    aluno.nivel=aluno_data.get("nivel")
+    aluno.aluno_consultor=aluno_data.get("alunoConsultor")
+    aluno.tags_interna=aluno_data.get("tagsInterna")
+
+    aluno.save()
+
 def obter_tipo_descricao(tipo):
     tipos = {
         2: "Recebimento",
@@ -735,6 +853,80 @@ def receber_dados(request):
             except Exception as e:
                 registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
                 return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def dados_subdometro(request):
+    data = request.data
+    if not data:
+        return Response({"message": "Dados não foram enviados!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    acao = data.get('acao')
+    if not acao:
+        return Response({"message": "Nenhuma ação encontrada!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    lista_tabelas = data.get('tabela', '').split(',')
+    registro_atual = data.get('registroAtual', {})
+
+    for tabela in lista_tabelas:
+        if tabela in registro_atual:
+            try:
+                if acao == 'add':
+                    if tabela == 'alunosSubidometro':
+                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                        criar_aluno_subidometro(registro_atual['alunosSubidometro'])
+                elif acao == 'alt':
+                    if tabela == 'alunosSubidometro':
+                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                        alterar_aluno_subidometro(registro_atual['alunosSubidometro'])
+                elif acao == 'del':
+                    if tabela == 'alunosSubidometro':
+                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
+                        deletar_aluno_subidometro(registro_atual['alunosSubidometro'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
+            except Exception as e:
+                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
+                return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])       
+def dados_alunos(request):
+    data = request.data
+    if not data:
+        return Response({"message": "Dados não foram enviados!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    acao = data.get('acao')
+    if not acao:
+        return Response({"message": "Nenhuma ação encontrada!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    lista_tabelas = data.get('tabela', '').split(',')
+    registro_atual = data.get('registroAtual', {})
+
+    for tabela in lista_tabelas:
+        if tabela in registro_atual:
+            #try:
+            if acao == 'add':
+                if tabela == 'alunos':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_aluno(registro_atual['alunos'])
+            elif acao == 'alt':
+                if tabela == 'alunos':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_aluno(registro_atual['alunos'])
+            elif acao == 'del':
+                if tabela == 'alunos':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
+                    deletar_aluno(registro_atual['alunos'])
+            else:
+                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                print("Tabela não encontrada!")
+            # except Exception as e:
+            #     registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
+            #     return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
 
