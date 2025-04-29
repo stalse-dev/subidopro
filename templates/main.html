@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -83,6 +85,8 @@
                         <a href="{% url 'alunos' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Alunos</a>
                         <a href="{% url 'clientes' %}" class="block text text-white px-4 py-2 hover:bg-gray-700">Clientes</a>
                         <a href="{% url 'listar_logs' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Logs</a>
+                        <a href="{% url 'balanceamento' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Balanceamento</a>
+                        <a href="{% url 'retencao' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Retencao</a>
                         <a href="{% url 'logout' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Sair</a>
                     </div>
                 </div>
@@ -108,6 +112,7 @@
                 <a href="{% url 'clas' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Clãs</a>
                 <a href="{% url 'clientes' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Clientes</a>
                 <a href="{% url 'listar_logs' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Logs</a>
+                <a href="{% url 'balanceamento' %}" class="block text-white px-4 py-2 hover:bg-gray-700">Balanceamento</a>
                 <a href="{% url 'logout' %}" class="block text-white px-4 py-2 hover:bg-red-600">Sair</a>
             {% endif %}
         </div>

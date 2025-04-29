@@ -1,38 +1,60 @@
 {% extends 'main.html' %}
 
 {% block containerBodyMain %}
-<div class="flex flex-col min-h-screen pt-20">
+<div class="flex flex-col min-h-screen pt-20 bg-gray-100"> 
     <div class="flex-grow flex items-center justify-center p-4">
-        <div class="w-full bg-blue-800 p-6 rounded-lg shadow-lg">
-            <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
-                <h1 class="text-3xl font-bold text-white text-center flex-1">Perfil do Aluno</h1>
+        <div class="w-full bg-white p-8 rounded-3xl shadow-xl">
+            
+            <!-- Título -->
+            <div class="mb-8 flex justify-center items-center gap-2">
+                <h1 class="text-4xl font-extrabold text-gray-800">Perfil do Aluno</h1>
             </div>
 
             <!-- Dados do Aluno -->
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-800">
-                <div>
-                    <p><strong>Nome aluno:</strong> {{ aluno.nome_completo }}</p>
-                    <p><strong>Email:</strong> {{ aluno.email }}</p>
-                    <p><strong>Data de cadastro:</strong> {{ aluno.data_criacao|date:"d/m/Y" }}</p>
-                    <p><strong>ID aluno:</strong> {{ aluno.id }}</p>
-                    <p><strong>Status:</strong> 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-base text-gray-700">
+                
+                <!-- Coluna 1 -->
+                <div class="space-y-4">
+                    <p><span class="material-symbols-outlined align-middle mr-1">badge</span> <strong>Nome:</strong> {{ aluno.nome_completo }}</p>
+                    <p><span class="material-symbols-outlined align-middle mr-1">mail</span> <strong>Email:</strong> {{ aluno.email }}</p>
+                    <p><span class="material-symbols-outlined align-middle mr-1">calendar_month</span> <strong>Cadastro:</strong> {{ aluno.data_criacao|date:"d/m/Y" }}</p>
+                    <p><span class="material-symbols-outlined align-middle mr-1">fingerprint</span> <strong>ID:</strong> {{ aluno.id }}</p>
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1">sync</span> 
+                        <strong>Status:</strong>
                         {% if aluno.status == "ACTIVE" %}
-                            <span class="text-green-500 font-medium">Ativo</span>
+                            <span class="text-green-600 font-semibold">Ativo</span>
                         {% else %}
-                            <span class="text-red-500 font-medium">Inativo</span>
+                            <span class="text-red-500 font-semibold">Inativo</span>
                         {% endif %}
                     </p>
                 </div>
-                <div>
-                    <p><strong>Nível:</strong> <span class="text-blue-600 font-medium">{{ aluno.nivel }}</span>
-                        <span class="text-yellow-400">⭐ ⭐</span>
+                
+                <!-- Coluna 2 -->
+                <div class="space-y-4">
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1">military_tech</span> 
+                        <strong>Nível:</strong> 
+                        <span class="text-blue-700 font-semibold">{{ aluno.nivel }}</span>
+                        <span class="ml-1 text-yellow-400">⭐ ⭐</span>
                     </p>
-                    <p><strong>Pontuação total:</strong> <span class="text-green-600">{{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts</span></p>
-                    <p><strong>Ranking:</strong> {{ pontos_aluno_semana.posicao|default:"0" }}°</p>
-                    <p><strong>Clã:</strong> {{ aluno.cla.sigla }}</p>
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1">rewarded_ads</span> 
+                        <strong>Pontuação Total:</strong> 
+                        <span class="text-emerald-600 font-semibold">
+                            {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
+                        </span>
+                    </p>
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1">leaderboard</span> 
+                        <strong>Ranking:</strong> {{ pontos_aluno_semana.posicao|default:"0" }}°
+                    </p>
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1">shield</span> 
+                        <strong>Clã:</strong> {{ aluno.cla.sigla }}
+                    </p>
                 </div>
             </div>
-            
             
             <!-- Botão de Download Excel alinhado à direita -->
             <div class="flex justify-end mb-6">
@@ -47,6 +69,177 @@
                     Baixar Excel
                 </a>
             </div>
+            
+            {% for cliente in clientes %}
+                <div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md mb-2">
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
+                            <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div class="flex gap-6 text-xs text-gray-300">
+                            <p class="text-sm">
+                            <span class="text-gray-300">{{ cliente.id }}</span>
+                            <span class="font-bold ml-2">
+                                {% if cliente.titulo|length > 40 %}
+                                    {{ cliente.titulo|slice:":40" }}...
+                                {% else %}
+                                    {{ cliente.titulo|default:"Sem Cliente" }}
+                                {% endif %}
+                            </span>
+                            </p>
+                            <p class="text-xs text-gray-300">pessoa jurídica<br>{{ cliente.documento }}</p>
+                        </div>
+                    </div>
+                
+                    <!-- Centro: Contratos / Recebimentos -->
+                    <div class="flex gap-6 text-xs text-gray-300">
+                        <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
+                        <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
+                    </div>
+                
+                    <!-- Direita: Data e Status -->
+                    <div class="flex items-center gap-4">
+                        <div class="text-xs text-gray-300 text-right">
+                            <span>segunda</span><br>
+                            <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
+                        </div>
+                        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                            </svg>
+                            NÃO ANALISADO
+                        </button>
+                    </div>
+                </div>
+
+            {% endfor %}
+            
+            <div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md">
+                <div class="flex items-center gap-4">
+                  <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
+                    <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <div class="flex gap-6 text-xs text-gray-300">
+                    <p class="text-sm">
+                      <span class="text-gray-300">30089</span>
+                      <span class="font-bold ml-2">João Camargo Especialista</span>
+                    </p>
+                    <p class="text-xs text-gray-300">pessoa jurídica<br>14.548.648/0001-25</p>
+                  </div>
+                </div>
+              
+                <!-- Centro: Contratos / Recebimentos -->
+                <div class="flex gap-6 text-xs text-gray-300">
+                  <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
+                  <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
+                </div>
+              
+                <!-- Direita: Data e Status -->
+                <div class="flex items-center gap-4">
+                  <div class="text-xs text-gray-300 text-right">
+                    <span>segunda</span><br>
+                    <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
+                  </div>
+                  <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                    </svg>
+                    NÃO ANALISADO
+                  </button>
+                </div>
+              </div>
+              <div id="div-contratos" class="hidden pl-10 border-l-4 border-gray-400">
+                    <!-- Subcontratos -->
+                    <div class="text-sm text-gray-700">
+                        <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
+                            <div>Contrato</div>
+                            <div>Assinatura</div>
+                            <div>Vencimento</div>
+                            <div>Remuneração</div>
+                            <div>Arquivo</div>
+                            <div>Status</div>
+                        </div>
+
+                        <div class="bg-sky-100 py-4 pl-4 rounded-tl-lg rounded-bl-lg">
+                            <div id="div-contrato" class="flex justify-between items-center font-semibold text-gray-800 p-2 pr-4">
+                                <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-white pr-4">
+                                    <button onclick="toggleDivRecebimentos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center">
+                                        <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <p class="text-sm">
+                                    <span class="text-gray-600">21589</span>
+                                    <span class="font-bold ml-2">Prestação de Serviço</span>
+                                    </p>
+                                </div>
+                                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
+                                    terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                                </div>
+                                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
+                                    quinta<br><span class="text-gray-800 font-bold">17/06/2025</span>
+                                </div>
+                                <div class="text-gray-800 border-r-2 border-white pr-4">R$ 1.300,00</div>
+                                <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-white pr-4">
+                                    📄 <span>Contrato</span>
+                                </div>
+                                <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                                    </svg>
+                                    NÃO ANALISADO
+                                </button>
+                            </div>
+                            <!-- Subrecebmentos -->
+                            <div id="div-recebimentos" class="hidden pl-10">
+                                <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
+                                    <div>Descrição</div>
+                                    <div>Recebimento</div>
+                                    <div>Cadastro</div>
+                                    <div>Valor</div>
+                                    <div>Arquivo </div>
+                                    <div>Status</div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-tl-lg rounded-bl-lg">
+                                    <div id="div-recebimento" class="flex justify-between items-center font-semibold text-gray-800">
+                                        <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-gray-100 pr-4">
+                                            <p class="text-sm">
+                                            <span class="text-gray-600">121223</span>
+                                            <span class="font-bold ml-2">Descri Receb</span>
+                                            </p>
+                                        </div>
+                                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
+                                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                                        </div>
+                                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
+                                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                                        </div>
+                                        <div class="text-gray-800 border-r-2 border-gray-100 pr-4">R$ 1.300,00</div>
+                                        <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-gray-100 pr-4">
+                                            📄 <span>Arquivo</span>
+                                        </div>
+                                        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                                            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                                            </svg>
+                                            NÃO ANALISADO
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+              </div>
+            </div> 
+
+
+            {% comment %} 
+            
+
             
             <!-- Tabela de Pontos de Contrato -->
             <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
@@ -100,7 +293,6 @@
                     </div>
                 </div>
             </div>
-
 
             <!-- Recebimentos -->
             <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
@@ -368,13 +560,31 @@
                     </div>
                 </div>
             </div>
-
+            
+            {% endcomment %}
 
         </div>
     </div>
 </div>
 
 <script>
+    function toggleDivContratos() {
+        const content = document.getElementById("div-contratos");
+        const icon = document.getElementById("icon-contratos");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleDivRecebimentos() {
+        const content = document.getElementById("div-recebimentos");
+        const icon = document.getElementById("icon-recebimentos");
+        const contentContrato = document.getElementById("div-contrato");
+        contentContrato.classList.toggle("border-b-2");
+        contentContrato.classList.toggle("border-white");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
     function toggleTabelaContratos() {
         const content = document.getElementById("tabela-contratos");
         const icon = document.getElementById("icon-contratos");

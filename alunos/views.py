@@ -230,24 +230,30 @@ def exportar_excel_aluno(request, aluno_id):
 def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
- 
-    pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
-    pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
-    pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=3).order_by('-data_cadastro')
-    
-    pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
-    pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
 
-    pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
+    clientes = Aluno_clientes.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_criacao')
+ 
+    # pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    # pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
+    # pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=3).order_by('-data_cadastro')
+    
+    # pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
+    # pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
+
+    # pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
+
+    # nivel_aluno = Mentoria_lista_niveis.objects.filter(id=aluno.nivel).first()
 
     context = {
         'aluno': aluno,
-        'pontos_recebimentos': pontos_recebimentos,
-        'pontos_desafio': pontos_desafio,
-        'pontos_certificacao': pontos_certificacao,
-        'pontos_contratos': pontos_contratos,
-        'pontos_retencao': pontos_retencao,
-        'pontos_aluno_semana': pontos_aluno_semana,
+        'clientes': clientes,
+        # 'pontos_recebimentos': pontos_recebimentos,
+        # 'pontos_desafio': pontos_desafio,
+        # 'pontos_certificacao': pontos_certificacao,
+        # 'pontos_contratos': pontos_contratos,
+        # 'pontos_retencao': pontos_retencao,
+        # 'pontos_aluno_semana': pontos_aluno_semana,
+        # 'nivel_aluno': nivel_aluno,
     }
     return render(request, 'Alunos/aluno.html', context) 
 

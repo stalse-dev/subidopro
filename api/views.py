@@ -935,7 +935,17 @@ def recebimentos_alunos(request, aluno_id):
     Campeonato, semana = calcular_semana_vigente()
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
 
-    
+    pontos_campeonato = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=Campeonato, semana=semana).first()
+
+    if pontos_campeonato:
+        pontos_desafio = int(round(pontos_campeonato.pontos_desafio or 0))
+        pontos_certificacao = int(round(pontos_campeonato.pontos_certificacao or 0))
+        pontos_contrato = int(round(pontos_campeonato.pontos_contrato or 0))
+        pontos_retencao = int(round(pontos_campeonato.pontos_retencao or 0))
+    else:
+        pontos_retencao = 0
+
+
     # Filtra os pontos por categoria
     pontuacoes = {
         "recebimentos": Aluno_envios.objects.filter(aluno=aluno, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
@@ -974,6 +984,8 @@ def recebimentos_alunos(request, aluno_id):
                 status = "Sem status"
 
             if categoria == "recebimentos":
+                if pontuacao.semana == semana + 1:
+                    continue
                 data_formatada = pontuacao.data_cadastro.strftime('%d/%m/%Y') if pontuacao.data_cadastro else ""
                 data_formatada_data = pontuacao.data.strftime('%d/%m/%Y') if pontuacao.data else ""
                 nome_mes = pontuacao.data.strftime('%B').upper() if pontuacao.data else ""
@@ -995,7 +1007,12 @@ def recebimentos_alunos(request, aluno_id):
 
                 if pontuacao.status == 3:
                     resumo_mensal[mes_ano]["valorTotal"] += float(pontuacao.valor)
+                    
+                    # Soma os pontos normalmente
                     resumo_mensal[mes_ano]["pontos"] += int(pontuacao.pontos)
+
+                    # Limita os pontos a no máximo 3000
+                    resumo_mensal[mes_ano]["pontos"] = min(resumo_mensal[mes_ano]["pontos"], 3000)
 
                 resultado[categoria][mes_ano]["infos"]["dataCriacao"] = f"{nome_mes} {pontuacao.data.year}"
                 resultado[categoria][mes_ano]["itens"].append(item)
@@ -1058,10 +1075,10 @@ def recebimentos_alunos(request, aluno_id):
         resultado["recebimentos"][mes_ano]["infos"]["valorTotal"] = f"R$ {valores['valorTotal']:,.2f}".replace(",", ".")
         resultado["recebimentos"][mes_ano]["infos"]["pontos"] = str(valores["pontos"])
 
-    resultado["desafios"]["infos"]["pontos"] = str(sum(int(i["pontosEfetivos"]) for i in resultado["desafios"]["itens"]))
-    resultado["certificacoes"]["infos"]["pontos"] = str(sum(int(i["pontosEfetivos"]) for i in resultado["certificacoes"]["itens"]))
-    resultado["contratos"]["infos"]["pontos"] = str(sum(int(i["pontos"]) for i in resultado["contratos"]["itens"]))
-    resultado["retencao"]["infos"]["pontos"] = str(sum(int(i["pontos"]) for i in resultado["retencao"]["itens"]))
+    resultado["desafios"]["infos"]["pontos"] = pontos_desafio
+    resultado["certificacoes"]["infos"]["pontos"] = pontos_certificacao
+    resultado["contratos"]["infos"]["pontos"] = pontos_contrato
+    resultado["retencao"]["infos"]["pontos"] = pontos_retencao
 
     return Response(resultado)
 
@@ -1244,6 +1261,8 @@ def meus_envios(request, aluno_id):
 @api_view(['GET'])
 def subdometro_aluno(request, aluno_id):
     Campeonato, semana = calcular_semana_vigente()
+
+    print("A Semana atual é: ", semana)
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
     DataInicio = Campeonato.data_inicio
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
@@ -1318,6 +1337,8 @@ def subdometro_aluno(request, aluno_id):
     semanas_campeonato = []
     
     for entry in subdometro:
+        if entry.semana == semana + 1:
+            continue  # pula a semana vigente
         semanas_campeonato.append({
             "semana": entry.semana,
             "pontos": int(entry.pontos) if entry.pontos else "0",
