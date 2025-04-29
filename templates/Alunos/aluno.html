@@ -69,7 +69,7 @@
                     Baixar Excel
                 </a>
             </div>
-            
+            {% comment %}
             {% for cliente in clientes %}
                 <div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md mb-2">
                     <div class="flex items-center gap-4">
@@ -237,8 +237,8 @@
             </div> 
 
 
-            {% comment %} 
-            
+             
+            {% endcomment %}
 
             
             <!-- Tabela de Pontos de Contrato -->
@@ -259,29 +259,23 @@
                         <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Pontuação de Contratos">
                             <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
                                 <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Cliente</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Contrato</th>
                                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
                                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
+                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Assinatura</th>
                                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for pontos_contrato in pontos_contratos %}
-                                <tr class="hover:bg-gray-50 border-b">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.id|default:"N/A" }}</td>
+                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' pontos_contrato.cliente.id %}'">
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.cliente.id|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.contrato.id|default:"N/A" }}</td>
                                     <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
                                     <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ pontos_contrato.valor|default:"0,00"|floatformat:2 }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.data|date:"d/m/Y"|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.contrato.data_contrato|date:"d/m/Y"|default:"N/A" }}</td>
                                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if pontos_contrato.descricao|length > 50 %}
-                                            {{ pontos_contrato.descricao|slice:":50" }}...
-                                        {% else %}
-                                            {{ pontos_contrato.descricao|default:"Sem descrição" }}
-                                        {% endif %}
-                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
@@ -328,7 +322,7 @@
                             </thead>
                             <tbody>
                                 {% for envio in pontos_recebimentos %}
-                                <tr class="hover:bg-gray-50 border-b">
+                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
                                     <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
                                     <td class="px-4 py-3 text-center font-bold text-gray-600 whitespace-nowrap">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
                                     <td class="px-4 py-3 text-center font-bold {% if envio.status != 3 %} text-red-600 {% else %} text-green-600 {% endif %} whitespace-nowrap ">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
@@ -561,7 +555,7 @@
                 </div>
             </div>
             
-            {% endcomment %}
+            
 
         </div>
     </div>
