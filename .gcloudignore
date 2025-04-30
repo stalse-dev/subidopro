@@ -23,4 +23,7 @@ db.ipynb
 migracao_db.ipynb
 .env
 api.http
+.pytest_cache
+.coverage
 staticfiles
+htmlcov

@@ -852,6 +852,7 @@ def receber_dados(request):
 
             except Exception as e:
                 registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
+                print(f"Erro ao processar {tabela}: {str(e)}")
                 return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)

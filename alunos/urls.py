@@ -16,8 +16,8 @@ urlpatterns = [
     path('cliente/<int:cliente_id>/', cliente, name='cliente'),
     path('exportar-alunos/', exportar_alunos, name='exportar_alunos'),
     path('exportar-clientes/', exportar_clientes, name='exportar_clientes'),
-    path('exportar-aluno-pontuacoes/<int:aluno_id>/', exportar_aluno_pontuacoes, name='exportar_aluno_pontuacoes'),
     path('exportar_ranking/', exportar_ranking, name='exportar_ranking'),
+    path('exportar_ranking_semana/<int:semana>/', exportar_ranking_semana, name='exportar_ranking_semana'),
+    path('exportar_ranking_semana_cla/<int:semana>/', exportar_ranking_semana_cla, name='exportar_ranking_semana_cla'),
     path('extrato/<int:aluno_id>/', exportar_excel_aluno, name='extrato'),
-    path('teste_gabriel/', teste_gabriel, name='teste_gabriel'),
 ]

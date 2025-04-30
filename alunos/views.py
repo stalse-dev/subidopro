@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from subidometro.models import *
 from subidometro.utils import *
 from django.db.models.functions import TruncMonth, ExtractMonth
@@ -14,7 +14,6 @@ from datetime import timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
 import calendar
-
 
 @never_cache
 @login_required
@@ -101,81 +100,6 @@ def alunos(request):
         'query': query
     }
     return render(request, 'Alunos/alunos.html', context)
-
-@login_required
-def exportar_aluno_pontuacoes(request, aluno_id):
-    aluno = Alunos.objects.get(id=aluno_id)
-    campeonato, semana = calcular_semana_vigente()
-    pontuacoes = Aluno_pontuacao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
-
-    # Preparando a resposta para o arquivo Excel
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=aluno_pontuacoes_{aluno.id}_subidopro.xlsx'
-
-    # Criando a planilha
-    workbook = xlsxwriter.Workbook(response)
-    worksheet = workbook.add_worksheet()
-
-    # Estilo para os cabeçalhos
-    header_format = workbook.add_format({
-        'bold': True,
-        'font_size': 12,
-        'align': 'center',
-        'valign': 'vcenter',
-        'border': 1  # Adiciona borda
-    })
-
-    # Estilo para o conteúdo das células
-    cell_format = workbook.add_format({
-        'align': 'center',
-        'valign': 'vcenter',
-        'border': 1  # Adiciona borda
-    })
-
-    # Ajustando a largura das colunas
-    for col in range(9):  # De A (0) até I (8)
-        worksheet.set_column(col, col, 24)
-
-    # Cabeçalhos das colunas
-    headers = [
-        'ID', 'Tipo Pontuação', 'ID Vínculo', 'Descrição', 'Pontos',
-        'Data', 'Status', 'Status Motivo', 'Status Comentário'
-    ]
-
-    # Escrevendo os cabeçalhos
-    for col_num, header in enumerate(headers):
-        worksheet.write(0, col_num, header, header_format)
-
-    # Preenchendo os dados
-    row = 1
-    for pontuacao in pontuacoes:
-        # Remover o timezone dos datetimes
-        data = pontuacao.data.replace(tzinfo=None) if pontuacao.data else None
-
-        # Determinar ID de vínculo
-        if pontuacao.tipo_pontuacao.id == 1:
-            id_vinculo = pontuacao.envio.id if pontuacao.envio else ''
-        elif pontuacao.tipo_pontuacao.id == 2:
-            id_vinculo = pontuacao.desafio.id if pontuacao.desafio else ''
-        elif pontuacao.tipo_pontuacao.id == 3:
-            id_vinculo = pontuacao.certificacao.id if pontuacao.certificacao else ''
-        else:
-            id_vinculo = ''
-
-        worksheet.write(row, 0, pontuacao.id, cell_format)  # ID
-        worksheet.write(row, 1, pontuacao.tipo_pontuacao.nome, cell_format)  # Tipo Pontuação
-        worksheet.write(row, 2, id_vinculo, cell_format)  # ID Vínculo
-        worksheet.write(row, 3, pontuacao.descricao, cell_format)  # Descrição
-        worksheet.write(row, 4, pontuacao.pontos, cell_format)  # Pontos
-        worksheet.write(row, 5, data.strftime('%d/%m/%Y %H:%M') if data else '', cell_format)  # Data
-        worksheet.write(row, 6, 'Aprovado' if pontuacao.status == 3 else 'Pendente', cell_format)  # Status
-        worksheet.write(row, 7, pontuacao.status_motivo, cell_format)  # Status Motivo
-        worksheet.write(row, 8, pontuacao.status_comentario, cell_format)  # Status Comentário
-        row += 1
-
-    # Fechar o workbook e retornar a resposta
-    workbook.close()
-    return response
 
 @login_required
 def exportar_excel_aluno(request, aluno_id):
@@ -627,14 +551,11 @@ def retencao(request):
 
 @login_required
 def exportar_ranking(request):
-    alunos = calculo_ranking_def()
-
-    campeonato, semana = calcular_semana_vigente()
+    semana_rank = ranking_streamer()
 
     # Preparando a resposta para o arquivo Excel
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=ranking_subidopro.xlsx'
-
+    response['Content-Disposition'] = f'attachment; filename=Ranking Real Time.xlsx'
 
     # Criando a planilha
     workbook = xlsxwriter.Workbook(response)
@@ -649,7 +570,7 @@ def exportar_ranking(request):
         'border': 1  # Adiciona borda
     })
 
-    # Estilo para as células do corpo
+    # Estilo para o conteúdo das células
     cell_format = workbook.add_format({
         'align': 'center',
         'valign': 'vcenter',
@@ -657,88 +578,31 @@ def exportar_ranking(request):
     })
 
     # Ajustando a largura das colunas
-    for col in range(11):  # De A até K (0 a 10)
-        worksheet.set_column(col, col, 24)  # Define largura de 24
+    for col in range(7):  # De A (0) até G (6)
+        worksheet.set_column(col, col, 24)
 
     # Cabeçalhos das colunas
-    headers = [
-        'Posição', 'ID Aluno', 'Nome do Aluno', 'Clã', 
-        'PF Pontos potenciais', 'PF Pontos efetivos', 
-        'Pontos Desafios', 'Pontos Certificações',
-        'Pontos Contratos', 'Pontos Clientes Retenção', 'Pontos Final'
-    ]
+    headers = ['Posição', 'Aluno ID', 'Nome Aluno', 'Pontuação Total', 'Recebimentos', 'Contratos', 'Retenção', 'Desafios', 'Certificação', 'Manual']
     
     # Escrevendo os cabeçalhos
     for col_num, header in enumerate(headers):
         worksheet.write(0, col_num, header, header_format)
 
-
+    # Preenchendo os dados
     row = 1
-    for aluno in alunos:
-        worksheet.write(row, 0, aluno["rank"])
-        worksheet.write(row, 1, aluno["id"])
-        worksheet.write(row, 2, aluno["nome"])
-        worksheet.write(row, 3, aluno["cla_name"])
-
-        # Subqueries separadas por tipo de pontuação
-        pontos_envios_potenciais = Aluno_pontuacao.objects.filter(
-            aluno_id=aluno["id"],
-            status=3,
-            semana__gt=0,
-            tipo_pontuacao_id=1  # Envios
-        ).filter(
-            Q(envio__campeonato_id=campeonato.id) |
-            Q(desafio__campeonato_id=campeonato.id) |
-            Q(certificacao__campeonato_id=campeonato.id)
-        ).aggregate(total=Coalesce(Sum('pontos_previsto', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
-
-        # Subqueries separadas por tipo de pontuação
-        pontos_envios = Aluno_pontuacao.objects.filter(
-            aluno_id=aluno["id"],
-            status=3,
-            semana__gt=0,
-            tipo_pontuacao_id=1  # Envios
-        ).filter(
-            Q(envio__campeonato_id=campeonato.id) |
-            Q(desafio__campeonato_id=campeonato.id) |
-            Q(certificacao__campeonato_id=campeonato.id)
-        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
-
-        pontos_desafios = Aluno_pontuacao.objects.filter(
-            aluno_id=aluno["id"],
-            status=3,
-            semana__gt=0,
-            tipo_pontuacao_id=2  # Desafios
-        ).filter(
-            Q(envio__campeonato_id=campeonato.id) |
-            Q(desafio__campeonato_id=campeonato.id) |
-            Q(certificacao__campeonato_id=campeonato.id)
-        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
-
-        pontos_certificacoes = Aluno_pontuacao.objects.filter(
-            aluno_id=aluno["id"],
-            status=3,
-            semana__gt=0,
-            tipo_pontuacao_id=3  # Certificações
-        ).filter(
-            Q(envio__campeonato_id=campeonato.id) |
-            Q(desafio__campeonato_id=campeonato.id) |
-            Q(certificacao__campeonato_id=campeonato.id)
-        ).aggregate(total=Coalesce(Sum('pontos', output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
-
-        # Escrevendo os valores no Excel
-
-        worksheet.write(row, 4,  pontos_envios_potenciais)  
-        worksheet.write(row, 5, pontos_envios)  
-        worksheet.write(row, 6, pontos_desafios or 0)
-        worksheet.write(row, 7, pontos_certificacoes or 0)
-
-        worksheet.write(row, 8, aluno["totalPontosClientes"])
-        worksheet.write(row, 9, aluno["totalPontosClientesRetencao"])
-        worksheet.write(row, 10, aluno["totalPontosFinal"])
-
+    for rank in semana_rank:
+        worksheet.write(row, 0, rank.ranking, cell_format)
+        worksheet.write(row, 1, rank.id, cell_format)
+        worksheet.write(row, 2, rank.nome_completo, cell_format)
+        worksheet.write(row, 3, rank.total_pontos_final, cell_format)
+        worksheet.write(row, 4, rank.pontos_recebimento, cell_format)  
+        worksheet.write(row, 5, rank.pontos_contrato, cell_format)  
+        worksheet.write(row, 6, rank.pontos_retencao, cell_format)
+        worksheet.write(row, 7, rank.pontos_desafio, cell_format)
+        worksheet.write(row, 8, rank.pontos_certificacao, cell_format)
+        worksheet.write(row, 9, rank.pontos_manual, cell_format)
+        
         row += 1
-
 
     # Fechar o workbook e retornar a resposta
     workbook.close()
@@ -746,6 +610,9 @@ def exportar_ranking(request):
     
 @login_required
 def ranking(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("Você não tem permissão para acessar esta página.")
+    
     alunos_list  = ranking_streamer()
 
     q = request.GET.get('q', '').strip()
@@ -769,6 +636,71 @@ def ranking(request):
         "cont_rank": cont_rank,
     }
     return render(request, "Ranking/ranking.html", context)
+
+@login_required
+def exportar_ranking_semana(request, semana):
+    campeonato, _ = calcular_semana_vigente()
+    # Base da query
+    semana_rank = Alunos_posicoes_semana.objects.filter(
+        semana=semana,
+        campeonato=campeonato
+    )
+
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Ranking Semanal - Semana {semana}.xlsx'
+
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
+
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Estilo para o conteúdo das células
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Ajustando a largura das colunas
+    for col in range(7):  # De A (0) até G (6)
+        worksheet.set_column(col, col, 24)
+
+    # Cabeçalhos das colunas
+    headers = ['Posição', 'Aluno ID', 'Nome Aluno', 'Clã', 'Pontuação Total', 'Recebimentos', 'Contratos', 'Retenção', 'Desafios', 'Certificação', 'Manual']
+    
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+
+    # Preenchendo os dados
+    row = 1
+    for rank in semana_rank:
+        worksheet.write(row, 0, rank.posicao, cell_format)
+        worksheet.write(row, 1, rank.aluno.id, cell_format)
+        worksheet.write(row, 2, rank.aluno.nome_completo, cell_format)
+        worksheet.write(row, 3, rank.aluno.cla.nome, cell_format)
+        worksheet.write(row, 4, rank.pontos_totais, cell_format)
+        worksheet.write(row, 5, rank.pontos_recebimento, cell_format)  
+        worksheet.write(row, 6, rank.pontos_contrato, cell_format)  
+        worksheet.write(row, 7, rank.pontos_retencao, cell_format)
+        worksheet.write(row, 8, rank.pontos_desafio, cell_format)
+        worksheet.write(row, 9, rank.pontos_certificacao, cell_format)
+        worksheet.write(row, 10, rank.pontos_manual, cell_format)
+        
+        row += 1
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+    return response
 
 @login_required
 def ranking_semana(request):
@@ -830,6 +762,70 @@ def ranking_semana(request):
     return render(request, "Ranking/ranking_semana.html", context)
 
 @login_required
+def exportar_ranking_semana_cla(request, semana):
+    campeonato, _ = calcular_semana_vigente()
+    # Base da query
+    semana_rank = Mentoria_cla_posicao_semana.objects.filter(
+        semana=semana,
+        campeonato=campeonato
+    )
+
+    # Preparando a resposta para o arquivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Ranking Semanal Clã - Semana {semana}.xlsx'
+
+    # Criando a planilha
+    workbook = xlsxwriter.Workbook(response)
+    worksheet = workbook.add_worksheet()
+
+    # Estilo para os cabeçalhos
+    header_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Estilo para o conteúdo das células
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1  # Adiciona borda
+    })
+
+    # Ajustando a largura das colunas
+    for col in range(7):  # De A (0) até G (6)
+        worksheet.set_column(col, col, 24)
+
+    # Cabeçalhos das colunas
+    headers = ['Posição', 'Clã ID', 'Clã', 'Pontuação Total', 'Recebimentos', 'Contratos', 'Retenção', 'Desafios', 'Certificação', 'Manual']
+    
+    # Escrevendo os cabeçalhos
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+
+    # Preenchendo os dados
+    row = 1
+    for rank in semana_rank:
+        worksheet.write(row, 0, rank.posicao, cell_format)
+        worksheet.write(row, 1, rank.cla.id, cell_format)
+        worksheet.write(row, 2, rank.cla.nome, cell_format)
+        worksheet.write(row, 3, rank.pontos_totais, cell_format)
+        worksheet.write(row, 4, rank.pontos_recebimento, cell_format)
+        worksheet.write(row, 5, rank.pontos_contrato, cell_format)
+        worksheet.write(row, 6, rank.pontos_retencao, cell_format)
+        worksheet.write(row, 7, rank.pontos_desafio, cell_format)
+        worksheet.write(row, 8, rank.pontos_certificacao, cell_format)
+        worksheet.write(row, 9, rank.pontos_manual, cell_format)
+        
+        row += 1
+
+    # Fechar o workbook e retornar a resposta
+    workbook.close()
+    return response
+
+@login_required
 def ranking_cla(request):
     campeonato, _ = calcular_semana_vigente()
 
@@ -884,261 +880,3 @@ def ranking_cla(request):
     
     return render(request, "Ranking/ranking_cla.html", context)
 
-@login_required
-def extrato(request, aluno_id):
-    campeonato, semana = calcular_semana_vigente()
-    data_limite = timezone.now() - timedelta(weeks=1)
-
-    # pontuacoes = Aluno_pontuacao.objects.filter(campeonato=campeonato, data_cadastro__gte=data_limite).order_by('-data_cadastro')
-    # contratos = Aluno_contrato.objects.filter(campeonato=campeonato, pontos__gt=0, data_cadastro__gte=data_limite).order_by('-data_cadastro')
-
-    pontuacoes = Aluno_pontuacao.objects.filter(campeonato=campeonato, aluno_id=aluno_id).order_by('-data_cadastro')
-    contratos = Aluno_contrato.objects.filter(campeonato=campeonato, aluno_id=aluno_id).order_by('-data_cadastro')
-
-    extrato_list = []
-    for pontuacao in pontuacoes:
-        tipo_pontuacao = {
-            1: "Comprovante de recebimento",
-            2: "Desafio",
-            3: "Certificação"
-        }.get(pontuacao.tipo_pontuacao.id, f"Outro ({pontuacao.tipo})")
-
-        cliente_titulo = pontuacao.envio.cliente.titulo if pontuacao.tipo_pontuacao.id == 1 else "Sem Cliente"
-        cliente_id = pontuacao.envio.cliente.id if pontuacao.tipo_pontuacao.id == 1 else "N/A"
-        contrato_id = pontuacao.envio.contrato.id if pontuacao.tipo_pontuacao.id == 1 else "Sem Contrato"
-        contrato_tipo = ("Fixo" if pontuacao.envio.contrato.tipo_contrato == 1 else "Contrato variável") if pontuacao.tipo_pontuacao.id == 1 else "Sem contrato"
-        valor = f"R$ {pontuacao.envio.valor:.2f}" if pontuacao.tipo_pontuacao.id == 1 else "R$ 0.00"
-
-        status = {
-            0: "Não analisado",
-            1: "Pendente de análise",
-            2: "Invalidado",
-            3: "Validado"
-        }.get(pontuacao.status, "Sem status")
-
-
-        data_pontuacao = pontuacao.data.replace(tzinfo=None) if pontuacao.data else None  # Variável renomeada
-
-        # Remover timezone da data_cadastro
-        data_cadastro = pontuacao.data_cadastro.replace(tzinfo=None) if pontuacao.data_cadastro else None
-
-        if pontuacao.envio and pontuacao.envio.data_analise is not None:
-            data_analise = pontuacao.envio.data_analise.replace(tzinfo=None)
-        else:
-            data_analise = None
-
-        if pontuacao.envio and pontuacao.envio.rastreador_analise is not None:
-            rastreador_analise = pontuacao.envio.rastreador_analise
-        else:
-            rastreador_analise = "N/A"
-
-        extrato_list.append([
-            data_pontuacao,
-            data_cadastro,
-            pontuacao.aluno.nome_completo,
-            pontuacao.aluno.id,
-            tipo_pontuacao,
-            cliente_titulo,
-            cliente_id,
-            contrato_id,
-            contrato_tipo,
-            valor,
-            status,
-            data_analise,
-            rastreador_analise,
-            pontuacao.pontos_previsto,
-            pontuacao.pontos
-        ])
-
-    for contrato in contratos:
-        contrato_tipo = "Fixo" if contrato.envio.contrato.tipo_contrato == 1 else "Contrato variável"
-        status = {
-            0: "Não analisado",
-            1: "Pendente de análise",
-            2: "Invalidado",
-            3: "Validado"
-        }.get(contrato.envio.status, "Sem status")
-
-        data_pontuacao = contrato.data if contrato.data else None
-
-
-        # Remover timezone da data_cadastro
-        data_cadastro = contrato.data_cadastro.replace(tzinfo=None) if contrato.data_cadastro else None
-
-
-        # Remover timezone da data_analise
-        if contrato.envio.data_analise == None:
-            data_analise = None
-        else:
-            data_analise = contrato.envio.data_analise.replace(tzinfo=None)
-        rastreador_analise = contrato.envio.rastreador_analise or "N/A"
-
-        extrato_list.append([
-            data_pontuacao,
-            data_cadastro,
-            contrato.aluno.nome_completo,
-            contrato.aluno.id,
-            "Contrato",
-            contrato.envio.cliente.titulo,
-            contrato.envio.cliente.id,
-            contrato.envio.contrato.id,
-            contrato_tipo,
-            f"R$ {contrato.envio.valor:.2f}",
-            status,
-            data_analise,
-            rastreador_analise,
-            contrato.pontos,
-            contrato.pontos
-        ])
-
-    df = pd.DataFrame(extrato_list, columns=[
-        "Data Recebimento", "Data Cadastro", "Aluno", "ID Aluno", "Tipo Pontuação", "Cliente",
-        "ID Cliente", "ID Contrato", "Tipo Contrato", "Valor",
-        "Status", "Data Análise", "Rastreador Análise", "Pontos Previsto", "Pontos Efetivos"
-    ])
-
-    # Remover timezone das datas no DataFrame
-    df["Data Recebimento"] = pd.to_datetime(df["Data Recebimento"], errors="coerce")
-    df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"], errors="coerce")
-    df["Data Análise"] = pd.to_datetime(df["Data Análise"], errors="coerce")
-
-    df["Mês"] = df["Data Recebimento"].dt.month
-
-    # Reorganizar as colunas para que "Mês" fique em primeiro lugar
-    colunas_ordenadas = ["Mês"] + [col for col in df.columns if col != "Mês"]
-    df = df[colunas_ordenadas]
-
-    # Ordenar pela data mais recente
-    df = df.sort_values(by="Data Recebimento", ascending=False)
-
-    # Criar resposta HTTP para download do Excel
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=extrato_aluno_{aluno_id}.xlsx'
-
-    # Criar um arquivo Excel na resposta
-    with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Extrato', index=False)
-
-        # Ajustar a largura das colunas
-        workbook = writer.book
-        worksheet = writer.sheets['Extrato']
-        for i, column in enumerate(df.columns):
-            worksheet.set_column(i, i, 20)  # Define largura de 20 para cada coluna
-
-    return response
-
-@login_required
-def teste_gabriel(request):
-    """
-        Regras para reter pontos do cliente
-        1º O cliente so recebe pontos se ele tiver enviado no mês passado e no mês atual
-        2º O cliente não recebe pontos se ele tiver enviado mais de uma vez no mês atual
-        3º Os clientes só é considerado apartir da data de criação 01/09/2024
-    """
-    
-    campeonatoVigente, semana = calcular_semana_vigente()
-    
-    def gera_pontos_retencao(valor):
-        if valor >= 0 and valor < 1000:
-            return 40
-        elif valor >= 1000 and valor < 3000:
-            return 320
-        elif valor >= 3000 and valor < 5000:
-            return 720
-        elif valor >= 5000 and valor < 9000:
-            return 1280
-        elif valor >= 9000:
-            return 1640
-        else:
-            return 0
-    
-    # Obtém a data de hoje
-    #hoje = timezone.now().date()
-    hoje = datetime(2025, 3, 31).date()
-    primeiro_dia_mes_atual = hoje.replace(day=1)
-    primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
-    ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
-
-    # Filtrando os envios aprovados desde 01/09/2024
-    envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01') 
-
-
-    # Verifica se o mesmo contrato teve envio no mês passado
-    envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(
-        cliente=OuterRef('cliente'),  # Agora filtra por contrato
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
-        status=3
-    ).values('id')[:1]  # Retorna qualquer envio válido
-
-    envio_mes_passado_CT_subquery = Aluno_envios.objects.filter(
-        contrato=OuterRef('contrato'),  # Agora filtra por contrato
-        data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
-        status=3
-    ).values('id')[:1]  # R
-
-
-
-    # Primeiro envio do contrato no mês atual
-    envio_mes_atual_subquery = Aluno_envios.objects.filter(
-        id=OuterRef('pk'),
-        data__range=[primeiro_dia_mes_atual, hoje],
-        status=3
-    ).order_by('data').values('id', 'valor', 'contrato__tipo_contrato', 'contrato__id')[:1]
-
-    # Verifica se já foi registrado na tabela de retenção
-    retencao_envios_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
-        envio=OuterRef('pk'),
-        data__range=[primeiro_dia_mes_atual, hoje]
-    ).values('id')[:1]
-
-    # Anotando os resultados e filtrando os registros
-    envios_nova_retencao = envios.annotate(
-        envio_mes_passado_cl=Exists(envio_mes_passado_CL_subquery),
-        envio_mes_passado_ct=Exists(envio_mes_passado_CT_subquery),
-        envio_mes_atual=Subquery(envio_mes_atual_subquery.values('id')),
-        contrato_id_anotado=Subquery(envio_mes_atual_subquery.values('contrato__id')),
-        valor_envio=Subquery(envio_mes_atual_subquery.values('valor')),
-        tipo_contrato_anotado=Subquery(envio_mes_atual_subquery.values('contrato__tipo_contrato')),
-        retencao_envio_mes_atual=Exists(retencao_envios_mes_atual_subquery)
-    ).filter(
-        envio_mes_passado_cl=True,  # Garante que teve envio no mês passado
-        envio_mes_passado_ct=True,  # Garante que teve envio no mês passado
-        envio_mes_atual__isnull=False,  # Teve envio neste mês
-        retencao_envio_mes_atual=False  # Ainda não recebeu retenção
-    )
-
-    clientes_que_vai_ser_retidos = []
-    for cli_retencao in envios_nova_retencao:
-
-        if cli_retencao.tipo_contrato_anotado == 2:
-            valor_inicial = float(cli_retencao.valor_envio)
-            valor_final = valor_inicial * 0.1
-
-        else:
-            valor_final = float(cli_retencao.valor_envio)
-
-
-        pontos_retencao = gera_pontos_retencao(valor_final)
-
-        clientes_que_vai_ser_retidos.append({
-                "aluno": cli_retencao.aluno.nome_completo,
-                "aluno_id": cli_retencao.aluno.id,
-                "cliente_id": cli_retencao.cliente.id,
-                "contrato_id": cli_retencao.contrato_id_anotado,
-                "envio_id": cli_retencao.id,
-                "tipo_contrato": cli_retencao.tipo_contrato_anotado,
-                "valor_envio": cli_retencao.valor_envio,
-                "pontos_retencao": int(pontos_retencao),
-            })
-
-
-    #Contar quantos clientes tem 
-    cont_clientes = envios_nova_retencao.count()
-
-    context = {
-        "cont_retencoes": cont_clientes,
-        "retencoes": clientes_que_vai_ser_retidos,
-    }
-
-
-    return render(request, "Retencao/retencao.html", context)
