@@ -1,0 +1,165 @@
+{% for cliente in clientes %}
+<div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md mb-2">
+    <div class="flex items-center gap-4">
+        <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
+            <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+        </button>
+        <div class="flex gap-6 text-xs text-gray-300">
+            <p class="text-sm">
+            <span class="text-gray-300">{{ cliente.id }}</span>
+            <span class="font-bold ml-2">
+                {% if cliente.titulo|length > 40 %}
+                    {{ cliente.titulo|slice:":40" }}...
+                {% else %}
+                    {{ cliente.titulo|default:"Sem Cliente" }}
+                {% endif %}
+            </span>
+            </p>
+            <p class="text-xs text-gray-300">pessoa jurídica<br>{{ cliente.documento }}</p>
+        </div>
+    </div>
+
+    <!-- Centro: Contratos / Recebimentos -->
+    <div class="flex gap-6 text-xs text-gray-300">
+        <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
+        <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
+    </div>
+
+    <!-- Direita: Data e Status -->
+    <div class="flex items-center gap-4">
+        <div class="text-xs text-gray-300 text-right">
+            <span>segunda</span><br>
+            <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
+        </div>
+        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+            </svg>
+            NÃO ANALISADO
+        </button>
+    </div>
+</div>
+
+{% endfor %}
+
+<div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md">
+<div class="flex items-center gap-4">
+  <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
+    <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+  </button>
+  <div class="flex gap-6 text-xs text-gray-300">
+    <p class="text-sm">
+      <span class="text-gray-300">30089</span>
+      <span class="font-bold ml-2">João Camargo Especialista</span>
+    </p>
+    <p class="text-xs text-gray-300">pessoa jurídica<br>14.548.648/0001-25</p>
+  </div>
+</div>
+
+<!-- Centro: Contratos / Recebimentos -->
+<div class="flex gap-6 text-xs text-gray-300">
+  <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
+  <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
+</div>
+
+<!-- Direita: Data e Status -->
+<div class="flex items-center gap-4">
+  <div class="text-xs text-gray-300 text-right">
+    <span>segunda</span><br>
+    <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
+  </div>
+  <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+    </svg>
+    NÃO ANALISADO
+  </button>
+</div>
+</div>
+<div id="div-contratos" class="hidden pl-10 border-l-4 border-gray-400">
+    <!-- Subcontratos -->
+    <div class="text-sm text-gray-700">
+        <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
+            <div>Contrato</div>
+            <div>Assinatura</div>
+            <div>Vencimento</div>
+            <div>Remuneração</div>
+            <div>Arquivo</div>
+            <div>Status</div>
+        </div>
+
+        <div class="bg-sky-100 py-4 pl-4 rounded-tl-lg rounded-bl-lg">
+            <div id="div-contrato" class="flex justify-between items-center font-semibold text-gray-800 p-2 pr-4">
+                <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-white pr-4">
+                    <button onclick="toggleDivRecebimentos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center">
+                        <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <p class="text-sm">
+                    <span class="text-gray-600">21589</span>
+                    <span class="font-bold ml-2">Prestação de Serviço</span>
+                    </p>
+                </div>
+                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
+                    terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                </div>
+                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
+                    quinta<br><span class="text-gray-800 font-bold">17/06/2025</span>
+                </div>
+                <div class="text-gray-800 border-r-2 border-white pr-4">R$ 1.300,00</div>
+                <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-white pr-4">
+                    📄 <span>Contrato</span>
+                </div>
+                <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                    </svg>
+                    NÃO ANALISADO
+                </button>
+            </div>
+            <!-- Subrecebmentos -->
+            <div id="div-recebimentos" class="hidden pl-10">
+                <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
+                    <div>Descrição</div>
+                    <div>Recebimento</div>
+                    <div>Cadastro</div>
+                    <div>Valor</div>
+                    <div>Arquivo </div>
+                    <div>Status</div>
+                </div>
+
+                <div class="bg-white p-4 rounded-tl-lg rounded-bl-lg">
+                    <div id="div-recebimento" class="flex justify-between items-center font-semibold text-gray-800">
+                        <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-gray-100 pr-4">
+                            <p class="text-sm">
+                            <span class="text-gray-600">121223</span>
+                            <span class="font-bold ml-2">Descri Receb</span>
+                            </p>
+                        </div>
+                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
+                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                        </div>
+                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
+                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
+                        </div>
+                        <div class="text-gray-800 border-r-2 border-gray-100 pr-4">R$ 1.300,00</div>
+                        <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-gray-100 pr-4">
+                            📄 <span>Arquivo</span>
+                        </div>
+                        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                            </svg>
+                            NÃO ANALISADO
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+</div> 

@@ -535,7 +535,7 @@ def alterar_contrato(contrato_data):
 
     contrato_cliente.cliente = cliente
     contrato_cliente.tipo_contrato = int(contrato_data.get("tipoContrato", contrato_cliente.tipo_contrato)) if contrato_data.get("tipoContrato") else None
-    contrato_cliente.valor_contrato = Decimal(contrato_data.get("valorContrato", "0.00"))
+    contrato_cliente.valor_contrato = Decimal(contrato_data.get("valorContrato") or "0.00")
     contrato_cliente.porcentagem_contrato = contrato_data.get("porcentagemContrato")
     contrato_cliente.arquivo1 = contrato_data.get("arquivo1")
     contrato_cliente.semana = int(contrato_data.get("semana", contrato_cliente.semana)) if contrato_data.get("semana") else None
@@ -805,55 +805,55 @@ def receber_dados(request):
 
     for tabela in lista_tabelas:
         if tabela in registro_atual:
-            try:
-                if acao == 'add':
-                    if tabela == 'alunosClientes':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_aluno_cliente(registro_atual['alunosClientes'])
-                    elif tabela == 'alunosClientesContratos':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_contrato(registro_atual['alunosClientesContratos'])
-                    elif tabela == 'alunosEnvios':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_envio(registro_atual['alunosEnvios'])
-                    else:
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
-                        print("Tabela não encontrada!")
-                    
+           # try:
+            if acao == 'add':
+                if tabela == 'alunosClientes':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_aluno_cliente(registro_atual['alunosClientes'])
+                elif tabela == 'alunosClientesContratos':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_contrato(registro_atual['alunosClientesContratos'])
+                elif tabela == 'alunosEnvios':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_envio(registro_atual['alunosEnvios'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
+                
 
-                elif acao == 'alt':
-                    if tabela == 'alunosClientes':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_aluno_cliente(registro_atual['alunosClientes'])
-                    elif tabela == 'alunosClientesContratos':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_contrato(registro_atual['alunosClientesContratos'])
-                    elif tabela == 'alunosEnvios':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_envio(registro_atual['alunosEnvios'])
-                    else:
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
-                        print("Tabela não encontrada!")
+            elif acao == 'alt':
+                if tabela == 'alunosClientes':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_aluno_cliente(registro_atual['alunosClientes'])
+                elif tabela == 'alunosClientesContratos':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_contrato(registro_atual['alunosClientesContratos'])
+                elif tabela == 'alunosEnvios':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_envio(registro_atual['alunosEnvios'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
 
-                elif acao == 'del':
-                    
-                    if tabela == 'alunosClientes':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
-                        deletar_aluno_cliente(registro_atual['alunosClientes'])
-                    elif tabela == 'alunosClientesContratos':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
-                        deletar_contrato(registro_atual['alunosClientesContratos'])
-                    elif tabela == 'alunosEnvios':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
-                        deletar_envio(registro_atual['alunosEnvios'])
-                    else:
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
-                        print("Tabela não encontrada!")
+            elif acao == 'del':
+                
+                if tabela == 'alunosClientes':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
+                    deletar_aluno_cliente(registro_atual['alunosClientes'])
+                elif tabela == 'alunosClientesContratos':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
+                    deletar_contrato(registro_atual['alunosClientesContratos'])
+                elif tabela == 'alunosEnvios':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
+                    deletar_envio(registro_atual['alunosEnvios'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
 
-            except Exception as e:
-                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
-                print(f"Erro ao processar {tabela}: {str(e)}")
-                return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # except Exception as e:
+            #     registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
+            #     print(f"Erro ao processar {tabela}: {str(e)}")
+            #     return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
 

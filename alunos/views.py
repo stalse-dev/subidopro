@@ -155,7 +155,18 @@ def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
 
-    #clientes = Aluno_clientes.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_criacao')
+    nivel_aluno = Mentoria_lista_niveis.objects.filter(id=aluno.nivel).first()
+
+    context = {
+        'aluno': aluno,
+        'nivel_aluno': nivel_aluno,
+    }
+    return render(request, 'Alunos/aluno.html', context) 
+
+@login_required
+def aluno_pontos(request, aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    campeonato, semana = calcular_semana_vigente()
  
     pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
     pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
@@ -165,21 +176,38 @@ def aluno(request, aluno_id):
     pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
 
     pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
-
-    nivel_aluno = Mentoria_lista_niveis.objects.filter(id=aluno.nivel).first()
-
     context = {
         'aluno': aluno,
-        #'clientes': clientes,
         'pontos_recebimentos': pontos_recebimentos,
         'pontos_desafio': pontos_desafio,
         'pontos_certificacao': pontos_certificacao,
         'pontos_contratos': pontos_contratos,
         'pontos_retencao': pontos_retencao,
         'pontos_aluno_semana': pontos_aluno_semana,
-        'nivel_aluno': nivel_aluno,
     }
-    return render(request, 'Alunos/aluno.html', context) 
+    return render(request, 'Alunos/partials/aba_pontos.html', context)
+
+@login_required
+def aluno_clientes(request, aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    campeonato, semana = calcular_semana_vigente()
+
+    clientes = Aluno_clientes.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_criacao')
+    context = {
+        'aluno': aluno,
+        'clientes': clientes,
+    }
+    return render(request, 'Alunos/partials/aba_clientes.html', context)
+
+@login_required
+def aluno_faturamento(request, aluno_id):
+    return render(request, 'Alunos/partials/aba_faturamento.html')
+
+
+
+
+
+
 
 @login_required
 def clas(request):
@@ -604,7 +632,6 @@ def exportar_ranking(request):
         
         row += 1
 
-    # Fechar o workbook e retornar a resposta
     workbook.close()
     return response
     

@@ -1,4 +1,5 @@
 {% extends 'main.html' %}
+{% load static %}
 
 {% block containerBodyMain %}
 <div class="flex flex-col min-h-screen pt-20 bg-gray-100"> 
@@ -7,613 +8,156 @@
             
             <!-- Título -->
             <div class="mb-8 flex justify-center items-center gap-2">
-                <h1 class="text-4xl font-extrabold text-gray-800">Perfil do Aluno</h1>
+                <h1 class="text-4xl font-extrabold text-gray-800">Dados do Aluno</h1>
             </div>
 
-            <!-- Dados do Aluno -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-base text-gray-700">
-                
+            <!-- Perfil do Aluno Gamificado -->
+            <div class="flex flex-col md:flex-row items-center gap-8 mb-10">
+                <!-- Avatar e Nível -->
+                <div class="flex flex-col items-center bg-gradient-to-br from-[#1C46A0] via-blue-900 to-gray-900 rounded-2xl p-6 shadow-lg">
+                <div class="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center shadow-inner border-4 border-white mb-3">
+                    <span class="material-symbols-outlined text-6xl text-gray-400">person</span>
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-white font-bold text-lg">Nível {{ aluno.nivel }}</span>
+                    <span class="text-yellow-400 text-xl">⭐</span>
+                </div>
+                <div class="w-full mt-3">
+                    <!-- Barra de progresso fictícia, troque por dados reais se tiver -->
+                    <div class="w-full bg-gray-700 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-blue-400 to-[#1C46A0] h-3 rounded-full transition-all" style="width: 70%"></div>
+                    </div>
+                    <div class="text-xs text-gray-200 mt-1 text-center">XP: 700/1000</div>
+                </div>
+                </div>
+                <!-- Dados do Aluno -->
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 text-base">
                 <!-- Coluna 1 -->
                 <div class="space-y-4">
-                    <p><span class="material-symbols-outlined align-middle mr-1">badge</span> <strong>Nome:</strong> {{ aluno.nome_completo }}</p>
-                    <p><span class="material-symbols-outlined align-middle mr-1">mail</span> <strong>Email:</strong> {{ aluno.email }}</p>
-                    <p><span class="material-symbols-outlined align-middle mr-1">calendar_month</span> <strong>Cadastro:</strong> {{ aluno.data_criacao|date:"d/m/Y" }}</p>
-                    <p><span class="material-symbols-outlined align-middle mr-1">fingerprint</span> <strong>ID:</strong> {{ aluno.id }}</p>
                     <p>
-                        <span class="material-symbols-outlined align-middle mr-1">sync</span> 
-                        <strong>Status:</strong>
-                        {% if aluno.status == "ACTIVE" %}
-                            <span class="text-green-600 font-semibold">Ativo</span>
-                        {% else %}
-                            <span class="text-red-500 font-semibold">Inativo</span>
-                        {% endif %}
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">badge</span>
+                    <strong class="text-gray-800">Nome:</strong>
+                    <span class="text-gray-700">{{ aluno.nome_completo }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">mail</span>
+                    <strong class="text-gray-800">Email:</strong>
+                    <span class="text-gray-700">{{ aluno.email }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">calendar_month</span>
+                    <strong class="text-gray-800">Cadastro:</strong>
+                    <span class="text-gray-700">{{ aluno.data_criacao|date:"d/m/Y" }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">fingerprint</span>
+                    <strong class="text-gray-800">ID:</strong>
+                    <span class="text-gray-700">{{ aluno.id }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">sync</span>
+                    <strong class="text-gray-800">Status:</strong>
+                    {% if aluno.status == "ACTIVE" %}
+                        <span class="text-green-600 font-semibold">Ativo</span>
+                    {% else %}
+                        <span class="text-red-500 font-semibold">Inativo</span>
+                    {% endif %}
                     </p>
                 </div>
-                
                 <!-- Coluna 2 -->
                 <div class="space-y-4">
                     <p>
-                        <span class="material-symbols-outlined align-middle mr-1">military_tech</span> 
-                        <strong>Nível:</strong> 
-                        <span class="text-blue-700 font-semibold">{{ aluno.nivel }}</span>
-                        <span class="ml-1 text-yellow-400">⭐ ⭐</span>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">rewarded_ads</span>
+                    <strong class="text-gray-800">Pontuação Total:</strong>
+                    <span class="text-emerald-600 font-bold">
+                        {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
+                    </span>
                     </p>
                     <p>
-                        <span class="material-symbols-outlined align-middle mr-1">rewarded_ads</span> 
-                        <strong>Pontuação Total:</strong> 
-                        <span class="text-emerald-600 font-semibold">
-                            {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
-                        </span>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">leaderboard</span>
+                    <strong class="text-gray-800">Ranking:</strong>
+                    <span class="text-blue-700 font-bold">{{ pontos_aluno_semana.posicao|default:"0" }}°</span>
                     </p>
                     <p>
-                        <span class="material-symbols-outlined align-middle mr-1">leaderboard</span> 
-                        <strong>Ranking:</strong> {{ pontos_aluno_semana.posicao|default:"0" }}°
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">shield</span>
+                    <strong class="text-gray-800">Clã:</strong>
+                    <span class="text-gray-700">{{ aluno.cla.sigla }}</span>
                     </p>
                     <p>
-                        <span class="material-symbols-outlined align-middle mr-1">shield</span> 
-                        <strong>Clã:</strong> {{ aluno.cla.sigla }}
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">military_tech</span>
+                    <strong class="text-gray-800">Conquistas:</strong>
+                    <span class="inline-flex gap-1">
+                        <span class="material-symbols-outlined text-yellow-400">star</span>
+                        <span class="material-symbols-outlined text-blue-400">workspace_premium</span>
+                    </span>
                     </p>
                 </div>
+                </div>
             </div>
             
-            <!-- Botão de Download Excel alinhado à direita -->
-            <div class="flex justify-end mb-6">
-                <a href="{% url 'extrato' aluno.id %}"
-                    class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Baixar Excel
-                </a>
-            </div>
-            {% comment %}
-            {% for cliente in clientes %}
-                <div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md mb-2">
-                    <div class="flex items-center gap-4">
-                        <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
-                            <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <div class="flex gap-6 text-xs text-gray-300">
-                            <p class="text-sm">
-                            <span class="text-gray-300">{{ cliente.id }}</span>
-                            <span class="font-bold ml-2">
-                                {% if cliente.titulo|length > 40 %}
-                                    {{ cliente.titulo|slice:":40" }}...
-                                {% else %}
-                                    {{ cliente.titulo|default:"Sem Cliente" }}
-                                {% endif %}
-                            </span>
-                            </p>
-                            <p class="text-xs text-gray-300">pessoa jurídica<br>{{ cliente.documento }}</p>
-                        </div>
-                    </div>
+            <!-- Abas HTMX -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl mt-10">
+                <div class="flex gap-4 border-b border-gray-200 mb-4">
+                    <button 
+                        hx-get="{% url 'aluno-pontos' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Pontos
+                    </button>
+                    <button 
+                        hx-get="{% url 'aluno-clientes' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Clientes
+                    </button>
+                    <button 
+                        hx-get="{% url 'aluno-faturamento' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Faturamento
+                    </button>
+                </div>
+
+                <!-- Conteúdo das Abas -->
+                <div id="conteudo-abas" class="flex flex-col text-gray-500">
+                    Selecione uma aba acima para visualizar os dados.
+                </div>
                 
-                    <!-- Centro: Contratos / Recebimentos -->
-                    <div class="flex gap-6 text-xs text-gray-300">
-                        <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
-                        <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
-                    </div>
+                <div id="loader-container" role="status" class="hidden absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 z-50">
+                    <svg aria-hidden="true" class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                    </svg>
+                    <span class="sr-only">Loading...</span>
+                </div>
                 
-                    <!-- Direita: Data e Status -->
-                    <div class="flex items-center gap-4">
-                        <div class="text-xs text-gray-300 text-right">
-                            <span>segunda</span><br>
-                            <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
-                        </div>
-                        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
-                            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
-                            </svg>
-                            NÃO ANALISADO
-                        </button>
-                    </div>
-                </div>
-
-            {% endfor %}
-            
-            <div class="bg-sky-900 text-white p-4 flex items-center justify-between border-l-4 border-gray-400 shadow-md">
-                <div class="flex items-center gap-4">
-                  <button onclick="toggleDivContratos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center font-bold">
-                    <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                  </button>
-                  <div class="flex gap-6 text-xs text-gray-300">
-                    <p class="text-sm">
-                      <span class="text-gray-300">30089</span>
-                      <span class="font-bold ml-2">João Camargo Especialista</span>
-                    </p>
-                    <p class="text-xs text-gray-300">pessoa jurídica<br>14.548.648/0001-25</p>
-                  </div>
-                </div>
-              
-                <!-- Centro: Contratos / Recebimentos -->
-                <div class="flex gap-6 text-xs text-gray-300">
-                  <p><span class="text-white font-semibold">05</span> CONTRATOS</p>
-                  <p><span class="text-white font-semibold">25</span> RECEBIMENTOS</p>
-                </div>
-              
-                <!-- Direita: Data e Status -->
-                <div class="flex items-center gap-4">
-                  <div class="text-xs text-gray-300 text-right">
-                    <span>segunda</span><br>
-                    <span class="font-bold ml-2 text-white">21/04/2025 09:17</span><br>
-                  </div>
-                  <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
-                    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
-                    </svg>
-                    NÃO ANALISADO
-                  </button>
-                </div>
-              </div>
-              <div id="div-contratos" class="hidden pl-10 border-l-4 border-gray-400">
-                    <!-- Subcontratos -->
-                    <div class="text-sm text-gray-700">
-                        <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
-                            <div>Contrato</div>
-                            <div>Assinatura</div>
-                            <div>Vencimento</div>
-                            <div>Remuneração</div>
-                            <div>Arquivo</div>
-                            <div>Status</div>
-                        </div>
-
-                        <div class="bg-sky-100 py-4 pl-4 rounded-tl-lg rounded-bl-lg">
-                            <div id="div-contrato" class="flex justify-between items-center font-semibold text-gray-800 p-2 pr-4">
-                                <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-white pr-4">
-                                    <button onclick="toggleDivRecebimentos()" class="bg-white text-gray-800 rounded w-6 h-6 flex items-center justify-center">
-                                        <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <p class="text-sm">
-                                    <span class="text-gray-600">21589</span>
-                                    <span class="font-bold ml-2">Prestação de Serviço</span>
-                                    </p>
-                                </div>
-                                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
-                                    terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
-                                </div>
-                                <div class="text-xs text-right text-gray-600 border-r-2 border-white pr-4">
-                                    quinta<br><span class="text-gray-800 font-bold">17/06/2025</span>
-                                </div>
-                                <div class="text-gray-800 border-r-2 border-white pr-4">R$ 1.300,00</div>
-                                <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-white pr-4">
-                                    📄 <span>Contrato</span>
-                                </div>
-                                <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
-                                    <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
-                                    </svg>
-                                    NÃO ANALISADO
-                                </button>
-                            </div>
-                            <!-- Subrecebmentos -->
-                            <div id="div-recebimentos" class="hidden pl-10">
-                                <div class="flex justify-between font-semibold text-gray-500 mb-1 p-1 pr-6">
-                                    <div>Descrição</div>
-                                    <div>Recebimento</div>
-                                    <div>Cadastro</div>
-                                    <div>Valor</div>
-                                    <div>Arquivo </div>
-                                    <div>Status</div>
-                                </div>
-
-                                <div class="bg-white p-4 rounded-tl-lg rounded-bl-lg">
-                                    <div id="div-recebimento" class="flex justify-between items-center font-semibold text-gray-800">
-                                        <div class="flex gap-6 text-xs text-gray-900 border-r-2 border-gray-100 pr-4">
-                                            <p class="text-sm">
-                                            <span class="text-gray-600">121223</span>
-                                            <span class="font-bold ml-2">Descri Receb</span>
-                                            </p>
-                                        </div>
-                                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
-                                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
-                                        </div>
-                                        <div class="text-xs text-right text-gray-600 border-r-2 border-gray-100 pr-4">
-                                            terça<br><span class="text-gray-800 font-bold">17/05/2025</span>
-                                        </div>
-                                        <div class="text-gray-800 border-r-2 border-gray-100 pr-4">R$ 1.300,00</div>
-                                        <div class="flex items-center gap-1 text-gray-800 cursor-pointer border-r-2 border-gray-100 pr-4">
-                                            📄 <span>Arquivo</span>
-                                        </div>
-                                        <button class="bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded shadow flex items-center gap-1">
-                                            <svg class="w-3 h-3 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
-                                            </svg>
-                                            NÃO ANALISADO
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-              </div>
-            </div> 
-
-
-             
-            {% endcomment %}
-
-            
-            <!-- Tabela de Pontos de Contrato -->
-            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-                <button onclick="toggleTabelaContratos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Pontuação Clientes / Pontos:
-                        <span class="text-green-600">{{ pontos_aluno_semana.pontos_contrato|default:"0"|floatformat:0 }} Pts</span>
-                    </h2>
-                    <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-
-                <div id="tabela-contratos" class="hidden px-6 pb-6">
-                    <!-- Scroll Horizontal -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Pontuação de Contratos">
-                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Cliente</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Contrato</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Assinatura</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for pontos_contrato in pontos_contratos %}
-                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' pontos_contrato.cliente.id %}'">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.cliente.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.contrato.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ pontos_contrato.valor|default:"0,00"|floatformat:2 }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.contrato.data_contrato|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="px-4 py-4 text-center text-gray-400">Nenhum ponto de contrato encontrado.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
-
-            <!-- Recebimentos -->
-            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-                <button onclick="toggleTabelaRecebimentos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Pontuação Recebimentos / Pontos:
-                        <span class="text-green-600">{{ pontos_aluno_semana.pontos_recebimento|default:"0"|floatformat:0 }} Pts</span>
-                    </h2>
-                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-
-                <div id="tabela-recebimentos" class="hidden px-6 pb-6">
-                    <!-- Scroll Horizontal -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Recebimentos dos Alunos">
-                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos P.</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo de contrato</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Recebimento</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
-                                    
-                                    
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for envio in pontos_recebimentos %}
-                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center font-bold text-gray-600 whitespace-nowrap">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center font-bold {% if envio.status != 3 %} text-red-600 {% else %} text-green-600 {% endif %} whitespace-nowrap ">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.status == 3 %}
-                                            <span class="text-green-600 font-semibold">Validado</span>
-                                        {% elif envio.status == 2 %}
-                                            <span class="text-red-600 font-semibold">Invalidado</span>
-                                        {% elif envio.status == 1 %}
-                                            <span class="text-yellow-500 font-semibold">Pendente</span>
-                                        {% elif envio.status == 0 %}
-                                            <span class="text-gray-500 font-semibold">Não analisado</span>
-                                        {% else %}
-                                            <span class="text-gray-500 font-semibold">Sem status</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ envio.valor|default:"0.00" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.contrato.tipo_contrato == 1 %}
-                                            Valor Fixo Mensal
-                                        {% elif envio.contrato.tipo_contrato == 2 %}
-                                            Coprodução / Multisserviços
-                                        {% elif envio.contrato.tipo_contrato == 3 %}
-                                            Valor Variável
-                                        {% else %}
-                                            Outros
-                                        {% endif %}
-                                    </td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.titulo|default:"Sem Cliente" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.descricao|length > 50 %}
-                                            {{ envio.descricao|slice:":50" }}...
-                                        {% else %}
-                                            {{ envio.descricao|default:"Sem descrição" }}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="8" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Desafios -->
-            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-                <button onclick="toggleTabelaDesafios()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Pontuação Desafios / Pontos:
-                        <span class="text-green-600">{{ pontos_aluno_semana.pontos_desafio|default:"0"|floatformat:0 }} Pts</span>
-                    </h2>
-                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-            
-                <div id="tabela-desafios" class="hidden px-6 pb-6">
-                    <!-- Scroll Horizontal -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Desafios dos Alunos">
-                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for envio in pontos_desafio %}
-                                <tr class="hover:bg-gray-50 border-b">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.desafio.titulo|length > 80 %}
-                                            {{ envio.desafio.titulo|slice:":80" }}...
-                                        {% else %}
-                                            {{ envio.desafio.titulo|default:"Sem descrição" }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.status == 3 %}
-                                            <span class="text-green-600 font-semibold">Validado</span>
-                                        {% elif envio.status == 2 %}
-                                            <span class="text-red-600 font-semibold">Invalidado</span>
-                                        {% elif envio.status == 1 %}
-                                            <span class="text-yellow-500 font-semibold">Pendente</span>
-                                        {% elif envio.status == 0 %}
-                                            <span class="text-gray-500 font-semibold">Não analisado</span>
-                                        {% else %}
-                                            <span class="text-gray-500 font-semibold">Sem status</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-
-             <!-- Certificações -->
-            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-                <button onclick="toggleTabelaCertificacoes()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Pontuação Certificações / Pontos:
-                        <span class="text-green-600">{{ pontos_aluno_semana.pontos_certificacao|default:"0"|floatformat:0 }} Pts</span>
-                    </h2>
-                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-               
-                <div id="tabela-certificacoes" class="hidden px-6 pb-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Certificações dos Alunos">
-                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for envio in pontos_certificacao %}
-                                <tr class="hover:bg-gray-50 border-b">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.descricao|default:"Sem descrição" }}</td>
-                                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.status == 3 %}
-                                            <span class="text-green-600 font-semibold">Validado</span>
-                                        {% elif envio.status == 2 %}
-                                            <span class="text-red-600 font-semibold">Invalidado</span>
-                                        {% elif envio.status == 1 %}
-                                            <span class="text-yellow-500 font-semibold">Pendente</span>
-                                        {% elif envio.status == 0 %}
-                                            <span class="text-gray-500 font-semibold">Não analisado</span>
-                                        {% else %}
-                                            <span class="text-gray-500 font-semibold">Sem status</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Retenção -->
-            <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-                <button onclick="toggleTabelaRetencao()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Pontuação Retenção / Pontos:
-                        <span class="text-green-600">{{ pontos_aluno_semana.pontos_retencao|default:"0"|floatformat:0 }} Pts</span>
-                    </h2>
-                    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                
-                <div id="tabela-retencao" class="hidden px-6 pb-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Retenção dos Alunos">
-                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Recebimento Id</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Contrato ID</th>
-                                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo Contrato</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for envio in pontos_retencao %}
-                                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
-                                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.titulo|default:"Sem Titulo" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.contrato.id|default:"N/A" }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                                        {% if envio.contrato.tipo_contrato == 1 %}
-                                            Valor Fixo Mensal
-                                        {% elif envio.contrato.tipo_contrato == 2 %}
-                                            Coprodução / Multisserviços
-                                        {% elif envio.contrato.tipo_contrato == 3 %}
-                                            Valor Variável
-                                        {% else %}
-                                            Outros
-                                        {% endif %}
-                                    </td>
-                                    
-
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhuma retenção encontrada.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            
 
         </div>
     </div>
+
+    <script>
+        document.body.addEventListener("htmx:beforeRequest", function() {
+          document.getElementById("loader-container").classList.remove("hidden");
+        });
+      
+        document.body.addEventListener("htmx:afterSwap", function() {
+          document.getElementById("loader-container").classList.add("hidden");
+        });
+      
+        // Opcional: em caso de erro
+        document.body.addEventListener("htmx:responseError", function() {
+          document.getElementById("loader-container").classList.add("hidden");
+        });
+    </script>
+      
+
 </div>
 
-<script>
-    function toggleDivContratos() {
-        const content = document.getElementById("div-contratos");
-        const icon = document.getElementById("icon-contratos");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
 
-    function toggleDivRecebimentos() {
-        const content = document.getElementById("div-recebimentos");
-        const icon = document.getElementById("icon-recebimentos");
-        const contentContrato = document.getElementById("div-contrato");
-        contentContrato.classList.toggle("border-b-2");
-        contentContrato.classList.toggle("border-white");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleTabelaContratos() {
-        const content = document.getElementById("tabela-contratos");
-        const icon = document.getElementById("icon-contratos");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleTabelaRecebimentos() {
-        const content = document.getElementById("tabela-recebimentos");
-        const icon = document.getElementById("icon-recebimentos");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleTabelaDesafios() {
-        const content = document.getElementById("tabela-desafios");
-        const icon = document.getElementById("icon-desafios");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleTabelaCertificacoes() {
-        const content = document.getElementById("tabela-certificacoes");
-        const icon = document.getElementById("icon-certificacoes");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleTabelaRetencao() {
-        const content = document.getElementById("tabela-retencao");
-        const icon = document.getElementById("icon-retencao");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-</script>
 
 
 {% endblock %}
