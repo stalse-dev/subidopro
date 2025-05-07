@@ -13,23 +13,6 @@
 
             <!-- Perfil do Aluno Gamificado -->
             <div class="flex flex-col md:flex-row items-center gap-8 mb-10">
-                <!-- Avatar e Nível -->
-                <div class="flex flex-col items-center bg-gradient-to-br from-[#1C46A0] via-blue-900 to-gray-900 rounded-2xl p-6 shadow-lg">
-                <div class="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center shadow-inner border-4 border-white mb-3">
-                    <span class="material-symbols-outlined text-6xl text-gray-400">person</span>
-                </div>
-                <div class="flex items-center gap-2 mt-2">
-                    <span class="text-white font-bold text-lg">Nível {{ aluno.nivel }}</span>
-                    <span class="text-yellow-400 text-xl">⭐</span>
-                </div>
-                <div class="w-full mt-3">
-                    <!-- Barra de progresso fictícia, troque por dados reais se tiver -->
-                    <div class="w-full bg-gray-700 rounded-full h-3">
-                    <div class="bg-gradient-to-r from-blue-400 to-[#1C46A0] h-3 rounded-full transition-all" style="width: 70%"></div>
-                    </div>
-                    <div class="text-xs text-gray-200 mt-1 text-center">XP: 700/1000</div>
-                </div>
-                </div>
                 <!-- Dados do Aluno -->
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 text-base">
                 <!-- Coluna 1 -->
@@ -66,32 +49,46 @@
                 </div>
                 <!-- Coluna 2 -->
                 <div class="space-y-4">
-                    <p>
-                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">rewarded_ads</span>
-                    <strong class="text-gray-800">Pontuação Total:</strong>
-                    <span class="text-emerald-600 font-bold">
-                        {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
-                    </span>
+                    <p class="flex items-center gap-2">
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">military_tech</span>
+                        <strong class="text-gray-800">Nivel:</strong>
+                        <span class="text-lg font-bold" style="color: {{ nivel_aluno.cor }};">{{ nivel_aluno.titulo }}
+                            {% if nivel_aluno.estrela == 1 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% elif nivel_aluno.estrela == 2 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% elif nivel_aluno.estrela == 3 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% else %}
+                            <span class="text-sm text-gray-400">-</span>
+                            {% endif %}
+                        </span>
                     </p>
+
                     <p>
-                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">leaderboard</span>
-                    <strong class="text-gray-800">Ranking:</strong>
-                    <span class="text-blue-700 font-bold">{{ pontos_aluno_semana.posicao|default:"0" }}°</span>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">rewarded_ads</span>
+                        <strong class="text-gray-800">Pontuação Total:</strong>
+                        <span class="text-emerald-600 font-bold">
+                            {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
+                        </span>
                     </p>
+
                     <p>
-                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">shield</span>
-                    <strong class="text-gray-800">Clã:</strong>
-                    <span class="text-gray-700">{{ aluno.cla.sigla }}</span>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">leaderboard</span>
+                        <strong class="text-gray-800">Ranking:</strong>
+                        <span class="text-blue-700 font-bold">{{ pontos_aluno_semana.posicao|default:"0" }}°</span>
                     </p>
+
                     <p>
-                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">military_tech</span>
-                    <strong class="text-gray-800">Conquistas:</strong>
-                    <span class="inline-flex gap-1">
-                        <span class="material-symbols-outlined text-yellow-400">star</span>
-                        <span class="material-symbols-outlined text-blue-400">workspace_premium</span>
-                    </span>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">shield</span>
+                        <strong class="text-gray-800">Clã:</strong>
+                        <span class="text-gray-700">{{ aluno.cla.sigla }}</span>
                     </p>
                 </div>
+
                 </div>
             </div>
             
@@ -112,13 +109,13 @@
                         class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
                         Clientes
                     </button>
-                    <button 
+                    {% comment %} <button 
                         hx-get="{% url 'aluno-faturamento' aluno.id %}" 
                         hx-target="#conteudo-abas" 
                         hx-swap="innerHTML" 
                         class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
                         Faturamento
-                    </button>
+                    </button> {% endcomment %}
                 </div>
 
                 <!-- Conteúdo das Abas -->

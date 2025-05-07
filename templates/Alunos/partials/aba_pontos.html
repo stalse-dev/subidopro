@@ -1,16 +1,65 @@
 
 <!-- Botão de Download Excel alinhado à direita -->
-<div class="flex justify-end mb-6">
-    <a href="{% url 'extrato' aluno.id %}"
-        class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        Baixar Excel
-    </a>
+<!-- Selecionador de Campeonatos e Botão alinhados -->
+<div class="flex justify-between items-center mb-6">
+    
+<!-- Selects com HTMX -->
+<div class="flex items-center gap-4">
+
+    <!-- Campeonato -->
+    <div class="flex items-center gap-2">
+        <label for="campeonato" class="text-sm font-medium text-gray-700">Campeonato:</label>
+        <select 
+            name="campeonato_id" 
+            id="campeonato"
+            class="border rounded px-3 py-1 text-sm text-gray-800"
+            hx-get="{% url 'aluno-pontos' aluno.id %}"
+            hx-target="#conteudo-abas"
+            hx-include="[name='campeonato_id'], [name='semana']"
+            hx-push-url="true"
+            hx-swap="innerHTML">
+            {% for camp in campeonatos %}
+                <option value="{{ camp.id }}" {% if camp.id == campeonato.id %}selected{% endif %}>
+                    {{ camp.identificacao }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Semana -->
+    <div class="flex items-center gap-2">
+        <label for="semana" class="text-sm font-medium text-gray-700">Semana:</label>
+        <select 
+            name="semana"
+            id="semana"
+            class="border rounded px-3 py-1 text-sm text-gray-800"
+            hx-get="{% url 'aluno-pontos' aluno.id %}"
+            hx-target="#conteudo-abas"
+            hx-include="[name='campeonato_id'], [name='semana']"
+            hx-push-url="true"
+            hx-swap="innerHTML">
+            <option value="">Todas Semanas</option>
+            {% for s in semanas_disponiveis %}
+                <option value="{{ s }}" {% if s == semana %}selected{% endif %}>
+                    Semana {{ s }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+</div>
+
+<!-- Botão de Download Excel -->
+<a href="{% url 'extrato' aluno.id %}"
+    class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Baixar Excel
+</a>
 </div>
 
 
@@ -38,6 +87,8 @@
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Assinatura</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,6 +100,8 @@
                     <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ pontos_contrato.valor|default:"0,00"|floatformat:2 }}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.contrato.data_contrato|date:"d/m/Y"|default:"N/A" }}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.envio.semana|default:"N/A" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -87,6 +140,8 @@
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo de contrato</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Recebimento</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
                     
@@ -126,7 +181,15 @@
                     </td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.titulo|default:"Sem Cliente" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.cliente.titulo|length > 50 %}
+                            {{ envio.cliente.titulo|slice:":50" }}...
+                        {% else %}
+                            {{ envio.cliente.titulo|default:"Sem Cliente" }}
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">
                         {% if envio.descricao|length > 50 %}
                             {{ envio.descricao|slice:":50" }}...
@@ -169,6 +232,8 @@
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
                 </tr>
             </thead>
             <tbody>
@@ -197,6 +262,8 @@
                             <span class="text-gray-500 font-semibold">Sem status</span>
                         {% endif %}
                     </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -232,6 +299,8 @@
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
                 </tr>
             </thead>
             <tbody>
@@ -254,6 +323,8 @@
                             <span class="text-gray-500 font-semibold">Sem status</span>
                         {% endif %}
                     </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -291,6 +362,8 @@
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Contrato ID</th>
                     <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo Contrato</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
                 </tr>
             </thead>
             <tbody>
@@ -314,8 +387,8 @@
                             Outros
                         {% endif %}
                     </td>
-                    
-
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -329,24 +402,8 @@
 </div>
 
 
+
 <script>
-    function toggleDivContratos() {
-        const content = document.getElementById("div-contratos");
-        const icon = document.getElementById("icon-contratos");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
-    function toggleDivRecebimentos() {
-        const content = document.getElementById("div-recebimentos");
-        const icon = document.getElementById("icon-recebimentos");
-        const contentContrato = document.getElementById("div-contrato");
-        contentContrato.classList.toggle("border-b-2");
-        contentContrato.classList.toggle("border-white");
-        content.classList.toggle("hidden");
-        icon.classList.toggle("rotate-180");
-    }
-
     function toggleTabelaContratos() {
         const content = document.getElementById("tabela-contratos");
         const icon = document.getElementById("icon-contratos");

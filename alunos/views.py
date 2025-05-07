@@ -154,12 +154,12 @@ def exportar_excel_aluno(request, aluno_id):
 def aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
-
     nivel_aluno = Mentoria_lista_niveis.objects.filter(id=aluno.nivel).first()
-
+    pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
     context = {
         'aluno': aluno,
         'nivel_aluno': nivel_aluno,
+        'pontos_aluno_semana': pontos_aluno_semana,
     }
     return render(request, 'Alunos/aluno.html', context) 
 
@@ -167,6 +167,24 @@ def aluno(request, aluno_id):
 def aluno_pontos(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
+
+    campeonatos = Campeonato.objects.order_by('-identificacao')
+    
+    campeonato_id = request.GET.get('campeonato_id')
+    semana_param = request.GET.get('semana')
+    semana_filtro = None
+
+    # Atualiza campeonato se vier via GET
+    if campeonato_id:
+        try:
+            campeonato = Campeonato.objects.get(id=campeonato_id)
+        except Campeonato.DoesNotExist:
+            pass
+
+
+    semanas_disponiveis = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato
+    ).values_list('semana', flat=True).distinct().order_by('-semana')
  
     pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
     pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
@@ -174,16 +192,41 @@ def aluno_pontos(request, aluno_id):
     
     pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
     pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
-
     pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana, campeonato=campeonato).first()
+    
+
+        
+    if semana_param:
+        try:
+            semana_filtro = int(semana_param)
+            pontos_recebimentos = pontos_recebimentos.filter(semana=semana_filtro)
+
+            pontos_desafio = pontos_desafio.filter(semana=semana_filtro)
+
+            pontos_certificacao = pontos_certificacao.filter(semana=semana_filtro)
+
+            pontos_contratos = pontos_contratos.filter(envio__semana=semana_filtro)
+
+            pontos_retencao = pontos_retencao.filter(semana=semana_filtro)
+
+            pontos_aluno_semana = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana_filtro, campeonato=campeonato).first()
+        except ValueError:
+            pass
+
+    
+
     context = {
         'aluno': aluno,
+        'campeonatos': campeonatos,
+        'semanas_disponiveis': semanas_disponiveis,
+        'campeonato': campeonato,
         'pontos_recebimentos': pontos_recebimentos,
         'pontos_desafio': pontos_desafio,
         'pontos_certificacao': pontos_certificacao,
         'pontos_contratos': pontos_contratos,
         'pontos_retencao': pontos_retencao,
         'pontos_aluno_semana': pontos_aluno_semana,
+        'semana': semana_filtro,
     }
     return render(request, 'Alunos/partials/aba_pontos.html', context)
 
@@ -192,7 +235,18 @@ def aluno_clientes(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     campeonato, semana = calcular_semana_vigente()
 
-    clientes = Aluno_clientes.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_criacao')
+    clientes = (
+        Aluno_clientes.objects
+        .filter(aluno=aluno)
+        .annotate(
+            qtd_contratos=Count('contratos', distinct=True),
+            qtd_envios=Count('envios_cliente_cl', distinct=True)
+        )
+        .order_by('-data_criacao')
+        .prefetch_related('contratos')
+    )
+
+
     context = {
         'aluno': aluno,
         'clientes': clientes,
@@ -202,12 +256,6 @@ def aluno_clientes(request, aluno_id):
 @login_required
 def aluno_faturamento(request, aluno_id):
     return render(request, 'Alunos/partials/aba_faturamento.html')
-
-
-
-
-
-
 
 @login_required
 def clas(request):
