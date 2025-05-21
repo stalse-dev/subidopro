@@ -658,8 +658,9 @@ def alterar_envio(envio_data):
         if int(envio_data.get("status")) == 3:
             aluno_contrato = Aluno_contrato.objects.filter(cliente=cliente).first()
             if aluno_contrato:
-                aluno_contrato.status = 3
-                aluno_contrato.save()
+                if cliente.data_criacao > make_aware(datetime(2025, 3, 1)):
+                    aluno_contrato.status = 3
+                    aluno_contrato.save()
         
         if int(envio_data.get("status")) == 2:
             pontos = 0
@@ -805,37 +806,37 @@ def receber_dados(request):
 
     for tabela in lista_tabelas:
         if tabela in registro_atual:
-            try:
-                if acao == 'add':
-                    if tabela == 'alunosClientes':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_aluno_cliente(registro_atual['alunosClientes'])
-                    elif tabela == 'alunosClientesContratos':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_contrato(registro_atual['alunosClientesContratos'])
-                    elif tabela == 'alunosEnvios':
-                        registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
-                        criar_envio(registro_atual['alunosEnvios'])
-                    else:
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
-                        print("Tabela não encontrada!")
-                    
 
-                elif acao == 'alt':
-                    if tabela == 'alunosClientes':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_aluno_cliente(registro_atual['alunosClientes'])
-                    elif tabela == 'alunosClientesContratos':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_contrato(registro_atual['alunosClientesContratos'])
-                    elif tabela == 'alunosEnvios':
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
-                        alterar_envio(registro_atual['alunosEnvios'])
-                    else:
-                        registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
-                        print("Tabela não encontrada!")
+            if acao == 'add':
+                if tabela == 'alunosClientes':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_aluno_cliente(registro_atual['alunosClientes'])
+                elif tabela == 'alunosClientesContratos':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_contrato(registro_atual['alunosClientesContratos'])
+                elif tabela == 'alunosEnvios':
+                    registrar_log(acao, tabela, dados_novos=registro_atual[tabela], dados_geral=data)  # Log antes da operação
+                    criar_envio(registro_atual['alunosEnvios'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
+                
 
-                elif acao == 'del':
+            elif acao == 'alt':
+                if tabela == 'alunosClientes':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_aluno_cliente(registro_atual['alunosClientes'])
+                elif tabela == 'alunosClientesContratos':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_contrato(registro_atual['alunosClientesContratos'])
+                elif tabela == 'alunosEnvios':
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_novos=registro_atual[tabela], dados_geral=data)
+                    alterar_envio(registro_atual['alunosEnvios'])
+                else:
+                    registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
+                    print("Tabela não encontrada!")
+
+            elif acao == 'del':
                     
                     if tabela == 'alunosClientes':
                         registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
@@ -850,10 +851,10 @@ def receber_dados(request):
                         registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=f"Tabela {tabela} não encontrada!", dados_geral=data)
                         print("Tabela não encontrada!")
 
-            except Exception as e:
-                registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
-                print(f"Erro ao processar {tabela}: {str(e)}")
-                return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # except Exception as e:
+            #     registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], status='erro', erro=str(e), dados_geral=data)
+            #     print(f"Erro ao processar {tabela}: {str(e)}")
+            #     return Response({"message": f"Erro ao processar {tabela}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({"message": "Operação concluída!"}, status=status.HTTP_200_OK)
 
@@ -1545,16 +1546,104 @@ def meu_cla(request, aluno_id):
     })
 
 @api_view(['GET'])
-def ranking_semanalAPI_test(request):
-    #campeonato, semana = calcular_semana_vigente()
-    campeonato = Campeonato.objects.get(id=5)
+def cartilha_aluno(request, aluno_id):
+    campeonato, semana = calcular_semana_vigente()
+
+    data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+
+    aluno = get_object_or_404(Alunos, id=int(aluno_id))
+
+    # Clientes adiquiridos
+
+    clientes_adquiridos = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
+
+    # Agrupar por mês e calcular a soma
+
+    mes_mais_ganhou = (
+        Aluno_envios.objects
+        .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
+        .annotate(mes=TruncMonth('data'))  # Agrupa por mês
+        .values('mes')  # Seleciona apenas o mês
+        .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
+        .order_by('-total_mes')  # Ordena do maior para o menor
+        .first()  # Pega o primeiro, que é o maior
+    )
+
+    mes_mais_ganhou_valor = mes_mais_ganhou['total_mes'] if mes_mais_ganhou else 0
+
+    # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    total_valores_recebimento = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
+
+    #Buscar faturamento dos campeonatos antigos
+    total_valor_camp_anterior = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+
+
+    total_somado = float(total_valores_recebimento) + float(total_valor_camp_anterior)
+
+    # Evolução do aluno
+
+    # Buscar os envios do aluno com status=3 e data válida
+    todos_ganhos = Aluno_envios.objects.filter(
+        aluno=aluno, 
+        status=3, 
+        semana__gt=0, 
+        data__gte=data_int
+    ).order_by('-data')
+
+    # Dicionário para armazenar os valores por mês
+    dados_por_mes = defaultdict(lambda: {"data": "", "valorAcumulado": 0})
+
+    # Iterar sobre os ganhos e preencher os dados por mês
+    for envio in todos_ganhos:
+        if isinstance(envio.data, datetime):
+            data_local = envio.data
+        else:
+            data_local = datetime.combine(envio.data, datetime.min.time())
+
+        if is_naive(data_local):
+            data_local = make_aware(data_local)
+
+        # Obter o identificador do mês (YYYY-MM)
+        mes_key = data_local.strftime("%Y-%m")
+
+        # Atualizar os valores do mês corretamente somando os envios do mesmo mês
+        dados_por_mes[mes_key]["data"] = mes_key
+        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor_calculado or 0, 2)  # Evita erro se `valor` for None
+
+    # Ordenar os meses em ordem crescente
+    meses_ordenados = sorted(dados_por_mes.keys())
+
+    subdometro = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=campeonato)
+
+    semanas_campeonato = []
+
+    # Criar a lista final ordenada com os valores individuais de cada mês
+    resultado_final = [dados_por_mes[mes] for mes in meses_ordenados]
+
+    for entry in subdometro:
+        if entry.semana == semana + 1:
+            continue  # pula a semana vigente
+        semanas_campeonato.append({
+            "semana": entry.semana,
+            "pontos": int(entry.pontos) if entry.pontos else "0",
+            "nivelAluno": str(entry.nivel) if entry.nivel else "0"
+        })
+
+    response_data = {
+        "evolucao": {
+            "clientes": f"{clientes_adquiridos}",
+            "acumulou": f"R$ {total_somado:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+        },
+        "evolucaoGanhos": resultado_final,
+        "semanasCampeonato": {
+            "alunos": semanas_campeonato
+        }
+    }
+
+    return Response(response_data)
+
+
+
+
     
-    # Usando select_related para otimizar queries relacionadas
-    alunos_rank_semanal = Alunos_posicoes_semana.objects.filter(
-        campeonato=campeonato, semana=26
-    ).select_related("aluno", "cla").order_by("posicao")
-
-    serializer = RankingSemanalSerializer(alunos_rank_semanal, many=True)
-    return Response(serializer.data)
-
-

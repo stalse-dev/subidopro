@@ -76,7 +76,8 @@ def exportar_alunos(request):
 
     # Fechar o workbook e retornar a resposta
     workbook.close()
-    return response
+    return HttpResponse("Erro ao exportar excel do alunos")
+    #return response
 
 @login_required
 def alunos(request):
@@ -148,7 +149,8 @@ def exportar_excel_aluno(request, aluno_id):
                   ['id', 'cliente', 'contrato', 'envio', 'data', 'pontos', 'semana'])
 
     workbook.close()
-    return response
+    return HttpResponse("Erro ao exportar excel do alunos")
+    #return response
 
 @login_required
 def aluno(request, aluno_id):
@@ -349,6 +351,9 @@ def exportar_clientes(request):
 
     # Fechar o workbook e retornar a resposta
     workbook.close()
+
+    return HttpResponse("Erro ao exportar excel do alunos")
+    #return response
 
 @login_required
 def clientes(request):
@@ -681,6 +686,8 @@ def exportar_ranking(request):
         row += 1
 
     workbook.close()
+
+    #return HttpResponse("Erro ao exportar excel")
     return response
     
 @login_required
@@ -773,8 +780,9 @@ def exportar_ranking_semana(request, semana):
         
         row += 1
 
-    # Fechar o workbook e retornar a resposta
     workbook.close()
+    # Fechar o workbook e retornar a resposta
+    #return HttpResponse("Erro ao exportar excel")
     return response
 
 @login_required
@@ -898,7 +906,8 @@ def exportar_ranking_semana_cla(request, semana):
 
     # Fechar o workbook e retornar a resposta
     workbook.close()
-    return response
+    return HttpResponse("Erro ao exportar excel")
+    #return response
 
 @login_required
 def ranking_cla(request):

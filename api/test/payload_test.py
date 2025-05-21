@@ -220,5 +220,161 @@ payload_recebimento_padrao = {
         }
     },
     "registroAnterior": False
-}
+    }
 
+payload_desafio_padrao = {
+    "acao": "add",
+    "codigo": "5X84EVCYH",
+    "tabela": "alunosEnvios",
+    "dataHora": "2025-05-06 20:14:52",
+    "descricao": "Adicionou envio de desafio",
+    "registroAtual": {
+    "alunosEnvios": {
+        "id": "433477",
+        "data": None,
+        "tipo": "4",
+        "texto": "https://1drv.ms/f/c/6e854a405aa58248/Esu1q0nae7FDpZO3b8UCR2oBOKxKywrEiUy13nxFquUVfw?e=uY23Sg",
+        "valor": None,
+        "pontos": "300",
+        "semana": "9",
+        "status": "0",
+        "desafio": "163",
+        "arquivo1": None,
+        "arquivo2": None,
+        "descricao": None,
+        "campeonato": "6",
+        "numeroNota": None,
+        "tagExcecao": None,
+        "tipoManual": None,
+        "dataAnalise": None,
+        "pontosReais": "0",
+        "textoMotivo": None,
+        "textoStatus": None,
+        "dataCadastro": "2025-05-06 20:14:52",
+        "statusMotivo": None,
+        "vinculoAluno": "6109",
+        "arquivo1Motivo": None,
+        "arquivo1Status": "0",
+        "arquivo2Motivo": None,
+        "arquivo2Status": "0",
+        "envioSociedade": "0",
+        "pontoCreditado": "0",
+        "vinculoCliente": None,
+        "statusAuditoria": "0",
+        "valorPreenchido": None,
+        "vinculoContrato": "0",
+        "nivelAtualSemana": "12",
+        "statusComentario": None,
+        "comentarioArquivo": None,
+        "envioNivelInicial": "0",
+        "pontosPreenchidos": "0",
+        "rastreadorAnalise": None,
+        "vinculoCertificacao": None,
+        "comentarioObservacoes": None,
+        "statusAlteradoForcado": "0",
+        "vinculoCertificacaoProva": None
+    }
+    },
+    "registroAnterior": False
+    }
+
+payload_certificacao_padrao = {
+    "sql": False,
+    "acao": "add",
+    "tabela": "alunosEnvios",
+    "dataHora": "2025-02-28 18:03:41",
+    "registroAtual": {
+    "alunosEnvios": {
+        "id": "421709",
+        "data": "2025-02-28",
+        "tipo": "3",
+        "texto": None,
+        "valor": "0.00",
+        "pontos": "777",
+        "semana": "1",
+        "status": "3",
+        "desafio": "0",
+        "arquivo1": None,
+        "arquivo2": None,
+        "descricao": "Certificação Subido de Tráfego - Google Ads | OW8HYF",
+        "campeonato": "6",
+        "numeroNota": None,
+        "tagExcecao": None,
+        "tipoManual": None,
+        "dataAnalise": None,
+        "pontosReais": "0",
+        "textoMotivo": None,
+        "textoStatus": None,
+        "dataCadastro": "2025-02-28 18:03:41",
+        "statusMotivo": None,
+        "vinculoAluno": "6109",
+        "arquivo1Motivo": None,
+        "arquivo1Status": "0",
+        "arquivo2Motivo": None,
+        "arquivo2Status": "0",
+        "envioSociedade": "0",
+        "pontoCreditado": "0",
+        "vinculoCliente": None,
+        "statusAuditoria": "0",
+        "valorPreenchido": None,
+        "vinculoContrato": "0",
+        "nivelAtualSemana": None,
+        "statusComentario": None,
+        "comentarioArquivo": None,
+        "envioNivelInicial": "0",
+        "pontosPreenchidos": "0",
+        "rastreadorAnalise": None,
+        "vinculoCertificacao": "41383",
+        "comentarioObservacoes": None,
+        "statusAlteradoForcado": "0",
+        "vinculoCertificacaoProva": "2"
+    }
+    },
+    "registroAnterior": False
+    }
+
+payload_campeonato_padrao = [
+    {
+        'id': 5,
+        'identificacao': '5º Campeonato Subido PRO',
+        'descricao': '',
+        'data_inicio': '2024-09-01T00:00:00Z',
+        'data_fim': '2025-03-03T00:00:00Z',
+        'imagem': 'primeiroCampeonatoSubido.png',
+        'regra_pdf': 'mentorados-regras-5-campeonato.pdf',
+        'turma': 5,
+        'ativo': False
+    },
+    {
+        'id': 6,
+        'identificacao': '6º Campeonato Subido PRO',
+        'descricao': '',
+        'data_inicio': '2024-03-11T00:00:00Z',
+        'data_fim': '2025-09-07T00:00:00Z',
+        'imagem': 'primeiroCampeonatoSubido.png',
+        'regra_pdf': 'mentorados-regras-5-campeonato.pdf',
+        'turma': 5,
+        'ativo': True
+    }
+]
+
+payload_desafios_padrao = [
+    {
+        "id": 163,
+        "titulo": "Teste de Desafio fake 1",
+        "descricao": "Desafio 1",
+        "regras": "Regra ...",
+        "data_inicio": "2025-04-14T00:00:00Z",
+        "data_fim": "2025-05-14T00:00:00Z",
+        "status": 0,
+    },
+    {
+        "id": 164,
+        "titulo": "Teste de Desafio fake 2",
+        "descricao": "Desafio 2",
+        "regras": "Regra ...",
+        "data_inicio": "2025-04-14T00:00:00Z",
+        "data_fim": "2025-05-14T00:00:00Z",
+        "status": 0,
+    }
+]

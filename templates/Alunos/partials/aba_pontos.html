@@ -98,7 +98,7 @@
                     <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.contrato.id|default:"N/A" }}</td>
                     <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ pontos_contrato.valor|default:"0,00"|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.contrato.data_contrato|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.data_criacao|date:"d/m/Y"|default:"N/A" }}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.campeonato_id }}°</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.envio.semana|default:"N/A" }}</td>

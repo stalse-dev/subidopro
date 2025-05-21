@@ -72,7 +72,6 @@ def calcula_balanceamento_func(request):
                     "de": item.pontos,
                     "para": item.pontos,
                 })
-                    
     return render(request, 'Balanceamento/balanceamento.html', {
         'pontuacoes': pontuacoes,
         'pontos_modificados': pontos_modificados,

@@ -61,7 +61,11 @@
                                 <td class="px-4 py-3">{{ aluno.nome_completo }}</td>
                                 <td class="px-4 py-3 text-center">{{ aluno.id }}</td>
                                 <td class="px-4 py-3">{{ aluno.cla }}</td>
-                                <td class="px-4 py-3 text-center">{{ aluno.total_pontos_final|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">
+
+                                        {{ aluno.total_pontos_final|floatformat:0 }}
+
+                                </td>
                                 <td class="px-4 py-3 text-center">{{ aluno.pontos_recebimento|floatformat:0}}</td>
                                 <td class="px-4 py-3 text-center">{{ aluno.pontos_contrato|floatformat:0 }}</td>
                                 <td class="px-4 py-3 text-center">{{ aluno.pontos_retencao|floatformat:0 }}</td>
