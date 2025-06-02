@@ -84,7 +84,7 @@ def alunos(request):
     query = request.GET.get('q', '')
 
     alunos_list = Alunos.objects.all().order_by('id')
-    
+
     if query:
         alunos_list = alunos_list.filter(
             Q(nome_completo__icontains=query) | 
@@ -94,13 +94,23 @@ def alunos(request):
 
     paginator = Paginator(alunos_list, 20)
     page_number = request.GET.get('page')
-    alunos = paginator.get_page(page_number)
+    alunos_page = paginator.get_page(page_number)
+
+    # Associa os níveis aos alunos
+    niveis_dict = {
+        nivel.id: nivel for nivel in Mentoria_lista_niveis.objects.all()
+    }
+
+    for aluno in alunos_page:
+        aluno.nivel_obj = niveis_dict.get(aluno.nivel)
 
     context = {
-        'alunos': alunos,
-        'query': query
+        'alunos': alunos_page,
+        'q': query,
+        'cont_alunos': alunos_list.count()
     }
     return render(request, 'Alunos/alunos.html', context)
+
 
 @login_required
 def exportar_excel_aluno(request, aluno_id):
@@ -371,9 +381,12 @@ def clientes(request):
     page_number = request.GET.get('page')
     clientes = paginator.get_page(page_number)
 
+    cont_clientes = clientes_list.count()
+
     context = {
         'clientes': clientes,
-        'query': query
+        'q': query,
+        'cont_clientes': cont_clientes
     }
     return render(request, 'Clientes/clientes.html', context)
 

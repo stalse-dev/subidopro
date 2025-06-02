@@ -784,7 +784,9 @@ def listar_logs(request):
     page_number = request.GET.get('page')
     logs = paginator.get_page(page_number)
 
-    return render(request, 'logs/logs.html', {'logs': logs, 'query': query, 'status_filter': status_filter})
+    cont_logs_hoje = logs_list.filter(criado_em__date=datetime.now().date()).count()
+
+    return render(request, 'logs/logs.html', {'logs': logs, 'q': query, 'status_filter': status_filter, 'cont_logs_hoje': cont_logs_hoje})
 
 @login_required
 def detalhes_log(request, log_id):
