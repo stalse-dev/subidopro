@@ -1549,54 +1549,58 @@ def meu_cla(request, aluno_id):
 
 @api_view(['GET'])
 def cartilha_aluno(request, aluno_id):
+    # Calcula o campeonato e a semana vigentes
     campeonato, semana = calcular_semana_vigente()
 
+    # Define a data inicial para a filtragem dos dados
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
+    # Busca os dados do aluno ou retorna erro 404 se não encontrado
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
 
-    # Clientes adiquiridos
-
+    # Clientes adquiridos: Contagem de clientes com status 1 associados ao aluno
     clientes_adquiridos = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
 
-    # Agrupar por mês e calcular a soma
-
+    # Mês com o maior ganho: Agrupa os envios por mês e soma os valores calculados
+    # Filtra por aluno, status 3 (concluído), semana maior que 0 e data a partir de data_int
     mes_mais_ganhou = (
         Aluno_envios.objects
         .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
         .annotate(mes=TruncMonth('data'))  # Agrupa por mês
-        .values('mes')  # Seleciona apenas o mês
+        .values('mes')  # Seleciona apenas o campo do mês
         .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
         .order_by('-total_mes')  # Ordena do maior para o menor
-        .first()  # Pega o primeiro, que é o maior
+        .first()  # Pega o primeiro, que é o mês com o maior ganho
     )
 
+    # Extrai o valor do mês com o maior ganho, ou 0 se não houver
     mes_mais_ganhou_valor = mes_mais_ganhou['total_mes'] if mes_mais_ganhou else 0
 
-    # Somar Valores de todos os envios que o tipo de contrato seja = 2
+    # Total de valores de todos os envios concluídos (status=3) com data válida
     total_valores_recebimento = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
 
-    #Buscar faturamento dos campeonatos antigos
+    # Busca o faturamento de campeonatos anteriores
     total_valor_camp_anterior = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
 
-
+    # Soma o total de recebimentos e o faturamento de campeonatos anteriores
     total_somado = float(total_valores_recebimento) + float(total_valor_camp_anterior)
 
-    # Evolução do aluno
+    # --- Início da lógica para 'Evolução dos Ganhos' (Gráfico de Linhas Cumulativo) ---
 
-    # Buscar os envios do aluno com status=3 e data válida
+    # Buscar os envios do aluno com status=3 e data válida para calcular a evolução
     todos_ganhos = Aluno_envios.objects.filter(
         aluno=aluno, 
         status=3, 
         semana__gt=0, 
         data__gte=data_int
-    ).order_by('-data')
+    ).order_by('data') # Ordena por data ascendente para a soma cumulativa
 
-    # Dicionário para armazenar os valores por mês
-    dados_por_mes = defaultdict(lambda: {"data": "", "valorAcumulado": 0})
+    # Dicionário para armazenar os valores mensais brutos (não acumulados inicialmente)
+    dados_por_mes_bruto = defaultdict(lambda: {"data": "", "valorMensal": 0})
 
-    # Iterar sobre os ganhos e preencher os dados por mês
+    # Iterar sobre os ganhos e preencher os dados mensais brutos
     for envio in todos_ganhos:
+        # Garante que a data é um objeto datetime aware
         if isinstance(envio.data, datetime):
             data_local = envio.data
         else:
@@ -1608,43 +1612,57 @@ def cartilha_aluno(request, aluno_id):
         # Obter o identificador do mês (YYYY-MM)
         mes_key = data_local.strftime("%Y-%m")
 
-        # Atualizar os valores do mês corretamente somando os envios do mesmo mês
-        dados_por_mes[mes_key]["data"] = mes_key
-        dados_por_mes[mes_key]["valorAcumulado"] += round(envio.valor_calculado or 0, 2)  # Evita erro se `valor` for None
+        # Soma os valores dos envios para o mesmo mês
+        dados_por_mes_bruto[mes_key]["data"] = mes_key
+        dados_por_mes_bruto[mes_key]["valorMensal"] += round(envio.valor_calculado or 0, 2)
 
-    # Ordenar os meses em ordem crescente
-    meses_ordenados = sorted(dados_por_mes.keys())
+    # Ordenar os meses em ordem crescente para garantir a acumulação correta
+    meses_ordenados = sorted(dados_por_mes_bruto.keys())
 
-    subdometro = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=campeonato)
+    # Calcular a soma cumulativa
+    running_total = 0
+    resultado_evolucao_ganhos_cumulativo = []
+
+    for mes_key in meses_ordenados:
+        monthly_value = dados_por_mes_bruto[mes_key]["valorMensal"]
+        running_total += monthly_value
+        resultado_evolucao_ganhos_cumulativo.append({
+            "data": mes_key,
+            "valorAcumulado": round(running_total, 2)
+        })
+
+    # --- Fim da lógica para 'Evolução dos Ganhos' ---
+
+    # Busca os dados do "subidômetro" para o aluno e campeonato atual
+    subdometro = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=campeonato).order_by('semana')
 
     semanas_campeonato = []
 
-    # Criar a lista final ordenada com os valores individuais de cada mês
-    resultado_final = [dados_por_mes[mes] for mes in meses_ordenados]
-
+    # Preenche a lista de semanas do campeonato, excluindo a semana vigente + 1
     for entry in subdometro:
         if entry.semana == semana + 1:
-            continue  # pula a semana vigente
+            continue  # Pula a semana imediatamente seguinte à vigente
         semanas_campeonato.append({
             "semana": entry.semana,
-            "pontos": int(entry.pontos) if entry.pontos else "0",
+            "pontos": int(entry.pontos) if entry.pontos else 0, # Garante que seja int ou 0
             "nivelAluno": str(entry.nivel) if entry.nivel else "0"
         })
 
+    # Monta o dicionário de resposta com todos os dados processados
     response_data = {
         "evolucao": {
             "clientes": f"{clientes_adquiridos}",
+            # Formata os valores para moeda brasileira
             "acumulou": f"R$ {total_somado:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         },
-        "evolucaoGanhos": resultado_final,
+        "evolucaoGanhos": resultado_evolucao_ganhos_cumulativo, # Agora é cumulativo
         "semanasCampeonato": {
             "alunos": semanas_campeonato
         }
     }
 
     return Response(response_data)
-
 
 
 

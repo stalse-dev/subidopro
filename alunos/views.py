@@ -294,8 +294,8 @@ def clas(request):
 
 @login_required
 def cla(request, cla_id):
-    campeonato = Campeonato.objects.get(id=5)
-    cla = Mentoria_cla.objects.get(id=cla_id, campeonato=campeonato)
+    campeonato, semana = calcular_semana_vigente()
+    cla = Mentoria_cla.objects.get(id=cla_id)
     alunos = Alunos.objects.filter(cla=cla).order_by('-nivel')
     
     context = {

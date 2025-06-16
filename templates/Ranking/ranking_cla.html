@@ -70,7 +70,7 @@
                         </thead>
                         <tbody>
                             {% for aluno in cla_rank %}
-                            <tr class="bg-white border-b hover:bg-gray-50 cursor-pointer"  >
+                            <tr class="bg-white border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='{% url 'cla' aluno.cla.id %}'">
                                 <td class="px-4 py-3 text-center font-bold text-gray-900">{{ aluno.posicao }}</td>
                                 <td class="px-4 py-3">{{ aluno.cla }}</td>
                                 <td class="px-4 py-3 text-center">{{ aluno.pontos_totais|floatformat:0 }}</td>
