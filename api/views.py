@@ -1547,6 +1547,7 @@ def meu_cla(request, aluno_id):
         "alunos": alunos_data
     })
 
+
 @api_view(['GET'])
 def cartilha_aluno(request, aluno_id):
     # Calcula o campeonato e a semana vigentes
@@ -1631,39 +1632,56 @@ def cartilha_aluno(request, aluno_id):
             "valorAcumulado": round(running_total, 2)
         })
 
-    # --- Fim da lógica para 'Evolução dos Ganhos' ---
+    # --- Nova Lógica para Faturamento e Pontos Mês a Mês ---
+    faturamento_pontos_mes_a_mes = (
+        Aluno_envios.objects
+        .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
+        .annotate(mes=TruncMonth('data'))
+        .values('mes')
+        .annotate(
+            total_faturamento=Sum('valor_calculado'),
+            total_pontos=Sum('pontos')
+        )
+        .order_by('mes') # Ordena para garantir que os meses vêm em ordem
+    )
 
-    # Busca os dados do "subidômetro" para o aluno e campeonato atual
-    subdometro = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=campeonato).order_by('semana')
-
-    semanas_campeonato = []
-
-    # Preenche a lista de semanas do campeonato, excluindo a semana vigente + 1
-    for entry in subdometro:
-        if entry.semana == semana + 1:
-            continue  # Pula a semana imediatamente seguinte à vigente
-        semanas_campeonato.append({
-            "semana": entry.semana,
-            "pontos": int(entry.pontos) if entry.pontos else 0, # Garante que seja int ou 0
-            "nivelAluno": str(entry.nivel) if entry.nivel else "0"
+    # Formatar os dados para a resposta
+    resultado_faturamento_pontos = []
+    for item in faturamento_pontos_mes_a_mes:
+        resultado_faturamento_pontos.append({
+            "mes": item['mes'].strftime("%Y-%m"), # Formata a data para YYYY-MM
+            "faturamento": round(item['total_faturamento'] or 0, 2),
+            "pontos": round(item['total_pontos'] or 0, 2)
         })
 
-    # Monta o dicionário de resposta com todos os dados processados
+    # --- Nova Lógica para Contagem de Envios ---
+    # Contagem total de todos os envios do aluno (independentemente do status)
+    total_envios = Aluno_envios.objects.filter(aluno=aluno, data__gte=data_int, campeonato_id=6).count()
+
+    # Contagem total de envios aprovados (status=3)
+    total_envios_aprovados = Aluno_envios.objects.filter(aluno=aluno, status=3, data__gte=data_int, campeonato_id=6).count()
+
+    ultima_posicao = Alunos_posicoes_semana.objects.filter(aluno=aluno, semana=semana).order_by('-data').first()
+    ultima_cla = Mentoria_cla_posicao_semana.objects.filter(cla=aluno.cla, semana=semana).order_by('-data').first()
+    
     response_data = {
         "evolucao": {
             "clientes": f"{clientes_adquiridos}",
-            # Formata os valores para moeda brasileira
             "acumulou": f"R$ {total_somado:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "mesMaisGanhou": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         },
-        "evolucaoGanhos": resultado_evolucao_ganhos_cumulativo, # Agora é cumulativo
-        "semanasCampeonato": {
-            "alunos": semanas_campeonato
-        }
+        "evolucaoGanhos": resultado_evolucao_ganhos_cumulativo,
+        "faturamentoPontosMesAMes": resultado_faturamento_pontos,
+        "campeonato_6": {
+            "posicao": str(ultima_posicao.posicao) if ultima_posicao else None,
+            "pontos": int(float(ultima_posicao.pontos_totais)) if ultima_posicao and ultima_posicao.pontos_totais is not None else None,
+            "posicaoCla": str(ultima_cla.posicao) if ultima_cla else None,
+            "pontosCla": int(float(ultima_cla.pontos_totais)) if ultima_cla and ultima_cla.pontos_totais is not None else None,
+            "totalEnvios": total_envios, # Adicionado aqui
+            "enviosAprovados": total_envios_aprovados, # Adicionado aqui
+        },
     }
 
     return Response(response_data)
-
-
 
     
