@@ -201,6 +201,7 @@ def aluno_pontos(request, aluno_id):
     pontos_recebimentos = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
     pontos_desafio = Aluno_desafio.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data_cadastro')
     pontos_certificacao = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=3).order_by('-data_cadastro')
+    pontos_manuais = Aluno_certificacao.objects.filter(aluno=aluno, campeonato=campeonato, tipo=5).order_by('-data_cadastro')
     
     pontos_contratos = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato, status=3).order_by('-data_cadastro')
     pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato).order_by('-data')
@@ -216,6 +217,8 @@ def aluno_pontos(request, aluno_id):
             pontos_desafio = pontos_desafio.filter(semana=semana_filtro)
 
             pontos_certificacao = pontos_certificacao.filter(semana=semana_filtro)
+
+            pontos_manuais = pontos_manuais.filter(semana=semana_filtro)
 
             pontos_contratos = pontos_contratos.filter(envio__semana=semana_filtro)
 
@@ -235,6 +238,7 @@ def aluno_pontos(request, aluno_id):
         'pontos_recebimentos': pontos_recebimentos,
         'pontos_desafio': pontos_desafio,
         'pontos_certificacao': pontos_certificacao,
+        'pontos_manuais': pontos_manuais,
         'pontos_contratos': pontos_contratos,
         'pontos_retencao': pontos_retencao,
         'pontos_aluno_semana': pontos_aluno_semana,

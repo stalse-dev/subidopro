@@ -955,6 +955,7 @@ def recebimentos_alunos(request, aluno_id):
         "recebimentos": Aluno_envios.objects.filter(aluno=aluno, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
         "desafios": Aluno_desafio.objects.filter(aluno=aluno, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
         "certificacoes": Aluno_certificacao.objects.filter(aluno=aluno, tipo=3, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
+        "manual": Aluno_certificacao.objects.filter(aluno=aluno, tipo=5, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
         "contratos": Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=Campeonato, status=3).order_by('-data_cadastro'),
         "retencao": Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=Campeonato).order_by('-data')
     }
@@ -963,6 +964,7 @@ def recebimentos_alunos(request, aluno_id):
         "recebimentos": defaultdict(lambda: {"infos": {"data": "", "valorTotal": "R$ 0,00", "pontos": "0"}, "itens": []}),
         "desafios": {"infos": {"titulo": "DESAFIOS", "pontos": "0"}, "itens": []},
         "certificacoes": {"infos": {"titulo": "CERTIFICAÇÕES", "pontos": "0"}, "itens": []},
+        "manual": {"infos": {"titulo": "MANUAL", "pontos": "0"}, "itens": []},
         "contratos": {"infos": {"titulo": "CONTRATOS", "pontos": "0"}, "itens": []},
         "retencao": {"infos": {"titulo": "RETENCÃO", "pontos": "0"}, "itens": []}
     }
@@ -1037,6 +1039,21 @@ def recebimentos_alunos(request, aluno_id):
                 resultado[categoria]["itens"].append(item)
 
             elif categoria == "certificacoes":
+                data_formatada = pontuacao.data_cadastro.strftime('%d/%m/%Y') if pontuacao.data_cadastro else ""
+                item = {
+                    "id": pontuacao.id,
+                    "dataCriacao": data_formatada,
+                    "descricao": pontuacao.descricao or "",
+                    "pontosEfetivos": str(int(pontuacao.pontos)),
+                    "pontosPreenchidos": str(int(pontuacao.pontos_previsto or pontuacao.pontos)),
+                    "statusStr": str(status),
+                    "status": pontuacao.status,
+                    "semana": pontuacao.semana
+                }
+
+                resultado[categoria]["itens"].append(item)
+            
+            elif categoria == "manual":
                 data_formatada = pontuacao.data_cadastro.strftime('%d/%m/%Y') if pontuacao.data_cadastro else ""
                 item = {
                     "id": pontuacao.id,
