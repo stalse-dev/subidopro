@@ -806,6 +806,8 @@ def receber_dados(request):
     lista_tabelas = data.get('tabela', '').split(',')
     registro_atual = data.get('registroAtual', {})
 
+    print(f"Recebendo dados: {data}")
+
     for tabela in lista_tabelas:
         if tabela in registro_atual:
 
@@ -839,7 +841,6 @@ def receber_dados(request):
                     print("Tabela não encontrada!")
 
             elif acao == 'del':
-                    
                     if tabela == 'alunosClientes':
                         registrar_log(acao, tabela, dados_anteriores=registro_atual[tabela], dados_geral=data)
                         deletar_aluno_cliente(registro_atual['alunosClientes'])

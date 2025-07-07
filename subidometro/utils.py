@@ -99,7 +99,7 @@ def ranking_streamer():
         pontos_manual=Coalesce(Subquery(subquery_pontos_manual, output_field=DecimalField()), Value(0, output_field=DecimalField())),
         pontos_contrato=Coalesce(Subquery(subquery_pontos_contrato, output_field=DecimalField()), Value(0, output_field=DecimalField())),
         pontos_retencao=Coalesce(Subquery(subquery_pontos_retencao, output_field=DecimalField()), Value(0, output_field=DecimalField())),
-        total_pontos_final=F('pontos_recebimento') + F('pontos_desafio') + F('pontos_certificacao') + F('pontos_contrato') + F('pontos_retencao')
+        total_pontos_final=F('pontos_recebimento') + F('pontos_desafio') + F('pontos_certificacao') + F('pontos_contrato') + F('pontos_retencao') + F('pontos_manual')
     ).annotate(
         ranking=Window(
             expression=Rank(),
