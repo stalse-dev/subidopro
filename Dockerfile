@@ -16,9 +16,6 @@ COPY . /subidopro/
 # Garante que a pasta de arquivos estáticos exista
 RUN mkdir -p /subidopro/staticfiles
 
-# Adiciona variável de ambiente para evitar erro no settings.py
-ENV GOOGLE_CLOUD_PROJECT=default_project
-
 # Expõe a porta padrão do Django
 EXPOSE $PORT
 
