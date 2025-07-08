@@ -1596,7 +1596,7 @@ def cartilha_aluno(request, aluno_id):
     mes_mais_ganhou_valor = mes_mais_ganhou['total_mes'] if mes_mais_ganhou else 0
 
     # Total de valores de todos os envios concluídos (status=3) com data válida
-    total_valores_recebimento = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
+    total_valores_recebimento = Aluno_envios.objects.filter(aluno=aluno, status=3).aggregate(total=Sum('valor_calculado'))['total'] or 0
 
     # Busca o faturamento de campeonatos anteriores
     total_valor_camp_anterior = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0

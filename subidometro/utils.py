@@ -138,9 +138,20 @@ def calculo_retencao_func(data_referencia):
     campeonatoVigente, semana = calcular_semana_vigente()
     
 
+    # Primeiro dia do mês atual
     primeiro_dia_mes_atual = data_referencia.replace(day=1)
+
+    # Último dia do mês atual
+    ultimo_dia_mes_atual = (primeiro_dia_mes_atual + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    # Primeiro dia do mês anterior
     primeiro_dia_mes_passado = (primeiro_dia_mes_atual - timedelta(days=1)).replace(day=1)
+
+    # Último dia do mês anterior
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
+
+    print(f"Período de Referência: {primeiro_dia_mes_atual.strftime('%d/%m/%Y')} a {ultimo_dia_mes_atual.strftime('%d/%m/%Y')}")
+    print(f"Período Mês Passado: {primeiro_dia_mes_passado.strftime('%d/%m/%Y')} a {ultimo_dia_mes_passado.strftime('%d/%m/%Y')}")
 
     # Filtrando os envios aprovados desde 01/09/2024
     envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01')
@@ -152,25 +163,27 @@ def calculo_retencao_func(data_referencia):
         status=3
     ).values('id')[:1]  # Retorna qualquer envio válido
 
+
+
     envio_mes_passado_CT_subquery = Aluno_envios.objects.filter(
         contrato=OuterRef('contrato'),  # Agora filtra por contrato
         data__range=[primeiro_dia_mes_passado, ultimo_dia_mes_passado],
         status=3
     ).values('id')[:1]  # R
 
-
+    
 
     # Primeiro envio do contrato no mês atual
     envio_mes_atual_subquery = Aluno_envios.objects.filter(
         id=OuterRef('pk'),
-        data__range=[primeiro_dia_mes_atual, data_referencia],
+        data__range=[primeiro_dia_mes_atual, ultimo_dia_mes_atual],
         status=3
     ).order_by('data').values('id', 'valor', 'contrato__tipo_contrato', 'contrato__id')[:1]
 
     # Verifica se já foi registrado na tabela de retenção
     retencao_envios_mes_atual_subquery = Alunos_clientes_pontos_meses_retencao.objects.filter(
         envio=OuterRef('pk'),
-        data__range=[primeiro_dia_mes_atual, data_referencia]
+        data__range=[primeiro_dia_mes_atual, ultimo_dia_mes_atual]
     ).values('id')[:1]
 
     # Anotando os resultados e filtrando os registros
@@ -372,7 +385,7 @@ def executar_calculo_retencao_retroativo():
     while data_atual_loop <= hoje:
         # Pega o primeiro dia do mês para garantir que a data_referencia sempre seja o início do mês
         # Isso é importante para a consistência do cálculo de "mês atual" dentro da função `calculo_retencao_mensal`
-        data_referencia_para_calculo = data_atual_loop.replace(day=1) 
+        data_referencia_para_calculo = data_atual_loop.replace(day=1)
         
         # Se for o mês atual, ajustamos o ultimo_dia_mes_atual para 'hoje' dentro da função `calculo_retencao_mensal`
         # para incluir dados até o dia corrente.

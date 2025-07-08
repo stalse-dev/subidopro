@@ -279,12 +279,12 @@
 
 <!-- Certificações -->
 <div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
-<button onclick="toggleTabelaManuais()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+<button onclick="toggleTabelaCertificacoes()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
     <h2 class="text-xl font-bold text-gray-800">
         Pontuação Certificações / Pontos:
         <span class="text-green-600">{{ pontos_aluno_semana.pontos_certificacao|default:"0"|floatformat:0 }} Pts</span>
     </h2>
-    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+    <svg id="icon-certificacoes" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
     </svg>
 </button>
