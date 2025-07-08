@@ -18,6 +18,7 @@ google-cloud-storage
 google-crc32c
 google-resumable-media
 googleapis-common-protos
+gunicorn
 grpc-google-iam-v1
 grpcio
 grpcio-status
