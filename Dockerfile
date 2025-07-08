@@ -16,8 +16,7 @@ COPY . /subidopro/
 # Garante que a pasta de arquivos estáticos exista
 RUN mkdir -p /subidopro/staticfiles
 
-# Expõe a porta padrão do Django
-EXPOSE 8000
+EXPOSE $PORT
 
 # Comando de entrada do container
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 subidopro.wsgi:application"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:$PORT subidopro.wsgi:application"]
