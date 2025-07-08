@@ -12,39 +12,29 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
 env_file = os.path.join(BASE_DIR, ".env")
 
+env = environ.Env(DEBUG=(bool, False))
+
+env_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(env_file):
-    # Use a local secret file, if provided
-
     env.read_env(env_file)
-# [START_EXCLUDE]
-elif os.getenv("TRAMPOLINE_CI", None):
-    # Create local settings if running with CI, for unit testing
-
-    placeholder = (
-        f"SECRET_KEY=a\n"
-        f"DATABASE_URL=sqlite://{os.path.join(BASE_DIR, 'db.sqlite3')}"
-    )
-    env.read_env(io.StringIO(placeholder))
-# [END_EXCLUDE]
-elif os.environ.get("GOOGLE_CLOUD_PROJECT", None):
-    # Pull secrets from Secret Manager
-    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
-
-    client = secretmanager.SecretManagerServiceClient()
-    settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
-    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
-    payload = client.access_secret_version(name=name, timeout=3600).payload.data.decode("UTF-8")
-
-    env.read_env(io.StringIO(payload))
+    print("DEBUG: Loaded .env file locally.")
+    IS_CLOUD_RUN = False
 else:
-    raise Exception("No local .env or GOOGLE_CLOUD_PROJECT detected. No secrets found.")
+    IS_CLOUD_RUN = os.environ.get("K_SERVICE", None) is not None
 
+    if IS_CLOUD_RUN:
+        print("DEBUG: Running in Cloud Run environment.")
+        if "DJANGO" in os.environ:
+            print("DEBUG: DJANGO secret found as env var. Parsing it.")
+            env.read_env(io.StringIO(os.environ["DJANGO"]))
+        else:
+            print("DEBUG: DJANGO secret not found as env var. Assuming all vars are direct.")
+            pass
+    else:
+        raise Exception("No local .env or Cloud Run environment detected. No secrets found.")
 
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = env("SECRET_KEY")  
+# Agora, acesse as variáveis usando env()
+SECRET_KEY = env("SECRET_KEY")
 
 ALLOWED_HOSTS = ['*']
 
@@ -182,15 +172,6 @@ if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
         }   
     }
 else:
-    CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis://https://subidopro.uc.r.appspot.com/", 6379)],
-        },
-    },
-}
-
 
     SECURE_SSL_REDIRECT = True
     CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
