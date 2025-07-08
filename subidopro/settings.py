@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(DEBUG=(bool, False))
+env = environ.Env(DEBUG=(bool, True))
 # Carrega do .env local para desenvolvimento
 env_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(env_file):
