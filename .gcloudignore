@@ -28,4 +28,5 @@ api.http
 staticfiles
 htmlcov
 .pytest_cache
+
 .coverage
