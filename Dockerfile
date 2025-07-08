@@ -16,6 +16,8 @@ COPY . /subidopro/
 # Garante que a pasta de arquivos estáticos exista
 RUN mkdir -p /subidopro/staticfiles
 
+
+
 # Expõe a porta padrão do Django
 EXPOSE $PORT
 
