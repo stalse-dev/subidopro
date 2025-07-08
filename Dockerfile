@@ -20,7 +20,7 @@ RUN mkdir -p /subidopro/staticfiles
 ENV GOOGLE_CLOUD_PROJECT=default_project
 
 # Expõe a porta padrão do Django
-EXPOSE 8080
+EXPOSE $PORT
 
 # Comando de entrada do container
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8080 subidopro.wsgi:application"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:$PORT subidopro.wsgi:application"]
