@@ -10,28 +10,11 @@ from google.oauth2.service_account import Credentials
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, False))
-env_file = os.path.join(BASE_DIR, ".env")
-
-env = environ.Env(DEBUG=(bool, False))
-
+# Carrega do .env local para desenvolvimento
 env_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(env_file):
     env.read_env(env_file)
-    print("DEBUG: Loaded .env file locally.")
-    IS_CLOUD_RUN = False
-else:
-    IS_CLOUD_RUN = os.environ.get("K_SERVICE", None) is not None
-
-    if IS_CLOUD_RUN:
-        print("DEBUG: Running in Cloud Run environment.")
-        if "DJANGO" in os.environ:
-            print("DEBUG: DJANGO secret found as env var. Parsing it.")
-            env.read_env(io.StringIO(os.environ["DJANGO"]))
-        else:
-            print("DEBUG: DJANGO secret not found as env var. Assuming all vars are direct.")
-            pass
-    else:
-        raise Exception("No local .env or Cloud Run environment detected. No secrets found.")
+    print("DEBUG: Loaded .env file locally.") # Para depuração local
 
 # Agora, acesse as variáveis usando env()
 SECRET_KEY = env("SECRET_KEY")
