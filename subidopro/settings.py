@@ -150,7 +150,7 @@ if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            "HOST": "127.0.0.1",
+            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
             "PORT": "5432",
         }   
     }
