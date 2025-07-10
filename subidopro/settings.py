@@ -133,48 +133,67 @@ TEMPLATES = [
     },
 ]
 
+SECURE_SSL_REDIRECT = True
+CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
+CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+DEBUG = True
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': "subidopro",
+        'USER': env("db_user_pro"),
+        'PASSWORD': env("db_password_pro"),
+        'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
+        'PORT': '5432',
+    }
+}
 
 
 
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
-    DEBUG = True
-    MSAL_REDIRECT_URI = "http://localhost:8000/callback"
-    DATABASES = {
+# # Database
+# # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+# if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
+#     DEBUG = True
+#     MSAL_REDIRECT_URI = "http://localhost:8000/callback"
+#     DATABASES = {
         
-    }
-    DATABASES = {   
-        "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
-            'NAME': "subidopro",
-            'USER': env("db_user_pro"),
-            'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
-            "PORT": "5432",
-        }   
-    }
-else:
+#     }
+#     DATABASES = {   
+#         "default": {
+#             "ENGINE": "django.db.backends.postgresql_psycopg2",
+#             'NAME': "subidopro",
+#             'USER': env("db_user_pro"),
+#             'PASSWORD': env("db_password_pro"),
+#             "HOST": "127.0.0.1",
+#             "PORT": "5432",
+#         }   
+#     }
+# else:
 
-    SECURE_SSL_REDIRECT = True
-    CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
-    CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
+#     SECURE_SSL_REDIRECT = True
+#     CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
+#     CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
+#     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+#     SECURE_BROWSER_XSS_FILTER = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
+#     X_FRAME_OPTIONS = 'DENY'
 
-    DEBUG = True
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': "subidopro",
-            'USER': env("db_user_pro"),
-            'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
-            'PORT': '5432',
-        }
-    }
+#     DEBUG = True
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': "subidopro",
+#             'USER': env("db_user_pro"),
+#             'PASSWORD': env("db_password_pro"),
+#             'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
+#             'PORT': '5432',
+#         }
+#     }
 
 
 
