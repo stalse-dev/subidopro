@@ -155,8 +155,8 @@ if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
 else:
 
     SECURE_SSL_REDIRECT = True
-    CSRF_TRUSTED_ORIGINS = ["https://apisubidopro-oiu5ml3kwq-ue.a.run.app", "http://localhost:3000", "https://localhost:3000"]
-    CORS_ALLOWED_ORIGINS = ["https://apisubidopro-oiu5ml3kwq-ue.a.run.app"]
+    CSRF_TRUSTED_ORIGINS = ["*"]
+    CORS_ALLOWED_ORIGINS = ["*"]
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
