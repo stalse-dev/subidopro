@@ -206,18 +206,16 @@ LOGIN_URL = 'login'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
+# URL base para arquivos estáticos
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-COMPRESS_ROOT = os.path.join(BASE_DIR, 'static')
+# Diretório onde os arquivos estáticos serão coletados durante `collectstatic`
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Use 'staticfiles' para a coleta
 
-COMPRESS_ENABLED = True
-
-STATICFILES_FINDERS = ('compressor.finders.CompressorFinder',)
-
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Pasta exclusiva para saída do collectstatic
-
+# Diretórios adicionais onde Django procura arquivos estáticos
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),  # Somente a pasta onde você coloca os arquivos estáticos
+]
 
 
 
