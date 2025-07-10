@@ -31,12 +31,9 @@ COPY . .
 RUN mkdir -p /subidopro/staticfiles
 
 # Expõe a porta para o Cloud Run
-EXPOSE 8080
+EXPOSE $PORT
 
 # Comando principal: roda collectstatic, verifica configurações Django e inicia o Gunicorn
 CMD sh -c "python manage.py collectstatic --noinput && \
             python manage.py check --deploy && \
-            gunicorn subidopro.wsgi:application --bind 0.0.0.0:8080"
-
-
-            
+            gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
