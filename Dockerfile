@@ -37,3 +37,6 @@ EXPOSE 8080
 CMD sh -c "python manage.py collectstatic --noinput && \
             python manage.py check --deploy && \
             gunicorn subidopro.wsgi:application --bind 0.0.0.0:8080"
+
+
+            
