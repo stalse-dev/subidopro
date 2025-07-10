@@ -1,23 +1,35 @@
 # Usa uma imagem oficial do Python como base
-FROM python:3.10
+FROM python:3.10-slim
 
-# Define o diretório de trabalho dentro do container
+# Evita prompts interativos durante builds
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
+
+# Cria diretório de trabalho
 WORKDIR /subidopro
 
-# Copia apenas os arquivos essenciais primeiro (para otimizar o cache)
-COPY requirements.txt /subidopro/
+# Instala dependências do sistema (pillow, psycopg2, etc.)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    curl \
+    netcat \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instala as dependências antes de copiar o restante do código
+# Copia requirements e instala dependências Python
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Agora copia o restante do projeto
-COPY . /subidopro/
+# Copia o restante do código da aplicação
+COPY . .
 
-# Garante que a pasta de arquivos estáticos exista
+# Garante a existência da pasta de arquivos estáticos
 RUN mkdir -p /subidopro/staticfiles
 
-# Expõe a porta padrão do Django
-EXPOSE 8080
+# Expõe a porta que o Cloud Run usará
+EXPOSE $PORT
 
-# Comando de entrada do container
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8080 subidopro.wsgi:application"]
+# Comando que roda o collectstatic e inicia o servidor Gunicorn
+CMD sh -c "python manage.py collectstatic --noinput && gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
