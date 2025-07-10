@@ -25,19 +25,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o restante do código da aplicação
-# **Certifique-se de que seus arquivos estáticos (pastas 'static' dentro dos apps ou STATICFILES_DIRS)
-# estejam incluídos aqui e não excluídos por um .dockerignore**
 COPY . .
 
 # Garante que a pasta STATIC_ROOT exista para o collectstatic
 RUN mkdir -p /subidopro/staticfiles
 
 # Expõe a porta para o Cloud Run
-EXPOSE $PORT
+EXPOSE 8080
 
-# Comando principal para rodar o collectstatic e iniciar o Gunicorn
-# **Atenção: A chave para o sucesso está na configuração correta do STATIC_ROOT no seu settings.py**
 # Comando principal: roda collectstatic, verifica configurações Django e inicia o Gunicorn
 CMD sh -c "python manage.py collectstatic --noinput && \
             python manage.py check --deploy && \
-            gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
+            gunicorn subidopro.wsgi:application --bind 0.0.0.0:8080"
