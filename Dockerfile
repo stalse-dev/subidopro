@@ -32,4 +32,5 @@ RUN mkdir -p /subidopro/staticfiles
 EXPOSE $PORT
 
 # Comando que roda o collectstatic e inicia o servidor Gunicorn
-CMD sh -c "python manage.py collectstatic --noinput && gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
+# CMD sh -c "python manage.py collectstatic --noinput && gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]
