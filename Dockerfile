@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     curl \
-    netcat \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Copia requirements e instala dependências Python
 COPY requirements.txt .
