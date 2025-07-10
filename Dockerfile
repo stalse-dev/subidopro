@@ -37,4 +37,4 @@ EXPOSE $PORT
 
 # Comando principal para rodar o collectstatic e iniciar o Gunicorn
 # **Atenção: A chave para o sucesso está na configuração correta do STATIC_ROOT no seu settings.py**
-CMD sh -c "python manage.py collectstatic --noinput && gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
+CMD sh -c "gunicorn subidopro.wsgi:application --bind 0.0.0.0:$PORT"
