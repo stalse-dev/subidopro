@@ -8,7 +8,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path('home/<int:aluno_id>/', HomeAPIView.as_view(), name='home'),
-
+    path('ranking_semanal/', RankingSemanalAPIView.as_view(), name='ranking_semanal'),
     
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

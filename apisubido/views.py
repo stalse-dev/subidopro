@@ -101,3 +101,40 @@ class HomeAPIView(APIView):
                 "cla_rank": serializer_cla.data
             }
         })
+
+class RankingSemanalAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        # Buscar semana mais recente
+        maior_semana_obj = (
+            Alunos_posicoes_semana.objects
+            .filter(campeonato=campeonato_ativo)
+            .order_by('-semana')
+            .only('semana')
+            .first()
+        )
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+
+        semana = maior_semana_obj.semana
+
+        # Buscar ranking com otimização
+        rank_alunos = (
+            Alunos_posicoes_semana.objects
+            .select_related('aluno', 'cla')  # Evita N+1
+            .filter(campeonato=campeonato_ativo, semana=semana)
+            .order_by('posicao')[:100]
+        )
+
+        serializer = RankAlunoDetalhesSerializer(rank_alunos, many=True)
+        return Response({
+            "campeonato": campeonato_ativo.identificacao,
+            "semana": semana,
+            "rank_alunos": serializer.data
+        })
+
