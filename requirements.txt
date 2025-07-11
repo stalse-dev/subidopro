@@ -5,10 +5,11 @@ charset-normalizer
 Django
 django-appconf
 django-compressor
-djangorestframework
 django-cors-headers
 django-htmx
 djangorestframework_simplejwt
+djangorestframework
+drf_spectacular
 environ
 google-api-core
 google-auth
@@ -43,3 +44,4 @@ tzdata
 urllib3
 XlsxWriter
 whitenoise
+
