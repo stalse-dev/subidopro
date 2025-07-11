@@ -156,14 +156,14 @@ else: # Este é o bloco para o Cloud Run (produção)
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-    DEBUG = False # <--- MUDE ISSO PARA FALSE EM PRODUÇÃO!
+    DEBUG = True
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql', # Não é mais psycopg2, apenas postgresql
-            'NAME': "subidopro",
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env("db_name_pro"),
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")), # Correto para Cloud Run
+            'HOST': f'/cloudsql/{env("db_instance_pro")}',
             'PORT': '5432',
         }
     }
