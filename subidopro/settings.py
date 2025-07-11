@@ -134,27 +134,20 @@ TEMPLATES = [
 ]
 
 
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
-    DEBUG = True
+    DEBUG = True # Mantenha True para desenvolvimento local (se usar proxy local)
     MSAL_REDIRECT_URI = "http://localhost:8000/callback"
     DATABASES = {
-        
-    }
-    DATABASES = {   
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            "HOST": "127.0.0.1",
+            "HOST": "127.0.0.1", # Para proxy local
             "PORT": "5432",
-        }   
+        }
     }
-else:
-
+else: # Este é o bloco para o Cloud Run (produção)
     SECURE_SSL_REDIRECT = True
     CSRF_TRUSTED_ORIGINS = ["https://subidopro.uc.r.appspot.com", "http://localhost:3000", "https://localhost:3000"]
     CORS_ALLOWED_ORIGINS = ["https://subidopro.uc.r.appspot.com"]
@@ -163,14 +156,14 @@ else:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-    DEBUG = True
+    DEBUG = False # <--- MUDE ISSO PARA FALSE EM PRODUÇÃO!
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
+            'ENGINE': 'django.db.backends.postgresql', # Não é mais psycopg2, apenas postgresql
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
+            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")), # Correto para Cloud Run
             'PORT': '5432',
         }
     }
