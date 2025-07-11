@@ -165,7 +165,7 @@ else: # Este é o bloco para o Cloud Run (produção)
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-    DEBUG = True
+    DEBUG = False
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
