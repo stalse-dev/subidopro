@@ -163,7 +163,7 @@ else: # Este é o bloco para o Cloud Run (produção)
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/subidopro:us-central1:subidopro-db',
+            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro',
             'PORT': '5432',
         }
     }
