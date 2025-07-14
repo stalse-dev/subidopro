@@ -140,7 +140,7 @@ class RankingSemanalAPIView(APIView):
         })
 
 class ExtratoAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, aluno_id):
         aluno = Alunos.objects.filter(id=aluno_id).first()
@@ -175,7 +175,7 @@ class ExtratoAPIView(APIView):
 
 
         envios_data = Aluno_envios.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3).order_by('-data_cadastro')
-        recebimentos = AlunoEnviosExtratoSerializer(envios_data, semana)
+        envios = AlunoEnviosExtratoSerializer(envios_data, semana)
 
         desafios_data = Aluno_desafio.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3).order_by('-data_cadastro')
         desafios = AlunoDesafioExtratoSerializer(desafios_data, semana, pontos_desafio)
@@ -196,7 +196,7 @@ class ExtratoAPIView(APIView):
         return Response({
             "campeonato": campeonato_ativo.identificacao,
             "semana": semana,
-            "recebimentos": recebimentos,
+            "envios": envios,
             "desafios": desafios,
             "certificacoes": certificacao,
             "manuais": manual,
