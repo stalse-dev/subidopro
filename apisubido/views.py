@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from subidometro.models import *
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q, Case, When
+from collections import defaultdict
 from .serializers import *
 
 class HomeAPIView(APIView):
@@ -137,4 +138,73 @@ class RankingSemanalAPIView(APIView):
             "semana": semana,
             "rank_alunos": serializer.data
         })
+
+class ExtratoAPIView(APIView):
+    #permission_classes = [IsAuthenticated]
+
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+        
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
+
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        
+        semana = maior_semana_obj.semana
+
+        pontos_campeonato = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=campeonato_ativo, semana=semana).first()
+
+        if pontos_campeonato:
+            pontos_desafio = int(round(pontos_campeonato.pontos_desafio or 0))
+            pontos_certificacao = int(round(pontos_campeonato.pontos_certificacao or 0))
+            pontos_manual = int(round(pontos_campeonato.pontos_manual or 0))
+            pontos_contrato = int(round(pontos_campeonato.pontos_contrato or 0))
+            pontos_retencao = int(round(pontos_campeonato.pontos_retencao or 0))
+        else:
+            pontos_retencao = 0
+
+
+
+
+
+        envios_data = Aluno_envios.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3).order_by('-data_cadastro')
+        recebimentos = AlunoEnviosExtratoSerializer(envios_data, semana)
+
+        desafios_data = Aluno_desafio.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3).order_by('-data_cadastro')
+        desafios = AlunoDesafioExtratoSerializer(desafios_data, semana, pontos_desafio)
+
+        certificacao_data = Aluno_certificacao.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3, tipo=3).order_by('-data_cadastro')
+        certificacao = AlunoCertificacaoExtratoSerializer(certificacao_data, semana, pontos_certificacao)
+
+        manual_data = Aluno_certificacao.objects.filter(campeonato=campeonato_ativo, aluno=aluno, status=3, tipo=5).order_by('-data_cadastro')
+        manual = AlunoManualExtratoSerializer(manual_data, semana, pontos_manual)
+
+        contratos_data = Aluno_contrato.objects.filter(aluno=aluno, pontos__gt=0, campeonato=campeonato_ativo, status=3).order_by('-data_cadastro')
+        contratos = AlunoContratoExtratoSerializer(contratos_data, pontos_contrato)
+
+        retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno=aluno, campeonato=campeonato_ativo).order_by('-data')
+        retencao = AlunosRetencaoExtratoSerializer(retencao, pontos_retencao)
+
+
+        return Response({
+            "campeonato": campeonato_ativo.identificacao,
+            "semana": semana,
+            "recebimentos": recebimentos,
+            "desafios": desafios,
+            "certificacoes": certificacao,
+            "manuais": manual,
+            "contratos": contratos,
+            "retencao": retencao
+        })
+
+
+
+
 
