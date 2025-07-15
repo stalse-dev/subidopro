@@ -349,7 +349,41 @@ class DetalhesClientesAPIView(APIView):
 
         return Response(response_data)
         
+class MeuClaAPIView(APIView):
+    #permission_classes = [IsAuthenticated]
 
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+        
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        semana = maior_semana_obj.semana
+
+        cla = aluno.cla
+        if not cla:
+            return Response({"detail": "CLA não encontrado para este aluno."}, status=404)
+
+        cla_data = {
+            "id": str(cla.id),
+            "titulo": cla.nome,
+            "sigla": cla.sigla or "",
+            "qtdAlunos": str(cla.aluno_cla.count())
+        }
+
+        data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+        alunos = AlunosListClaSerializer(cla.aluno_cla.filter(status='ACTIVE'), campeonato_ativo, data_int, semana)
+
+        return Response({
+            "cla": cla_data,
+            "alunos": alunos
+        })
 
 
 

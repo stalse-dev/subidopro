@@ -371,4 +371,35 @@ def EnviosSerializer(envios):
 
     return envios_temp
 
+def AlunosListClaSerializer(alunos, campeonato, data_int, semana):
+    alunos_data = []
+    for aluno in alunos:
+        rank_semanal = Alunos_posicoes_semana.objects.filter(
+            aluno=aluno,
+            campeonato=campeonato,
+            semana=semana
+        ).first()
+
+        qnt_envios_validos = Aluno_envios.objects.filter(
+            aluno=aluno,
+            campeonato=campeonato,
+            status=3,
+            semana__gt=0,
+            data__gte=data_int
+        ).count()
+
+        if not rank_semanal:
+            continue
+
+
+        alunos_data.append({
+            "id": str(aluno.id),
+            "nome": aluno.nome_completo or aluno.nome_social or aluno.apelido or "",
+            "nivel": str(aluno.nivel or 0),
+            "qtd_envios_validos_geral": qnt_envios_validos,
+            "pontos": rank_semanal.pontos_totais if rank_semanal else 0,
+            "ranking": rank_semanal.posicao if rank_semanal else None,
+        })
+
+    return alunos_data
 
