@@ -308,7 +308,7 @@ class SubdometroAPIView(APIView):
         })
 
 class DetalhesClientesAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, cliente_id):
         cliente = Aluno_clientes.objects.filter(id=cliente_id).first()
