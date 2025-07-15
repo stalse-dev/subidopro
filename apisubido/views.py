@@ -224,7 +224,7 @@ class ClientesAPIView(APIView):
         )
 
 class MeusEnviosAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, aluno_id):
         aluno = Alunos.objects.filter(id=aluno_id).first()
@@ -253,4 +253,55 @@ class MeusEnviosAPIView(APIView):
             }
         )
 
+class SubdometroAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        semana = maior_semana_obj.semana
+
+        data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+
+        clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1)
+        total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).aggregate(total=Sum('valor_calculado'))['total'] or 0
+        total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+        soma_total_faturamento = float(total_valores_envios) + float(total_valor_camp)
+        mes_mais_ganhou = (
+            Aluno_envios.objects
+            .filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int)
+            .annotate(mes=TruncMonth('data'))  # Agrupa por mês
+            .values('mes')  # Seleciona apenas o mês
+            .annotate(total_mes=Sum('valor_calculado'))  # Soma os valores por mês
+            .order_by('-total_mes')  # Ordena do maior para o menor
+            .first()  # Pega o primeiro, que é o maior
+        )
+        mes_mais_ganhou_valor = mes_mais_ganhou['total_mes'] if mes_mais_ganhou else 0
+
+        todos_ganhos_mes = Aluno_envios.objects.filter(aluno=aluno, status=3, semana__gt=0, data__gte=data_int).order_by('-data')
+        evolucao_ganhos_por_mes = EvolucaoMesSerializer(todos_ganhos_mes)
+
+
+        subdometro_data = Alunos_Subidometro.objects.filter(aluno=aluno, campeonato=campeonato_ativo).order_by('semana')
+        evolucao_ganhos_por_semana = EvolucaoSemanaSerializer(subdometro_data, semana)
+
+        return Response({
+            "campeonato": campeonato_ativo.identificacao,
+            "semana": semana,
+            "evolucao_aluno": {
+                "total_clientes": clientes.count(),
+                "total_faturamento": f"R$ {soma_total_faturamento:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                "mes_maior_faturamento": f"R$ {mes_mais_ganhou_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            },
+            "evolucao_ganhos_por_mes": evolucao_ganhos_por_mes,
+            "evolucao_ganhos_por_semana": evolucao_ganhos_por_semana,
+        })

@@ -302,3 +302,37 @@ def MeusEnviosSerializer(envios, data_inicio):
 
     return dados_ordenados
 
+def EvolucaoMesSerializer(envios):
+    dados_por_mes = defaultdict(lambda: {"data": "", "valor_acumulado": 0})
+
+    for envio in envios:
+        if isinstance(envio.data, datetime):
+            data_local = envio.data
+        else:
+            data_local = datetime.combine(envio.data, datetime.min.time())
+
+        if is_naive(data_local):
+            data_local = make_aware(data_local)
+
+        mes_key = data_local.strftime("%Y-%m")
+        dados_por_mes[mes_key]["data"] = mes_key
+        dados_por_mes[mes_key]["valor_acumulado"] += round(envio.valor_calculado or 0, 2)
+
+    meses_ordenados = sorted(dados_por_mes.keys())
+    resultado_final = [dados_por_mes[mes] for mes in meses_ordenados]
+
+    return resultado_final
+
+def EvolucaoSemanaSerializer(subdometro, semana):
+    semanas_campeonato = []
+    
+    for entry in subdometro:
+        if entry.semana == semana + 1:
+            continue
+        semanas_campeonato.append({
+            "semana": entry.semana,
+            "pontos": int(entry.pontos) if entry.pontos else "0",
+            "nivel_aluno": str(entry.nivel) if entry.nivel else "0"
+        })
+
+    return semanas_campeonato
