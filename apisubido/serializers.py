@@ -4,12 +4,19 @@ from collections import defaultdict, OrderedDict
 from datetime import datetime
 
 
-def status_map(status):
+def status_map_pontos(status):
     return {
         0: "Não analisado",
         1: "Pendente de análise",
         2: "Invalidado",
         3: "Validado"
+    }.get(status, "Desconhecido")
+
+def status_map(status):
+    return {
+        0: "Pendente",
+        1: "Validado",
+        2: "Invalidado",
     }.get(status, "Desconhecido")
 
 class RankAlunoSerializer(serializers.ModelSerializer):
@@ -84,7 +91,7 @@ def AlunoEnviosExtratoSerializer(envios, semana_limite):
             "pontos_efetivos": str(int(envio.pontos)),
             "pontos_preenchidos": str(int(envio.pontos_previsto or envio.pontos)),
             "arquivo": str(envio.arquivo1 or ""),
-            "status_str": status_map(envio.status),
+            "status_str": status_map_pontos(envio.status),
             "status": envio.status,
             "semana": envio.semana
         }
@@ -124,7 +131,7 @@ def AlunoDesafioExtratoSerializer(desafios, semana_limite, pontos_desafio):
             "descricao": desafio.desafio.titulo or "",
             "pontos_efetivos": str(int(desafio.pontos)),
             "pontos_preenchidos": str(int(desafio.pontos_previsto or desafio.pontos)),
-            "status_str": status_map(desafio.status),
+            "status_str": status_map_pontos(desafio.status),
             "status": desafio.status,
             "semana": desafio.semana
         }
@@ -208,3 +215,28 @@ def AlunosRetencaoExtratoSerializer(retencoes, pontos_retencao):
         retencao_temp["retencao"].append(item)
 
     return retencao_temp
+
+class ClientesSerializer(serializers.ModelSerializer):
+    status_str = serializers.SerializerMethodField()
+    contratos_aprovados = serializers.SerializerMethodField()
+    contratos_pendentes = serializers.SerializerMethodField()
+    contratos_reprovados = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Aluno_clientes
+        fields = "__all__"
+        # Para incluir os novos campos mesmo com "__all__"
+        extra_fields = ['status_str', 'contratos_aprovados', 'contratos_pendentes', 'contratos_reprovados']
+
+    def get_status_str(self, obj):
+        return status_map(obj.status)
+
+    def get_contratos_aprovados(self, obj):
+        return obj.contratos.filter(status=1).count()
+
+    def get_contratos_pendentes(self, obj):
+        return obj.contratos.filter(status=0).count()
+
+    def get_contratos_reprovados(self, obj):
+        return obj.contratos.filter(status=2).count()
+

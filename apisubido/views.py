@@ -204,6 +204,24 @@ class ExtratoAPIView(APIView):
             "retencao": retencao
         })
 
+class ClientesAPIView(APIView):
+    #permission_classes = [IsAuthenticated]
+
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+
+        clientes = Aluno_clientes.objects.filter(aluno=aluno).order_by('-data_criacao')
+
+        serializer = ClientesSerializer(clientes, many=True)
+
+        return Response(
+            {
+                "total_clientes": clientes.count(),
+                "clientes": serializer.data
+            }
+        )
 
 
 
