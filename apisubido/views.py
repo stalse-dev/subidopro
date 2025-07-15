@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from alunos.views import cliente
 from subidometro.models import *
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q, Case, When
@@ -305,3 +306,51 @@ class SubdometroAPIView(APIView):
             "evolucao_ganhos_por_mes": evolucao_ganhos_por_mes,
             "evolucao_ganhos_por_semana": evolucao_ganhos_por_semana,
         })
+
+class DetalhesClientesAPIView(APIView):
+    #permission_classes = [IsAuthenticated]
+
+    def get(self, request, cliente_id):
+        cliente = Aluno_clientes.objects.filter(id=cliente_id).first()
+        if not cliente:
+            return Response({"detail": "Cliente não encontrado."}, status=404)
+        
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        semana = maior_semana_obj.semana
+
+        tipo_cliente = "Pessoa Física" if cliente.tipo_cliente == 1 else "Pessoa Jurídica"
+        status = "Aprovado" if cliente.status == 1 else "Inativo"
+
+        contratos = ContratosSerializer(cliente.contratos.all())
+
+        envios = EnviosSerializer(cliente.envios_cliente_cl.all())
+
+        response_data = {
+            'cliente': {
+                'id': str(cliente.id),
+                'titulo': cliente.titulo,
+                'tipo': tipo_cliente,
+                'documento': cliente.documento,
+                'status': status,
+                'data_criacao': cliente.data_criacao.strftime('%d/%m/%Y %H:%M:%S'),
+                'total_contratos': cliente.contratos.count(),
+                'total_envios': cliente.envios_cliente_cl.count(),
+
+            },
+            'contratos': contratos,
+            "envios": envios
+        }
+
+        return Response(response_data)
+        
+
+
+
+
+

@@ -336,3 +336,39 @@ def EvolucaoSemanaSerializer(subdometro, semana):
         })
 
     return semanas_campeonato
+
+def ContratosSerializer(contratos):
+    contratos_temp = []
+    for contrato in contratos:
+        contratos_temp.append({
+            "semana": str(contrato.semana),
+            "dataInicio": contrato.data_contrato.strftime("%d/%m/%Y"),
+            "dataFim": contrato.data_vencimento.strftime("%d/%m/%Y"),
+            "dataCadastro": contrato.data_criacao.strftime("%d/%m/%Y"),
+            "arquivo": contrato.arquivo1,
+            "tipo": str(contrato.tipo_contrato),
+            "valor": f"R$ {contrato.valor_contrato:.2f}" if contrato.valor_contrato else contrato.porcentagem_contrato,
+            "status": "Aprovado" if contrato.status == 1 else "Inativo"
+        })
+
+    return contratos_temp
+
+def EnviosSerializer(envios):
+    envios_temp = []
+    for envio in envios:
+        envios_temp.append({
+            "id": str(envio.id),
+            "data_cadastro": envio.data_cadastro.strftime("%Y-%m-%d"),
+            "data": envio.data.strftime("%Y-%m-%d"),
+            "semana": str(envio.semana),
+            "valor": f"R$ {envio.valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            "pontos": int(envio.pontos),
+            "arquivo1": envio.arquivo1,
+            "status": str(envio.status),
+            "status_str": status_map_pontos(envio.status),
+            "campeonato": envio.campeonato_id,
+        })
+
+    return envios_temp
+
+

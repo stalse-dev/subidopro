@@ -11,6 +11,7 @@ urlpatterns = [
     path("subidometro/<int:aluno_id>/", SubdometroAPIView.as_view(), name="subidometro"),
     path('extrato/<int:aluno_id>/', ExtratoAPIView.as_view(), name='extrato'),
     path('clientes/<int:aluno_id>/', ClientesAPIView.as_view(), name='clientes'),
+    path('detalhes_cliente/<int:cliente_id>/', DetalhesClientesAPIView.as_view(), name='detalhes_cliente'),
     path('meus_envios/<int:aluno_id>/', MeusEnviosAPIView.as_view(), name='meus_envios'),
     path('campeonato/', RankingSemanalAPIView.as_view(), name='campeonato'),
     
