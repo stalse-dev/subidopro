@@ -205,24 +205,52 @@ class ExtratoAPIView(APIView):
         })
 
 class ClientesAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, aluno_id):
         aluno = Alunos.objects.filter(id=aluno_id).first()
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
 
-        clientes = Aluno_clientes.objects.filter(aluno=aluno).order_by('-data_criacao')
+        clientes_data = Aluno_clientes.objects.filter(aluno=aluno).order_by('-data_criacao')
 
-        serializer = ClientesSerializer(clientes, many=True)
+        clientes = ClientesSerializer(clientes_data)
 
         return Response(
             {
                 "total_clientes": clientes.count(),
-                "clientes": serializer.data
+                "clientes": clientes
             }
         )
 
+class MeusEnviosAPIView(APIView):
+    #permission_classes = [IsAuthenticated]
 
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+        
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        semana = maior_semana_obj.semana
+        proximo_semana = semana + 1
+        envios_da_semana = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato_ativo, semana=proximo_semana).count()
+
+        envios_data = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato_ativo, data_cadastro__gte=campeonato_ativo.data_inicio).order_by('-data_cadastro')
+        envios = MeusEnviosSerializer(envios_data, campeonato_ativo.data_inicio)
+
+
+        return Response(
+            {
+                "total_envios": envios_da_semana,
+                "envios": envios
+            }
+        )
 
 

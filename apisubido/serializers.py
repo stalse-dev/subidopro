@@ -2,7 +2,19 @@ from rest_framework import serializers
 from subidometro.models import *
 from collections import defaultdict, OrderedDict
 from datetime import datetime
+from django.utils.timezone import make_aware, is_naive
+import calendar
+from datetime import datetime, timedelta
 
+
+def tipo_map(tipo):
+    tipos = {
+        2: "Recebimento",
+        3: "Certificação",
+        4: "Desafio",
+        5: "Manual"
+    }
+    return tipos.get(tipo, "Desconhecido")
 
 def status_map_pontos(status):
     return {
@@ -216,27 +228,77 @@ def AlunosRetencaoExtratoSerializer(retencoes, pontos_retencao):
 
     return retencao_temp
 
-class ClientesSerializer(serializers.ModelSerializer):
-    status_str = serializers.SerializerMethodField()
-    contratos_aprovados = serializers.SerializerMethodField()
-    contratos_pendentes = serializers.SerializerMethodField()
-    contratos_reprovados = serializers.SerializerMethodField()
+def ClientesSerializer(clientes):
+    clientes_temp = []
+    for cliente in clientes:
+        aluno_info = {
+            "id": cliente.id,
+            "titulo": cliente.titulo,
+            "tipo": "Pessoa Física" if cliente.tipo_cliente == 1 else "Pessoa Jurídica",
+            "contratos_aprovados": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=1).count()),
+            "contratos_pendentes": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=0).count()),
+            "contratos_reprovados": str(Aluno_clientes_contratos.objects.filter(cliente=cliente, status=2).count()),
+            "status_str": status_map(cliente.status),
+            "int_status": cliente.status,
+        }
+        
+        if cliente.status == 3:  # Caso o status seja "invalido"
+            aluno_info["motivo"] = cliente.descricao_invalido
+        
+        clientes_temp.append(aluno_info)
 
-    class Meta:
-        model = Aluno_clientes
-        fields = "__all__"
-        # Para incluir os novos campos mesmo com "__all__"
-        extra_fields = ['status_str', 'contratos_aprovados', 'contratos_pendentes', 'contratos_reprovados']
+    return clientes_temp
 
-    def get_status_str(self, obj):
-        return status_map(obj.status)
+def MeusEnviosSerializer(envios, data_inicio):
+    dados_por_semana = defaultdict(lambda: {"infos": {}, "envios": []})
 
-    def get_contratos_aprovados(self, obj):
-        return obj.contratos.filter(status=1).count()
+    for envio in envios:
+        if isinstance(envio.data_cadastro, datetime):
+            data_local = envio.data_cadastro
+        else:
+            data_local = datetime.combine(envio.data_cadastro, datetime.min.time())
 
-    def get_contratos_pendentes(self, obj):
-        return obj.contratos.filter(status=0).count()
+        if is_naive(data_local):
+            data_local = make_aware(data_local)
 
-    def get_contratos_reprovados(self, obj):
-        return obj.contratos.filter(status=2).count()
+        # Calcular a semana relativa ao campeonato
+        delta = (data_local.date() - data_inicio).days
+        semana_numero = (delta // 7) + 1  # Para começar a contagem da semana em 1
+        semana_key = str(semana_numero)
+
+        dia_semana = calendar.day_name[data_local.weekday()]
+
+        dados_por_semana[semana_key]["infos"] = {
+            "semana": semana_numero,
+            "data_inicio": (data_inicio + timedelta(weeks=semana_numero - 1)).strftime('%d/%m/%Y'),
+            "data_fim": (data_inicio + timedelta(weeks=semana_numero) - timedelta(days=1)).strftime('%d/%m/%Y'),
+        }
+
+        item = {
+            "data_criacao": data_local.strftime('%d/%m/%Y'),
+            "data": envio.data.strftime('%d/%m/%Y'),
+            "dia_semana": dia_semana,
+            "tipo": str(envio.tipo),
+            "tipo_descricao": tipo_map(envio.tipo),
+            "descricao": envio.descricao,
+            "pontos_efetivos": int(envio.pontos),
+            "pontos_preenchidos": int(envio.pontos_previsto or 0),
+            "status_str": status_map_pontos(envio.status),
+            "status": int(envio.status),
+            "semana": int(envio.semana)
+        }
+
+        if envio.valor:
+            item["valor"] = f"R$ {envio.valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        if envio.arquivo1:
+            item["arquivo"] = envio.arquivo1
+
+        dados_por_semana[semana_key]["envios"].append(item)
+
+    dados_ordenados = {
+        f"semana {semana}": dados_por_semana[semana]
+        for semana in sorted(dados_por_semana.keys(), key=int, reverse=True)
+    }
+
+    return dados_ordenados
 
