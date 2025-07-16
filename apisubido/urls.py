@@ -15,6 +15,7 @@ urlpatterns = [
     path('meus_envios/<int:aluno_id>/', MeusEnviosAPIView.as_view(), name='meus_envios'),
     path('campeonato/', RankingSemanalAPIView.as_view(), name='campeonato'),
     path("ponto_semanais_aluno/<int:aluno_id>/", PontosSemanaisAlunoAPIView.as_view(), name="ponto_semanais_aluno"),
+    path("ponto_semanais_cla/<int:cla_id>/", PontosSemanaisClaAPIView.as_view(), name="ponto_semanais_cla"),
     path("meu_cla/<int:aluno_id>/", MeuClaAPIView.as_view(), name="meu_cla"),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
