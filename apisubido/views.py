@@ -385,6 +385,57 @@ class MeuClaAPIView(APIView):
             "alunos": alunos
         })
 
+class PontosSemanaisAlunoAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, aluno_id):
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
 
+        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        posicoes = (
+            Alunos_posicoes_semana.objects
+            .filter(aluno=aluno, campeonato=campeonato_ativo)
+            .order_by("semana")
+        )
+
+        resultado = []
+        posicao_anterior = None
+
+        for registro in posicoes:
+            delta = None
+            tendencia = None
+
+            if posicao_anterior is not None:
+                delta = posicao_anterior - registro.posicao if registro.posicao is not None else None
+                if delta is not None:
+                    if delta > 0:
+                        tendencia = "subiu"
+                    elif delta < 0:
+                        tendencia = "desceu"
+                    else:
+                        tendencia = "manteve"
+            
+            resultado.append({
+                "semana": registro.semana,
+                "posicao": registro.posicao,
+                "delta": delta,
+                "tendencia": tendencia,
+                "pontos_recebimento": int(registro.pontos_recebimento),
+                "pontos_desafio": int(registro.pontos_desafio),
+                "pontos_certificacao": int(registro.pontos_certificacao),
+                "pontos_manual": int(registro.pontos_manual),
+                "pontos_contrato": int(registro.pontos_contrato),
+                "pontos_retencao": int(registro.pontos_retencao),
+                "pontos_totais": int(registro.pontos_totais),
+                "data": registro.data,
+            })
+
+            posicao_anterior = registro.posicao
+
+        return Response(resultado)
 
