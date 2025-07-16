@@ -350,7 +350,7 @@ class DetalhesClientesAPIView(APIView):
         return Response(response_data)
         
 class MeuClaAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, aluno_id):
         aluno = Alunos.objects.filter(id=aluno_id).first()
