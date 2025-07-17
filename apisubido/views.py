@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from alunos.views import cliente
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from subidometro.models import *
 from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Count, Func, CharField, IntegerField, Max, Q, Case, When
+from rest_framework import status
 from collections import defaultdict
 from .serializers import *
 
@@ -215,11 +217,14 @@ class ClientesAPIView(APIView):
 
         clientes_data = Aluno_clientes.objects.filter(aluno=aluno).order_by('-data_criacao')
 
+        if not clientes_data:
+            return Response({"detail": "Nenhum cliente encontrado."}, status=404)
+
         clientes = ClientesSerializer(clientes_data)
 
         return Response(
             {
-                "total_clientes": clientes.count(),
+                "total_clientes": clientes_data.count(),
                 "clientes": clientes
             }
         )

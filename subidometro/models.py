@@ -132,8 +132,8 @@ class Aluno_clientes_contratos(models.Model):
     rastreador_analise = models.IntegerField(null=True, blank=True)
     analise_data = models.DateTimeField(null=True, blank=True)
     camp_anterior = models.IntegerField(default=0)
-    id_camp_anterior = models.IntegerField(null=True, blank=True) # Valdiar com Inventandus
-
+    id_camp_anterior = models.IntegerField(null=True, blank=True)
+    
 class Alunos_clientes_pontos_meses_retencao(models.Model):
     id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
