@@ -210,6 +210,14 @@ def calculo_retencao_func(request):
 def calculo_ranking_func(request):
     campeonato_vigente, semana = calcular_semana_vigente()
     semana = semana + 1
+
+    ranking_ja_calculado = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato_vigente,
+        semana=semana
+    ).exists()
+
+    if ranking_ja_calculado: # Se existir, significa que já foi calculado
+        return HttpResponse("Ranking já calculado para esta semana.")
     
     resultado = ranking_streamer()
     ## Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking

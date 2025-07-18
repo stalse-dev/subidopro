@@ -47,7 +47,6 @@ class Mentoria_cla_pontos(models.Model):
     semana = models.IntegerField(null=True, blank=True)
     status = models.IntegerField(null=True, blank=True)
     
-
 class Mentoria_cla_posicao_semana(models.Model):
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_posicoes_semana_cla')
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_posicoes_semana_campeonato")
