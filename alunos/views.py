@@ -923,8 +923,8 @@ def exportar_ranking_semana_cla(request, semana):
 
     # Fechar o workbook e retornar a resposta
     workbook.close()
-    return HttpResponse("Erro ao exportar excel")
-    #return response
+    #return HttpResponse("Erro ao exportar excel")
+    return response
 
 @login_required
 def ranking_cla(request):

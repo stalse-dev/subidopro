@@ -38,6 +38,15 @@ class Mentoria_cla(models.Model):
     def __str__(self):
         return self.nome
 
+class Mentoria_cla_pontos(models.Model):
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_pontos_cla')
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_pontos_campeonato")
+    pontos = models.DecimalField(max_digits=10, decimal_places=2)
+    descricao = models.CharField(max_length=255, null=True, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    semana = models.IntegerField(null=True, blank=True)
+    status = models.IntegerField(null=True, blank=True)
+    
 class Mentoria_cla_posicao_semana(models.Model):
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_posicoes_semana_cla')
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_posicoes_semana_campeonato")
@@ -51,6 +60,7 @@ class Mentoria_cla_posicao_semana(models.Model):
     pontos_contrato = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     pontos_retencao = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     pontos_totais = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    rastreador = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.cla} - {self.semana} - {self.posicao}"
@@ -132,8 +142,8 @@ class Aluno_clientes_contratos(models.Model):
     rastreador_analise = models.IntegerField(null=True, blank=True)
     analise_data = models.DateTimeField(null=True, blank=True)
     camp_anterior = models.IntegerField(default=0)
-    id_camp_anterior = models.IntegerField(null=True, blank=True)
-    
+    id_camp_anterior = models.IntegerField(null=True, blank=True) # Valdiar com Inventandus
+
 class Alunos_clientes_pontos_meses_retencao(models.Model):
     id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")

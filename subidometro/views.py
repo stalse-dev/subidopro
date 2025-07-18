@@ -209,9 +209,17 @@ def calculo_retencao_func(request):
         
 def calculo_ranking_func(request):
     campeonato_vigente, semana = calcular_semana_vigente()
+
+    ranking_ja_calculado = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato_vigente,
+        semana=semana
+    ).exists()
+
+    if ranking_ja_calculado: # Se existir, significa que já foi calculado
+        return HttpResponse("Ranking já calculado para esta semana.")
     
     resultado = ranking_streamer()
-    ### Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
+    ## Criar novo registro na tabela Alunos_posicoes_semana para cada aluno com ranking
     for posicao in resultado:
         Alunos_posicoes_semana.objects.create(
             aluno_id=posicao.id,
@@ -257,6 +265,15 @@ def calculo_ranking_func(request):
 
     # Salvar a posição dos clãs na semana
     for rank, (cla_id, pontos) in enumerate(ranking_cla, start=1):
+        pontos_anteriores_cla = Mentoria_cla_pontos.objects.filter(
+            cla_id=cla_id,
+            campeonato=campeonato_vigente,
+        ).aggregate(total_pontos=Sum('pontos'))
+        
+        soma_pontos_cla_existente = pontos_anteriores_cla['total_pontos'] or 0
+
+        pontos["pontos_totais"] = (pontos["pontos_totais"] or 0) + soma_pontos_cla_existente
+
         Mentoria_cla_posicao_semana.objects.create(
             cla_id=cla_id,
             semana=semana,
