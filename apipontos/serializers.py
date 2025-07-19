@@ -117,3 +117,30 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
 
         return envio
 
+class AlunoDesafioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Aluno_desafio
+        fields = ["id", "aluno", "campeonato", "desafio", "descricao", "texto", "rastreador_analise",
+                "data_cadastro", "data_analise", "status", "status_motivo", "status_comentario", "semana"]
+     
+class AlunoCertificacaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Aluno_certificacao
+        fields = ["id", "aluno", "campeonato", "descricao", "data_cadastro", "data_analise",
+                "status", "status_motivo", "status_comentario", "semana", "pontos"]
+        
+    def create(self, validated_data):
+        validated_data['tipo'] = 3
+
+        return super().create(validated_data)
+
+class AlunoManualSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Aluno_certificacao
+        fields = ["id", "aluno", "campeonato", "descricao", "data_cadastro", "data_analise",
+                "status", "status_motivo", "status_comentario", "semana", "pontos"]
+        
+    def create(self, validated_data):
+        validated_data['tipo'] = 5
+        return super().create(validated_data)
+

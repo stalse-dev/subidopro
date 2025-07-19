@@ -108,6 +108,7 @@ class HomeAPIView(APIView):
 
 class RankingSemanalAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = RankAlunoDetalhesSerializer
 
     def get(self, request):
         campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
@@ -209,6 +210,7 @@ class ExtratoAPIView(APIView):
 
 class ClientesAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = ClientesSerializer
 
     def get(self, request, aluno_id):
         aluno = Alunos.objects.filter(id=aluno_id).first()
@@ -314,6 +316,7 @@ class SubdometroAPIView(APIView):
 
 class DetalhesClientesAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = AlunoClientesSerializer
 
     def get(self, request, cliente_id):
         cliente = Aluno_clientes.objects.filter(id=cliente_id).first()

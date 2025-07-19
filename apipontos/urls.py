@@ -10,4 +10,13 @@ urlpatterns = [
 
     path('envio_criar/', AlunoEnvioCreateAPIView.as_view(), name='envio_criar'),
     path('envio_detalhes/<int:pk>/', AlunoEnvioDetailAPIView.as_view(), name='envio_detalhes'),
+
+    path('desafio_criar/', AlunoDesafioCreateAPIView.as_view(), name='desafio_criar'),
+    path('desafio_detalhes/<int:pk>/', AlunoDesafioDetailAPIView.as_view(), name='desafio_detalhes'),
+
+    path('certificacao_criar/', AlunoCertificacaoCreateAPIView.as_view(), name='certificacao_criar'),
+    path('certificacao_detalhes/<int:pk>/', AlunoCertificacaoDetailAPIView.as_view(), name='certificacao_detalhes'),
+
+    path('manual_criar/', AlunoManualCreateAPIView.as_view(), name='manual_criar'),
+    path('manual_detalhes/<int:pk>/', AlunoManualDetailAPIView.as_view(), name='manual_detalhes'),
 ]
