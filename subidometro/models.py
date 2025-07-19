@@ -22,6 +22,10 @@ class Desafios(models.Model):
     data_inicio = models.DateTimeField(null=True, blank=True)
     data_fim = models.DateTimeField(null=True, blank=True)
 
+    pontos_7_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontos_14_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontos_21_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
     def __str__(self):
         return self.titulo
 
