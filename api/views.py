@@ -1108,6 +1108,20 @@ def recebimentos_alunos(request, aluno_id):
 def painel_inicial_aluno(request, aluno_id):
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
     campeonato_vigente, semana_subidometro = calcular_semana_vigente()
+    # Buscar semana mais recente
+    maior_semana_obj = (
+        Alunos_posicoes_semana.objects
+        .filter(campeonato=campeonato_vigente)
+        .order_by('-semana')
+        .only('semana')
+        .first()
+    )
+    if not maior_semana_obj:
+        return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+
+    semana_subidometro = maior_semana_obj.semana
+
+
     data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
     # Buscar faturamento dos envios# Somar Valores de todos os envios que o tipo de contrato seja = 2
