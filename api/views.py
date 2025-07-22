@@ -215,8 +215,6 @@ def criar_envio(envio_data):
         )
         novo_envio.save()
 
-
-        #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
             data_limite = make_aware(datetime(2025, 3, 1))
@@ -249,7 +247,6 @@ def criar_envio(envio_data):
     elif tipo == 4: #Tabela de Desafios tipo 4 = envio de desafio
 
 
-        #Verificar se desafio já existe
         desafio_envio = Aluno_desafio.objects.filter(id=int(envio_data.get("id"))).first()
         if desafio_envio:
             return Response({"message": "Desafio já existente!"}, status=status.HTTP_400_BAD_REQUEST)
