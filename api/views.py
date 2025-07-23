@@ -215,6 +215,8 @@ def criar_envio(envio_data):
         )
         novo_envio.save()
 
+
+        #### validar pontos de contrato
         contagem_contratos = cliente.cliente_aluno_contrato.count()
         if contagem_contratos == 0:
             data_limite = make_aware(datetime(2025, 3, 1))
@@ -247,6 +249,7 @@ def criar_envio(envio_data):
     elif tipo == 4: #Tabela de Desafios tipo 4 = envio de desafio
 
 
+        #Verificar se desafio já existe
         desafio_envio = Aluno_desafio.objects.filter(id=int(envio_data.get("id"))).first()
         if desafio_envio:
             return Response({"message": "Desafio já existente!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -425,7 +428,6 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente = get_object_or_404(Aluno_clientes, id=cliente_id)
     aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
     novo_status = int(aluno_data.get("status"))
-    #Validar alteração de Status
     if aluno_cliente.status != novo_status:
         if novo_status == 2:
             envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
@@ -939,13 +941,16 @@ def recebimentos_alunos(request, aluno_id):
 
     pontos_campeonato = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=Campeonato, semana=semana).first()
 
+    pontos_desafio = 0
+    pontos_certificacao = 0
+    pontos_contrato = 0
+    pontos_retencao = 0
+
     if pontos_campeonato:
         pontos_desafio = int(round(pontos_campeonato.pontos_desafio or 0))
         pontos_certificacao = int(round(pontos_campeonato.pontos_certificacao or 0))
         pontos_contrato = int(round(pontos_campeonato.pontos_contrato or 0))
         pontos_retencao = int(round(pontos_campeonato.pontos_retencao or 0))
-    else:
-        pontos_retencao = 0
 
 
     # Filtra os pontos por categoria
@@ -1571,9 +1576,28 @@ def meu_cla(request, aluno_id):
             "ranking": rank_semanal.posicao if rank_semanal else None,
         }
 
+
+    # Lista de pontos do clã
+    pontos_cla_qs = Mentoria_cla_pontos.objects.filter(
+        cla=cla,
+        campeonato=campeonato
+    ).order_by('-data_cadastro')
+
+    pontos_cla_data = []
+    for ponto in pontos_cla_qs:
+        pontos_cla_data.append({
+            "pontos": int(round(ponto.pontos, 0)),
+            "descricao": ponto.descricao or "",
+            "semana": ponto.semana,
+            "dataCadastro": ponto.data_cadastro.strftime('%d/%m/%Y') if ponto.data_cadastro else "",
+            "status": ponto.status
+        })
+
+
     return Response({
         "meuClaDetalhes": meu_cla_detalhes,
-        "alunos": alunos_data
+        "alunos": alunos_data,
+        "pontosCla": pontos_cla_data
     })
 
 

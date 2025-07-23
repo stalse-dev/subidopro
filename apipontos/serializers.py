@@ -5,107 +5,71 @@ from django.utils.timezone import make_aware
 from datetime import datetime, date
 from datetime import timedelta
 from django.utils import timezone
-
+from .utils import *
 
 
 class AlunoClientesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_clientes
-        fields = ["id", "titulo", "estrangeiro", "tipo_cliente", "tipo_contrato",
-                "sociedade", "cliente_antes_subidopro", "documento_antigo", "documento",
-                "telefone", "email", "data_criacao",
-                "rastreador", "status", "motivo_invalido",
-                "descricao_invalido", "sem_pontuacao", "rastreador_analise", "campeonato", "aluno"]
+        fields = [
+            "id", "titulo", "estrangeiro", "tipo_cliente", "tipo_contrato",
+            "sociedade", "cliente_antes_subidopro", "documento_antigo", "documento",
+            "telefone", "email", "data_criacao",
+            "rastreador", "status", "motivo_invalido",
+            "descricao_invalido", "sem_pontuacao", "rastreador_analise", "campeonato", "aluno"
+        ]
         
     def update(self, instance, validated_data):
-        """
-        Método para atualizar o objeto Aluno_clientes.
-        """
         novo_status = validated_data.get('status')
         instance = super().update(instance, validated_data)
 
         if novo_status == 2:
             instance.contratos.all().update(status=2)
-        
-        instance.save()
+            instance.envios_cliente_cl.all().update(status=2)
+            instance.alunosclientespontosestemesretencao_set.all().delete()
+            instance.cliente_aluno_contrato.all().delete()
+
         return instance
 
 class AlunoClientesContratosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_clientes_contratos
-        fields = ["id","cliente", "tipo_contrato", "valor_contrato", 
-                "porcentagem_contrato", "data_contrato", "data_vencimento", 
-                "data_criacao", "arquivo1", "status", "data_contrato", "data_vencimento", "data_criacao",
-                "motivo_invalido", "descricao_invalido", "rastreador_analise", "analise_data"]
+        fields = [
+            "id", "cliente", "tipo_contrato", "valor_contrato", 
+            "porcentagem_contrato", "data_contrato", "data_vencimento", 
+            "data_criacao", "arquivo1", "status", 
+            "motivo_invalido", "descricao_invalido", "rastreador_analise", "analise_data"
+        ]
+    
+    def update(self, instance, validated_data):
+        old_tipo_contrato = instance.tipo_contrato
+        novo_status = validated_data.get('status')
+
+        instance = super().update(instance, validated_data)
+
+        novo_tipo_contrato = validated_data.get('tipo_contrato', instance.tipo_contrato)
+
+        if novo_status == 2:
+            instance.envios_contrato_cl.all().update(status=2)
+            instance.alunosclientespontosestemesretencao_set.all().delete()
+            instance.contrato_aluno_contrato.all().delete()
+
+        if old_tipo_contrato != novo_tipo_contrato:
+            recalculate_contract_related_items(instance, novo_tipo_contrato == 2)
+        
+        return instance
 
 class AlunoEnvioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_envios
         fields = ["id", "aluno", "cliente", "contrato", "campeonato", "data", "descricao", "valor", "arquivo1", "arquivo1_motivo", "arquivo1_status",
                   "data_cadastro", "rastreador_analise", "status", "status_motivo", "status_comentario", "semana"]
-        read_only_fields = ["pontos", "pontos_previsto", "valor_calculado"] # Adicione campos calculados como read-only
-
-    def gera_pontos(self, valor):
-        valor = float(valor)
-        return int((valor // 100) * 10)
-
-    def gera_pontos_contrato(self, valor):
-        if valor >= 0 and valor < 1000:
-            return 60
-        elif valor >= 1000 and valor < 3000:
-            return 480
-        elif valor >= 3000 and valor < 5000:
-            return 1080
-        elif valor >= 5000 and valor < 9000:
-            return 1920
-        elif valor >= 9000:
-            return 2460
-        else:
-            return 0
-
-    def _calculate_points_and_values(self, validated_data, instance=None):
-        """
-        Método auxiliar para calcular pontos e valores, usado tanto em create quanto em update.
-        """
-        data_envio = validated_data.get("data", getattr(instance, 'data', date.today()))
-        campeonato = validated_data.get("campeonato", getattr(instance, 'campeonato', None))
-        contrato = validated_data.get("contrato", getattr(instance, 'contrato', None))
-        valor = validated_data.get("valor", getattr(instance, 'valor', 0))
-
-        if not campeonato:
-            campeonato = Campeonato.objects.filter(ativo=True).first()
-            validated_data["campeonato"] = campeonato
-
-        pontos = 0
-        pontos_previsto = 0
-        valor_calculado = 0
-
-        # Cálculo padrão de pontos
-        if contrato and contrato.tipo_contrato == 2:
-            valor_minimo = float(valor) * 0.1
-            valor_calculado = valor_minimo
-        else:
-            valor_calculado = valor
-
-        if campeonato and data_envio >= campeonato.data_inicio:
-            if contrato and contrato.tipo_contrato == 2:
-                pontos = self.gera_pontos(valor_minimo)
-                pontos_previsto = pontos
-            else:
-                pontos = self.gera_pontos(valor)
-                pontos_previsto = pontos
-        else:
-            pontos = 0
-            pontos_previsto = 0
-            
-        validated_data["pontos"] = pontos
-        validated_data["pontos_previsto"] = pontos_previsto
-        validated_data["valor_calculado"] = valor_calculado
-        
-        return validated_data
+        read_only_fields = ["pontos", "pontos_previsto", "valor_calculado"]
 
     def create(self, validated_data):
-        validated_data = self._calculate_points_and_values(validated_data)
+        calculated_data = calculate_points_and_values_for_entity(validated_data)
+        validated_data.update(calculated_data)
+        
         envio = super().create(validated_data)
 
         cliente = validated_data.get("cliente")
@@ -120,14 +84,13 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
         if cliente_cont_envios == 0 and campeonato and cliente_pontos_contrato == 0:
             data_limite = campeonato.data_inicio
             if cliente.data_criacao and cliente.data_criacao.date() > data_limite:
+                valor_final_contrato = float(valor)
                 if contrato.tipo_contrato == 2:
-                    valor_final = float(valor) * 0.1
-                    pontos_contrato = self.gera_pontos_contrato(valor_final)
-                    contrato.valor_contrato = valor_final
+                    valor_final_contrato = valor_final_contrato * 0.1
+                    contrato.valor_contrato = valor_final_contrato
                     contrato.save()
-                else:
-                    valor_final = float(valor)
-                    pontos_contrato = self.gera_pontos_contrato(valor_final)
+                
+                pontos_contrato = gera_pontos_contrato(valor_final_contrato)
 
                 Aluno_contrato.objects.create(
                     campeonato=campeonato,
@@ -136,7 +99,7 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
                     contrato=contrato,
                     envio=envio,
                     descricao=validated_data.get("descricao"),
-                    valor=valor,
+                    valor=valor_final_contrato,
                     data=validated_data.get("data"),
                     data_cadastro=validated_data.get("data_cadastro") or make_aware(datetime.now()),
                     pontos=pontos_contrato,
@@ -166,12 +129,11 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
         instance.contrato = validated_data.get('contrato', instance.contrato)
         instance.campeonato = validated_data.get('campeonato', instance.campeonato)
 
-        validated_data = self._calculate_points_and_values(validated_data, instance=instance)
-        instance.pontos = validated_data.get('pontos')
-        instance.pontos_previsto = validated_data.get('pontos_previsto')
-        instance.valor_calculado = validated_data.get('valor_calculado')
+        calculated_data = calculate_points_and_values_for_entity(validated_data, instance=instance)
         
-        
+        instance.pontos = calculated_data.get('pontos')
+        instance.pontos_previsto = calculated_data.get('pontos_previsto')
+        instance.valor_calculado = calculated_data.get('valor_calculado')
 
         if ('valor' in validated_data and validated_data['valor'] != old_valor) or \
            ('data' in validated_data and validated_data['data'] != old_data):
@@ -183,28 +145,28 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
                 if instance.contrato and instance.contrato.tipo_contrato == 2:
                     valor_para_contrato = float(instance.valor) * 0.1
 
-                pontos_contrato_atualizados = self.gera_pontos_contrato(valor_para_contrato)
+                pontos_contrato_atualizados = gera_pontos_contrato(valor_para_contrato)
                 
                 aluno_contrato_obj.valor = valor_para_contrato
                 aluno_contrato_obj.pontos = pontos_contrato_atualizados
                 aluno_contrato_obj.data = instance.data
                 aluno_contrato_obj.save()
 
-        if ('status' in validated_data and validated_data['status'] == 2):
+        if 'status' in validated_data and validated_data['status'] == 2:
             instance.pontos = 0
             aluno_contrato_obj = Aluno_contrato.objects.filter(cliente=instance.cliente).first()
-            cliente_cont_envios = instance.cliente.envios_cliente_cl.filter(status=3).count()
-            if cliente_cont_envios == 1 and aluno_contrato_obj:
+            
+            cliente_cont_envios_ativos = instance.cliente.envios_cliente_cl.filter(status=3).exclude(pk=instance.pk).count()
+            
+            if cliente_cont_envios_ativos == 0 and aluno_contrato_obj:
                 aluno_contrato_obj.delete()
 
-
-        elif ('status' in validated_data and validated_data['status'] == 3):
+        elif 'status' in validated_data and validated_data['status'] == 3:
             instance.pontos = instance.pontos_previsto
             aluno_contrato_obj = Aluno_contrato.objects.filter(envio=instance).first()
             if aluno_contrato_obj:
                 aluno_contrato_obj.status = 3
                 aluno_contrato_obj.save()
-
 
         instance.save()
         return instance
@@ -278,8 +240,7 @@ class AlunoDesafioSerializer(serializers.ModelSerializer):
             instance.save()
         
         return instance
-
-     
+    
 class AlunoCertificacaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_certificacao
