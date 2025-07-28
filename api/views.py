@@ -1274,6 +1274,7 @@ def meus_envios(request, aluno_id):
             "pontosEfetivos": int(envio.pontos),
             "pontosPreenchidos": int(envio.pontos_previsto or 0),
             "statusDescricao": obter_status_descricao(envio.status),
+            "statusComentario": envio.status_comentario or "",
             "status": int(envio.status),
             "semana": int(envio.semana)
         }
