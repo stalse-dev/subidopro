@@ -110,8 +110,8 @@ class RankingSemanalAPIView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = RankAlunoDetalhesSerializer
 
-    def get(self, request):
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+    def get(self, request, campeonato_id):
+        campeonato_ativo = Campeonato.objects.filter(id=campeonato_id, ativo=True).first()
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 
@@ -500,5 +500,4 @@ class PontosSemanaisClaAPIView(APIView):
             posicao_anterior = registro.posicao
 
         return Response(resultado)
-
 
