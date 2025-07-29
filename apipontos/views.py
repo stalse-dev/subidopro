@@ -460,4 +460,69 @@ class DesafioDetailAPIView(APIView):
         desafio.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+class CampeonatoCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CampeonatoSerializer
+
+    @extend_schema(
+        request=CampeonatoSerializer,
+        responses=CampeonatoSerializer
+    )
+    def post(self, request):
+        serializer = CampeonatoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CampeonatoDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        return get_object_or_404(Campeonato, pk=pk)
+
+    @extend_schema(
+        responses=CampeonatoSerializer(many=True),
+        description="Lista todos os campeonatos ou retorna um específico pelo ID."
+    )
+    def get(self, request, pk=None):
+        if pk is None:
+            campeonatos = Campeonato.objects.all()
+            serializer = CampeonatoSerializer(campeonatos, many=True)
+            return Response(serializer.data)
+        campeonato = self.get_object(pk)
+        serializer = CampeonatoSerializer(campeonato)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=CampeonatoSerializer,
+        responses=CampeonatoSerializer
+    )
+    def put(self, request, pk):
+        campeonato = self.get_object(pk)
+        serializer = CampeonatoSerializer(campeonato, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=CampeonatoSerializer,
+        responses=CampeonatoSerializer,
+        description="Atualiza parcialmente um campeonato existente (PATCH)."
+    )
+    def patch(self, request, pk):
+        campeonato = self.get_object(pk)
+        serializer = CampeonatoSerializer(campeonato, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        campeonato = self.get_object(pk)
+        campeonato.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
 

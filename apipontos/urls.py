@@ -24,6 +24,8 @@ urlpatterns = [
     path('manual_detalhes/<int:pk>/', AlunoManualDetailAPIView.as_view(), name='manual_detalhes'),
 
     path('aluno_criar/', AlunoCreateAPIView.as_view(), name='aluno_criar'),
-    path('aluno_detalhes/<int:pk>/', AlunoDetailAPIView.as_view(), name='aluno_detalhes')
+    path('aluno_detalhes/<int:pk>/', AlunoDetailAPIView.as_view(), name='aluno_detalhes'),
+
+    path('campeonato_criar/', CampeonatoCreateAPIView.as_view(), name='campeonato_criar'),
+    path('campeonato_detalhes/<int:pk>/', CampeonatoDetailAPIView.as_view(), name='campeonato_detalhes'),
 ]
-''

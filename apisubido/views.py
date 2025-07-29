@@ -14,7 +14,13 @@ class HomeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, aluno_id):
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        aluno = Alunos.objects.filter(id=aluno_id).first()
+        if not aluno:
+            return Response({"detail": "Aluno não encontrado."}, status=404)
+        
+        campeonato_ativo = aluno.campeonato
+
+        #campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
 
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)

@@ -8,6 +8,14 @@ from django.utils import timezone
 from .utils import *
 
 
+class CampeonatoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Campeonato
+        fields = [
+            "id", "identificacao", "descricao", "data_inicio", "data_fim", "imagem", "regra_pdf", "turma", "ativo"
+        ]
+        read_only_fields = ["id"]
+
 class AlunoClientesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_clientes
