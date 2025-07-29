@@ -72,6 +72,7 @@ class Mentoria_cla_posicao_semana(models.Model):
 class Alunos(models.Model):
     nome_completo = models.CharField(max_length=255, null=True, blank=True, db_column="nome_completo")
     nome_social = models.CharField(max_length=255, null=True, blank=True, db_column="nome_social")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_campeonato")
     apelido = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=255, null=True, blank=True)
     data_criacao = models.DateTimeField(null=True, blank=True, db_column="data_criacao")
@@ -82,6 +83,7 @@ class Alunos(models.Model):
     nivel = models.IntegerField(null=True, blank=True, default=0)
     aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
     tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")
+    
 
     def __str__(self):
         return self.nome_completo
