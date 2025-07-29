@@ -350,3 +350,114 @@ class AlunoManualDetailAPIView(APIView):
         manual.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+class AlunoCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AlunoSerializer
+
+    @extend_schema(request=AlunoSerializer, responses=AlunoSerializer)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+ 
+class AlunoDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AlunoSerializer
+
+    def get_object(self, pk):
+        return get_object_or_404(Alunos, pk=pk)
+    
+    def get(self, request, pk):
+        aluno = self.get_object(pk)
+        serializer = AlunoSerializer(aluno)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        request=AlunoSerializer,
+        responses=AlunoSerializer   
+    )
+    def put(self, request, pk):
+        aluno = self.get_object(pk)
+        serializer = AlunoSerializer(aluno, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @extend_schema(
+        request=AlunoSerializer,
+        responses=AlunoSerializer,
+        description="Atualiza parcialmente um aluno existente (PATCH)."
+    )
+    def patch(self, request, pk):
+        aluno = self.get_object(pk)
+        serializer = AlunoSerializer(aluno, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        aluno = self.get_object(pk)
+        aluno.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class DesafioCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DesafioSerializer
+
+    @extend_schema(
+        request=DesafioSerializer,
+        responses=DesafioSerializer
+    )
+    def post(self, request):
+        serializer = DesafioSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class DesafioDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DesafioSerializer
+
+    def get_object(self, pk):
+        return get_object_or_404(Desafios, pk=pk)
+
+    def get(self, request, pk):
+        desafio = self.get_object(pk)
+        serializer = DesafioSerializer(desafio)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=DesafioSerializer,
+        responses=DesafioSerializer
+    )
+    def put(self, request, pk):
+        desafio = self.get_object(pk)
+        serializer = DesafioSerializer(desafio, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=DesafioSerializer,
+        responses=DesafioSerializer,
+        description="Atualiza parcialmente um desafio existente (PATCH)."
+    )
+    def patch(self, request, pk):
+        desafio = self.get_object(pk)
+        serializer = DesafioSerializer(desafio, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        desafio = self.get_object(pk)
+        desafio.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+

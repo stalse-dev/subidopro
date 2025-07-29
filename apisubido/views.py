@@ -501,3 +501,4 @@ class PontosSemanaisClaAPIView(APIView):
 
         return Response(resultado)
 
+

@@ -11,12 +11,19 @@ urlpatterns = [
     path('envio_criar/', AlunoEnvioCreateAPIView.as_view(), name='envio_criar'),
     path('envio_detalhes/<int:pk>/', AlunoEnvioDetailAPIView.as_view(), name='envio_detalhes'),
 
-    path('desafio_criar/', AlunoDesafioCreateAPIView.as_view(), name='desafio_criar'),
-    path('desafio_detalhes/<int:pk>/', AlunoDesafioDetailAPIView.as_view(), name='desafio_detalhes'),
+    path('desafio_criar/', DesafioCreateAPIView.as_view(), name='desafio_criar'),
+    path('desafio_detalhes/<int:pk>/', DesafioDetailAPIView.as_view(), name='desafio_detalhes'),
+
+    path('desafio_aluno_criar/', AlunoDesafioCreateAPIView.as_view(), name='desafio_aluno_criar'),
+    path('desafio_aluno_detalhes/<int:pk>/', AlunoDesafioDetailAPIView.as_view(), name='desafio_aluno_detalhes'),
 
     path('certificacao_criar/', AlunoCertificacaoCreateAPIView.as_view(), name='certificacao_criar'),
     path('certificacao_detalhes/<int:pk>/', AlunoCertificacaoDetailAPIView.as_view(), name='certificacao_detalhes'),
 
     path('manual_criar/', AlunoManualCreateAPIView.as_view(), name='manual_criar'),
     path('manual_detalhes/<int:pk>/', AlunoManualDetailAPIView.as_view(), name='manual_detalhes'),
+
+    path('aluno_criar/', AlunoCreateAPIView.as_view(), name='aluno_criar'),
+    path('aluno_detalhes/<int:pk>/', AlunoDetailAPIView.as_view(), name='aluno_detalhes')
 ]
+''

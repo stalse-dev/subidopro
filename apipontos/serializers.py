@@ -171,6 +171,16 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class DesafioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Desafios
+        fields = [
+            "id", "titulo", "descricao", "data_inicio", "data_fim", 
+            "pontos_7_dias", "pontos_14_dias", "pontos_21_dias", 
+            "status"
+        ]
+        read_only_fields = ["id", "data_cadastro"]
+
 class AlunoDesafioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_desafio
@@ -195,6 +205,8 @@ class AlunoDesafioSerializer(serializers.ModelSerializer):
         # dias_para_fim = (desafio_obj.data_fim - data_cadastro).days 
 
         pontos_calculados = 0
+
+        print(f"Calculando pontos para desafio: {desafio_obj.titulo}, dias desde início: {dias_desde_inicio}, data cadastro: {data_cadastro}")
 
         if dias_desde_inicio <= 7 and desafio_obj.pontos_7_dias is not None:
             pontos_calculados = desafio_obj.pontos_7_dias
@@ -262,3 +274,8 @@ class AlunoManualSerializer(serializers.ModelSerializer):
         validated_data['tipo'] = 5
         return super().create(validated_data)
 
+class AlunoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alunos
+        fields = ["id", "nome_completo", "email", "status", "nivel", "cla", "data_criacao"]
+        read_only_fields = ["id", "data_criacao"]

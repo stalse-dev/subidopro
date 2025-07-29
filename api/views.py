@@ -428,6 +428,7 @@ def alterar_aluno_cliente(aluno_data):
     aluno_cliente = get_object_or_404(Aluno_clientes, id=cliente_id)
     aluno = get_object_or_404(Alunos, id=int(aluno_data.get("aluno")))
     novo_status = int(aluno_data.get("status"))
+    #Validar alteração de Status
     if aluno_cliente.status != novo_status:
         if novo_status == 2:
             envios_alterados = Aluno_envios.objects.filter(cliente=aluno_cliente)
@@ -1273,6 +1274,7 @@ def meus_envios(request, aluno_id):
             "pontosEfetivos": int(envio.pontos),
             "pontosPreenchidos": int(envio.pontos_previsto or 0),
             "statusDescricao": obter_status_descricao(envio.status),
+            "statusComentario": envio.status_comentario or "",
             "status": int(envio.status),
             "semana": int(envio.semana)
         }
