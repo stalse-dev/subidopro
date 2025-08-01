@@ -524,5 +524,60 @@ class CampeonatoDetailAPIView(APIView):
         campeonato.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+class ClaCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ClaSerializer
 
+    @extend_schema(
+        request=ClaSerializer,
+        responses=ClaSerializer
+    )
+    def post(self, request):
+        serializer = ClaSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ClaDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ClaSerializer
 
+    def get_object(self, pk):
+        return get_object_or_404(Mentoria_cla, pk=pk)
+    
+    def get(self, request, pk):
+        cla = self.get_object(pk)
+        serializer = ClaSerializer(cla)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        request=ClaSerializer,
+        responses=ClaSerializer
+    )
+    def put(self, request, pk):
+        cla = self.get_object(pk)
+
+        serializer = ClaSerializer(cla, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=ClaSerializer,
+        responses=ClaSerializer,
+        description="Atualiza parcialmente um CLA existente (PATCH)."
+    )
+    def patch(self, request, pk):
+        cla = self.get_object(pk)
+        serializer = ClaSerializer(cla, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        cla = self.get_object(pk)
+        cla.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

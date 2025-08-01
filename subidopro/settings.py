@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'subidometro',
     'alunos',
     'apisubido',
+    'calculadora_pontos',
+    'teste_app',
 ]
 WSGI_APPLICATION = 'subidopro.wsgi.application'
 

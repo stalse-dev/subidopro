@@ -71,7 +71,7 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aluno_envios
         fields = ["id", "aluno", "cliente", "contrato", "campeonato", "data", "descricao", "valor", "arquivo1", "arquivo1_motivo", "arquivo1_status",
-                  "data_cadastro", "rastreador_analise", "status", "status_motivo", "status_comentario", "semana"]
+                  "data_cadastro", "rastreador_analise", "status", "status_motivo", "status_comentario", "semana", "pontos", "pontos_previsto", "valor_calculado"]
         read_only_fields = ["pontos", "pontos_previsto", "valor_calculado"]
 
     def create(self, validated_data):
@@ -285,5 +285,11 @@ class AlunoManualSerializer(serializers.ModelSerializer):
 class AlunoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Alunos
-        fields = ["id", "nome_completo", "email", "status", "nivel", "cla", "data_criacao"]
+        fields = ["id", "nome_completo", "email", "status", "nivel", "cla", "campeonato", "data_criacao"]
         read_only_fields = ["id", "data_criacao"]
+
+class ClaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mentoria_cla
+        fields = ["id", "campeonato", "nome", "descricao", "sigla"]
+        read_only_fields = ["id"]

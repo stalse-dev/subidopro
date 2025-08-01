@@ -28,4 +28,7 @@ urlpatterns = [
 
     path('campeonato_criar/', CampeonatoCreateAPIView.as_view(), name='campeonato_criar'),
     path('campeonato_detalhes/<int:pk>/', CampeonatoDetailAPIView.as_view(), name='campeonato_detalhes'),
+
+    path('cla_criar/', ClaCreateAPIView.as_view(), name='cla_criar'),
+    path('cla_detalhes/<int:pk>/', ClaDetailAPIView.as_view(), name='cla_detalhes'),
 ]

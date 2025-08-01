@@ -31,15 +31,8 @@ class HomeAPIView(APIView):
 
         maior_semana_obj = top10_cla_qs.first()
         
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada para o campeonato ativo."}, status=404)
-    
-        maior_semana = maior_semana_obj.semana
-
-        aluno = Alunos.objects.filter(id=aluno_id).first()
-
-        if not aluno:
-            return Response({"detail": "Aluno não encontrado."}, status=404)
+        if maior_semana_obj: maior_semana = maior_semana_obj.semana
+        else: maior_semana = 0
 
 
         total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
@@ -157,17 +150,17 @@ class ExtratoAPIView(APIView):
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
         
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        campeonato_ativo = aluno.campeonato
+        
+        #campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
 
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 
         maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
 
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
-        
-        semana = maior_semana_obj.semana
+        if maior_semana_obj: semana = maior_semana_obj.semana
+        else: semana = 0
 
         pontos_campeonato = Alunos_posicoes_semana.objects.filter(aluno=aluno, campeonato=campeonato_ativo, semana=semana).first()
 
@@ -178,6 +171,10 @@ class ExtratoAPIView(APIView):
             pontos_contrato = int(round(pontos_campeonato.pontos_contrato or 0))
             pontos_retencao = int(round(pontos_campeonato.pontos_retencao or 0))
         else:
+            pontos_desafio = 0
+            pontos_certificacao = 0
+            pontos_manual = 0
+            pontos_contrato = 0
             pontos_retencao = 0
 
 
@@ -245,14 +242,14 @@ class MeusEnviosAPIView(APIView):
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
         
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        campeonato_ativo = aluno.campeonato
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 
         maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
-        semana = maior_semana_obj.semana
+        if maior_semana_obj: semana = maior_semana_obj.semana
+        else: semana = 0
+
         proximo_semana = semana + 1
         envios_da_semana = Aluno_envios.objects.filter(aluno=aluno, campeonato=campeonato_ativo, semana=proximo_semana).count()
 
@@ -262,6 +259,8 @@ class MeusEnviosAPIView(APIView):
 
         return Response(
             {
+                "campeonato": campeonato_ativo.identificacao,
+                "semana": semana,
                 "total_envios": envios_da_semana,
                 "envios": envios
             }
@@ -275,14 +274,13 @@ class SubdometroAPIView(APIView):
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
 
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        campeonato_ativo = aluno.campeonato
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 
         maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
-        semana = maior_semana_obj.semana
+        if maior_semana_obj: semana = maior_semana_obj.semana
+        else: semana = 0
 
         data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
 
@@ -328,15 +326,6 @@ class DetalhesClientesAPIView(APIView):
         cliente = Aluno_clientes.objects.filter(id=cliente_id).first()
         if not cliente:
             return Response({"detail": "Cliente não encontrado."}, status=404)
-        
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
-        if not campeonato_ativo:
-            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
-
-        maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
-        semana = maior_semana_obj.semana
 
         tipo_cliente = "Pessoa Física" if cliente.tipo_cliente == 1 else "Pessoa Jurídica"
         status = "Aprovado" if cliente.status == 1 else "Inativo"
@@ -371,14 +360,13 @@ class MeuClaAPIView(APIView):
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
         
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        campeonato_ativo = aluno.campeonato
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 
         maior_semana_obj = (Alunos_posicoes_semana.objects.filter(campeonato=campeonato_ativo).order_by('-semana').only('semana').first())
-        if not maior_semana_obj:
-            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
-        semana = maior_semana_obj.semana
+        if maior_semana_obj: semana = maior_semana_obj.semana
+        else: semana = 0
 
         cla = aluno.cla
         if not cla:
@@ -391,10 +379,13 @@ class MeuClaAPIView(APIView):
             "qtdAlunos": str(cla.aluno_cla.count())
         }
 
-        data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+        #data_int = datetime.strptime('2024-09-01', '%Y-%m-%d').date()
+        data_int = campeonato_ativo.data_inicio
         alunos = AlunosListClaSerializer(cla.aluno_cla.filter(status='ACTIVE'), campeonato_ativo, data_int, semana)
 
         return Response({
+            "campeonato": campeonato_ativo.identificacao,
+            "semana": semana,
             "cla": cla_data,
             "alunos": alunos
         })
@@ -407,7 +398,7 @@ class PontosSemanaisAlunoAPIView(APIView):
         if not aluno:
             return Response({"detail": "Aluno não encontrado."}, status=404)
 
-        campeonato_ativo = Campeonato.objects.filter(ativo=True).first()
+        campeonato_ativo = aluno.campeonato
         if not campeonato_ativo:
             return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
 

@@ -388,9 +388,6 @@ def AlunosListClaSerializer(alunos, campeonato, data_int, semana):
             data__gte=data_int
         ).count()
 
-        if not rank_semanal:
-            continue
-
 
         alunos_data.append({
             "id": str(aluno.id),
