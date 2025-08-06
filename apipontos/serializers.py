@@ -34,6 +34,7 @@ class AlunoClientesSerializer(serializers.ModelSerializer):
         if novo_status == 2:
             instance.contratos.all().update(status=2)
             instance.envios_cliente_cl.all().update(status=2)
+            instance.envios_cliente_cl.all().update(pontos=0)
             instance.alunosclientespontosestemesretencao_set.all().delete()
             instance.cliente_aluno_contrato.all().delete()
 
@@ -59,6 +60,7 @@ class AlunoClientesContratosSerializer(serializers.ModelSerializer):
 
         if novo_status == 2:
             instance.envios_contrato_cl.all().update(status=2)
+            instance.envios_contrato_cl.all().update(pontos=0)
             instance.alunosclientespontosestemesretencao_set.all().delete()
             instance.contrato_aluno_contrato.all().delete()
 
@@ -86,12 +88,11 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
         aluno = validated_data.get("aluno")
         valor = validated_data.get("valor")
 
-        cliente_cont_envios = cliente.envios_cliente_cl.filter(status=3).count()
-        cliente_pontos_contrato = cliente.cliente_aluno_contrato.filter(status=3).count()
+        cliente_pontos_contrato = cliente.cliente_aluno_contrato.count()
 
-        if cliente_cont_envios == 0 and campeonato and cliente_pontos_contrato == 0:
+        if campeonato and cliente_pontos_contrato == 0:
             data_limite = campeonato.data_inicio
-            if cliente.data_criacao and cliente.data_criacao.date() > data_limite:
+            if cliente.data_criacao and cliente.data_criacao.date() > data_limite and contrato.data_contrato and contrato.data_contrato > data_limite:
                 valor_final_contrato = float(valor)
                 if contrato.tipo_contrato == 2:
                     valor_final_contrato = valor_final_contrato * 0.1
@@ -99,20 +100,22 @@ class AlunoEnvioSerializer(serializers.ModelSerializer):
                     contrato.save()
                 
                 pontos_contrato = gera_pontos_contrato(valor_final_contrato)
-
-                Aluno_contrato.objects.create(
-                    campeonato=campeonato,
-                    aluno=aluno,
-                    cliente=cliente,
-                    contrato=contrato,
-                    envio=envio,
-                    descricao=validated_data.get("descricao"),
-                    valor=valor_final_contrato,
-                    data=validated_data.get("data"),
-                    data_cadastro=validated_data.get("data_cadastro") or make_aware(datetime.now()),
-                    pontos=pontos_contrato,
-                    status=0
-                )
+                data_envio = validated_data.get("data")
+                print(f"Data de envio: {data_envio}, Data campeonato: {campeonato.data_inicio}")
+                if campeonato and data_envio >= campeonato.data_inicio:
+                    Aluno_contrato.objects.create(
+                        campeonato=campeonato,
+                        aluno=aluno,
+                        cliente=cliente,
+                        contrato=contrato,
+                        envio=envio,
+                        descricao=validated_data.get("descricao"),
+                        valor=valor_final_contrato,
+                        data=validated_data.get("data"),
+                        data_cadastro=validated_data.get("data_cadastro") or make_aware(datetime.now()),
+                        pontos=pontos_contrato,
+                        status=0
+                    )
         return envio
 
     def update(self, instance, validated_data):

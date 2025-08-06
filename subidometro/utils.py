@@ -126,7 +126,6 @@ def gera_pontos_retencao(valor):
     else:
         return 0
 
-
 def calculo_retencao_func(data_referencia):
     """
         Regras para reter pontos do cliente
@@ -242,8 +241,6 @@ def calculo_retencao_func(data_referencia):
         )
         
     print(f"--- Cálculo de retenção para {data_referencia.strftime('%Y-%m')} finalizado. {len(clientes_que_vai_ser_retidos)} retenções processadas. ---")
-
-
 
 def calculo_retencao_mensal(data_referencia):
     """

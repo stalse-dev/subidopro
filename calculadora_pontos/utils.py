@@ -9,7 +9,6 @@ from collections import defaultdict
 
 
 def calcular_semana_vigente(campeonato):
-
     if not campeonato:
         campeonato = Campeonato.objects.order_by('-id').first()
         return 0
@@ -134,7 +133,7 @@ def calculo_retencao(data_referencia, campeonatoVigente):
     print(f"Período Mês Passado: {primeiro_dia_mes_passado.strftime('%d/%m/%Y')} a {ultimo_dia_mes_passado.strftime('%d/%m/%Y')}")
 
     # Filtrando os envios aprovados desde 01/09/2024
-    envios = Aluno_envios.objects.filter(data__gte=cliente__data_criacao, status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte=cliente__data_criacao)
+    envios = Aluno_envios.objects.filter(data__gte=cliente__data_criacao, status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte=cliente__data_criacao, contrato__data_contrato__gte=cliente__data_criacao)
 
     # Verifica se o mesmo contrato teve envio no mês passado
     envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(

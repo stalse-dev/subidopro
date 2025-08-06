@@ -40,12 +40,6 @@ def calculate_points_and_values_for_entity(data_dict, instance=None):
     contrato = data_dict.get("contrato", getattr(instance, 'contrato', None))
     valor = data_dict.get("valor", getattr(instance, 'valor', 0))
 
-    if not campeonato:
-        campeonato = Campeonato.objects.filter(ativo=True).first()
-        # Se você precisa que 'campeonato' seja setado no validated_data,
-        # você precisará passá-lo de volta ou modificar o dicionário de entrada.
-        # Para esta função utilitária, vamos apenas usá-lo para o cálculo.
-
     pontos = 0
     pontos_previsto = 0
     valor_calculado = 0
@@ -57,7 +51,7 @@ def calculate_points_and_values_for_entity(data_dict, instance=None):
     else:
         valor_calculado = float(valor) # Garante que valor_calculado é um float
 
-    if campeonato and data_envio >= campeonato.data_inicio:
+    if campeonato and data_envio >= campeonato.data_inicio and contrato and contrato.data_contrato > campeonato.data_inicio:
         if contrato and contrato.tipo_contrato == 2:
             pontos = gera_pontos(valor_minimo)
             pontos_previsto = pontos
@@ -80,12 +74,9 @@ def recalculate_contract_related_items(instance, apply_ten_percent_rule):
     Recalcula pontos e valores de envios e contratos relacionados a um Aluno_clientes_contratos,
     com base na regra dos 10%.
     """
-    # Lógica para envios relacionados ao contrato
-    # Mantemos o filtro status=3 pois Aluno_envios (envios_contrato_cl) possui campo status.
-    envios = instance.envios_contrato_cl.filter(status=3) 
+
+    envios = instance.envios_contrato_cl.all() 
     for envio in envios:
-        # ATENÇÃO: Se 'envio.valor' deve ser o valor original, você precisará de um campo 'valor_original'
-        # no modelo Aluno_envios, e usá-lo aqui.
         current_envio_valor = float(envio.valor)
         if apply_ten_percent_rule:
             current_envio_valor = current_envio_valor * 0.1
@@ -94,19 +85,12 @@ def recalculate_contract_related_items(instance, apply_ten_percent_rule):
         envio.pontos_previsto = envio.pontos
         envio.valor_calculado = current_envio_valor
         envio.save()
-    
-    # Lógica para o contrato de retenção (AlunoClientesPontosEsteMesRetencao)
-    # REMOVIDO: O filtro `status=3` daqui, pois o erro indica que este modelo não tem campo 'status'.
-    # Se você precisa de algum filtro aqui, deve usar um dos campos disponíveis na lista do erro.
-    contrato_retencao = instance.alunosclientespontosestemesretencao_set.first() 
-    if contrato_retencao:
-        # Aqui, estamos usando 'contrato_retencao.valor_contrato' como o valor de base
-        # É fundamental que este campo represente o valor correto para a pontuação do contrato.
-        valor_para_contrato_pontos = float(contrato_retencao.valor_contrato)
-        if apply_ten_percent_rule:
-            # Se a regra dos 10% se aplica ao valor_contrato em si, ajuste aqui.
-            valor_para_contrato_pontos = valor_para_contrato_pontos * 0.1 
-        
-        contrato_retencao.pontos = gera_pontos_contrato(valor_para_contrato_pontos)
-        contrato_retencao.pontos_previsto = contrato_retencao.pontos # Assumindo que pontos_previsto é igual a pontos aqui
-        contrato_retencao.save()
+
+    envio_aluno_contrato = instance.contrato_aluno_contrato.first()
+    if envio_aluno_contrato:
+        envios = instance.envios_contrato_cl.filter(status=3).first()
+        if envios:
+            pontos_envio = gera_pontos_contrato(float(envios.valor_calculado))
+            envio_aluno_contrato.pontos = pontos_envio
+            envio_aluno_contrato.valor = float(envios.valor_calculado)
+            envio_aluno_contrato.save()
