@@ -10,3 +10,4 @@ api.http
 .coverage
 htmlcov
 staticfiles
+migracao_db test.ipynb

@@ -154,7 +154,7 @@ def calculo_retencao_func(data_referencia):
     print(f"Período Mês Passado: {primeiro_dia_mes_passado.strftime('%d/%m/%Y')} a {ultimo_dia_mes_passado.strftime('%d/%m/%Y')}")
 
     # Filtrando os envios aprovados desde 01/09/2024
-    envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01')
+    envios = Aluno_envios.objects.filter(data__gte='2024-09-01', status=3, campeonato=campeonatoVigente, cliente__data_criacao__gte='2024-09-01', contrato__data_contrato__gte='2024-09-01')
 
     # Verifica se o mesmo contrato teve envio no mês passado
     envio_mes_passado_CL_subquery = Aluno_envios.objects.filter(
