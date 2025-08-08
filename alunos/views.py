@@ -386,8 +386,6 @@ def faturamento_aluno(request, aluno_id):
 
     return render(request, "Alunos/faturamento_aluno.html", context)
 
-
-
 def AlunoEnviosPorCampeonatoSerializer(envios):
     agrupado = defaultdict(lambda: defaultdict(lambda: {
         "infos": {"data": "", "valor_total": "R$ 0,00", "pontos_total": "0"},
@@ -450,7 +448,6 @@ def AlunoEnviosPorCampeonatoSerializer(envios):
 
     return resultado_final
 
-
 @login_required
 def pontos_recebimento_aluno(request, aluno_id):
     context = data_aluno_campeonato(aluno_id)
@@ -463,10 +460,74 @@ def pontos_recebimento_aluno(request, aluno_id):
 
     return render(request, "Alunos/pontos_recebimento.html", context)
 
+@login_required
+def pontos_cliente_aluno(request, aluno_id):
+    context = data_aluno_campeonato(aluno_id)
+    # Buscar todos os contratos válidos do aluno com seus clientes e campeonatos relacionados
+    contratos = (
+        Aluno_contrato.objects
+        .filter(aluno_id=aluno_id, pontos__gt=0, status=3)
+        .select_related('cliente', 'campeonato')
+        .order_by('-campeonato__data_inicio', '-data_cadastro')
+    )
 
+    campeonatos_dict = {}
 
+    for contrato in contratos:
+        cliente = contrato.cliente
+        campeonato = contrato.campeonato
 
+        # Primeiro envio aprovado
+        primeiro_envio = (
+            Aluno_envios.objects
+            .filter(aluno_id=aluno_id, cliente=cliente, status=3)
+            .order_by('data')
+            .first()
+        )
 
+        key = (
+            f"Campeonato {campeonato.id}"
+            if campeonato else
+            "Sem campeonato"
+        )
+
+        if key not in campeonatos_dict:
+            campeonatos_dict[key] = {
+                "campeonato_id": campeonato.id if campeonato else None,
+                "campeonato_identificacao": campeonato.identificacao if campeonato else None,
+                "campeonato_data_inicio": campeonato.data_inicio if campeonato else None,
+                "total_pontos": 0,
+                "clientes": []
+            }
+
+        campeonatos_dict[key]["clientes"].append({
+            "cliente_id": cliente.id,
+            "cliente_titulo": cliente.titulo,
+            "cliente_data_criacao": cliente.data_criacao,
+            "cliente_documento": cliente.documento,
+            "pontos": float(contrato.pontos),
+            "contrato_data": contrato.data,
+            "primeiro_envio_aprovado": primeiro_envio.data if primeiro_envio else None,
+        })
+
+        campeonatos_dict[key]["total_pontos"] += float(contrato.pontos)
+
+    # Ordenar por data_inicio do campeonato (mais recente primeiro)
+    campeonatos_ordenados = dict(
+        sorted(
+            campeonatos_dict.items(),
+            key=lambda item: item[1]["campeonato_data_inicio"] or "1900-01-01",
+            reverse=True
+        )
+    )
+
+    #return JsonResponse(campeonatos_ordenados)
+
+    context.update({
+        "clientes": campeonatos_ordenados
+    })
+
+    return render(request, "Alunos/pontos_cliente.html", context)
 
 @login_required
 def exportar_alunos(request):

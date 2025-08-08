@@ -12,8 +12,7 @@ urlpatterns = [
     path('aluno_campeonato/<int:aluno_id>/', aluno_campeonato, name='aluno_campeonato'),
     path('aluno_campeonato/<int:aluno_id>/faturamento_aluno', faturamento_aluno, name='faturamento_aluno'),
     path('aluno_campeonato/<int:aluno_id>/pontos_recebimento_aluno', pontos_recebimento_aluno, name='pontos_recebimento_aluno'),
-    
-
+    path('aluno_campeonato/<int:aluno_id>/pontos_cliente_aluno', pontos_cliente_aluno, name='pontos_cliente_aluno'),
 
     path('alunos/', alunos, name='alunos'),
     path('aluno/<int:aluno_id>/', aluno, name='aluno'),
