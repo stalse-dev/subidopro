@@ -21,5 +21,5 @@ admin.site.register(Aluno_desafio)
 admin.site.register(Aluno_certificacao)
 admin.site.register(Aluno_contrato)
 admin.site.register(Alunos_Subidometro)
-
+admin.site.register(Mentoria_lista_niveis)
 

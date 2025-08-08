@@ -10,7 +10,7 @@
             
             {% for campeonato in campeonatos %}
             <!-- Card Individual do Campeonato -->
-            <a href="#" class="group block bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 ease-in-out hover:shadow-xl">
+            <a href="{% url 'dashboard' campeonato.id %}" class="group block bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 ease-in-out hover:shadow-xl">
                 <!-- Imagem do Card -->
                 <div class="relative h-48">
                     <img class="w-full h-full object-cover" 

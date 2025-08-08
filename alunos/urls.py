@@ -2,7 +2,19 @@ from django.urls import path, include
 from .views import *
 
 urlpatterns = [
-    path('', ranking_semana, name='ranking_semana_home'),
+    path('', campeonatos, name='campeonatos'),
+    path('campeonatos/', campeonatos, name='campeonatos'),
+    path('dashboard/<int:campeonato_id>/', dashboard, name='dashboard'),
+    path('alunos_campeonato/<int:campeonato_id>/', alunos_campeonato, name='alunos_campeonato'),
+    path('clas_campeonato/<int:campeonato_id>/exportar_alunos/', clas_campeonato, name='clas_campeonato'),
+    path('ranking_semana_campeonato/<int:campeonato_id>/', ranking_semana_campeonato, name='ranking_semana_campeonato'),
+    path('ranking_campeonato/<int:campeonato_id>/', ranking_campeonato, name='ranking_campeonato'),
+    path('aluno_campeonato/<int:aluno_id>/', aluno_campeonato, name='aluno_campeonato'),
+    path('aluno_campeonato/<int:aluno_id>/faturamento_aluno', faturamento_aluno, name='faturamento_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_recebimento_aluno', pontos_recebimento_aluno, name='pontos_recebimento_aluno'),
+    
+
+
     path('alunos/', alunos, name='alunos'),
     path('aluno/<int:aluno_id>/', aluno, name='aluno'),
     path('aluno/<int:aluno_id>/pontos/', aluno_pontos, name='aluno-pontos'),

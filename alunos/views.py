@@ -1,9 +1,11 @@
+import json
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.http import HttpResponse, HttpResponseForbidden
 from subidometro.models import *
 from subidometro.utils import *
 from django.db.models.functions import TruncMonth, ExtractMonth
-from django.db.models import OuterRef, Subquery, F, Sum, Count, Value, CharField, DecimalField, IntegerField, DateTimeField, DateField, Max, Exists
+from django.db.models import OuterRef, Subquery, F, Sum, Count, Avg, Exists
 from django.contrib.auth.decorators import login_required
 from datetime import date
 from django.core.paginator import Paginator
@@ -14,11 +16,457 @@ from datetime import timedelta
 from datetime import datetime
 from django.views.decorators.cache import never_cache
 import calendar
+from calculadora_pontos.utils import ranking_streamer as ranking_streamer_campeonato
+from collections import defaultdict, OrderedDict
+from django.utils.dateformat import format as date_format
 
 @never_cache
 @login_required
-def home(request):
-    return render(request, 'Home/home.html')
+def campeonatos(request):
+    campeonatos = Campeonato.objects.order_by('-id')
+    context = {
+        'campeonatos': campeonatos,
+    }
+    return render(request, 'Campeonato/Campeonatos.html', context)
+
+def dashboard(request, campeonato_id):
+    campeonato = Campeonato.objects.get(id=campeonato_id)
+    maior_semana_obj = (
+        Alunos_posicoes_semana.objects.filter(campeonato=campeonato)
+        .order_by('-semana')
+        .only('semana')
+        .first()
+    )
+
+    semana = maior_semana_obj.semana if maior_semana_obj else 0
+
+    alunos = Alunos.objects.filter(campeonato=campeonato).order_by('-nivel')
+    clas = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
+    desafios = Desafios.objects.order_by('id')
+
+    hoje = date.today()
+    dias_ate_sabado = (5 - hoje.weekday()) % 7
+
+
+    context = {
+        'campeonato': campeonato,
+        'dias_ate_sabado': dias_ate_sabado,
+        'alunos': alunos,
+        'clas': clas,
+        'desafios': desafios,
+        'semana': semana,
+    }
+    return render(request, 'Dashboard/Dashboard.html', context)
+
+@login_required
+def alunos_campeonato(request, campeonato_id):
+    campeonato = Campeonato.objects.get(id=campeonato_id)
+    query = request.GET.get('q', '')
+
+    alunos_list = Alunos.objects.filter(campeonato=campeonato).order_by('id')
+
+    if query:
+        alunos_list = alunos_list.filter(
+            Q(nome_completo__icontains=query) | 
+            Q(apelido__icontains=query) | 
+            Q(email__icontains=query)
+        )
+
+    paginator = Paginator(alunos_list, 20)
+    page_number = request.GET.get('page')
+    alunos_page = paginator.get_page(page_number)
+
+    # Associa os níveis aos alunos
+    niveis_dict = {
+        nivel.id: nivel for nivel in Mentoria_lista_niveis.objects.all()
+    }
+
+    for aluno in alunos_page:
+        aluno.nivel_obj = niveis_dict.get(aluno.nivel)
+
+    context = {
+        'campeonato': campeonato,
+        'alunos': alunos_page,
+        'q': query,
+        'cont_alunos': alunos_list.count()
+    }
+    return render(request, 'Alunos/alunos_campeoanto.html', context)
+
+@login_required
+def clas_campeonato(request, campeonato_id):
+    campeonato = Campeonato.objects.get(id=campeonato_id)
+    maior_semana_obj = (
+        Alunos_posicoes_semana.objects.filter(campeonato=campeonato)
+        .order_by('-semana')
+        .only('semana')
+        .first()
+    )
+
+    semana = maior_semana_obj.semana if maior_semana_obj else 0
+    query = request.GET.get('q', '')
+
+    # Filtra todos os clãs relacionados ao campeonato
+    clas_list = Mentoria_cla.objects.filter(campeonato=campeonato)
+
+    if query:
+        clas_list = clas_list.filter(
+            Q(nome__icontains=query) |
+            Q(sigla__icontains=query)
+        )
+
+    # Recupera as pontuações da semana
+    posicoes = Mentoria_cla_posicao_semana.objects.filter(
+        campeonato=campeonato,
+        semana=semana
+    )
+
+    pontos_por_cla = {
+        p.cla_id: p.pontos_totais
+        for p in posicoes
+    }
+
+    ranking = sorted(pontos_por_cla.items(), key=lambda x: x[1], reverse=True)
+    posicao_por_cla = {cla_id: idx + 1 for idx, (cla_id, _) in enumerate(ranking)}
+
+    # Adiciona posição e pontos a cada clã da lista
+    for cla in clas_list:
+        cla.pontos_semana = pontos_por_cla.get(cla.id, 0)
+        cla.posicao_semana = posicao_por_cla.get(cla.id, float('inf'))  # clãs sem posição vão para o final
+
+    # Ordena manualmente pela posição
+    clas_list = sorted(clas_list, key=lambda c: c.posicao_semana)
+
+    # Pagina a lista já ordenada
+    paginator = Paginator(clas_list, 20)
+    page_number = request.GET.get('page')
+    clas_page = paginator.get_page(page_number)
+
+    context = {
+        'campeonato': campeonato,
+        'semana': semana,
+        'clas': clas_page,
+        'query': query
+    }
+
+    return render(request, 'Clas/Clas_Campeonato.html', context)
+
+@login_required
+def ranking_semana_campeonato(request, campeonato_id):
+    campeonato = Campeonato.objects.get(id=campeonato_id)
+
+    # Lista de semanas disponíveis
+    semanas_disponiveis = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato
+    ).values_list('semana', flat=True).distinct().order_by('-semana')
+
+    # Semana vinda do filtro (GET)
+    semana_param = request.GET.get('semana')
+    if semana_param and semana_param.isdigit():
+        semana_filtrada = int(semana_param)
+    else:
+        semana_filtrada = semanas_disponiveis.first()
+
+    # Campo de busca
+    q = request.GET.get('q', '').strip()
+
+    # Base da query
+    semana_rank_list = Alunos_posicoes_semana.objects.filter(
+        semana=semana_filtrada,
+        campeonato=campeonato
+    )
+
+    # Aplica filtro de busca se houver
+    if q:
+        semana_rank_list = semana_rank_list.filter(
+            Q(aluno__nome_completo__icontains=q) |
+            Q(aluno__email__icontains=q) |
+            Q(aluno__id__iexact=q)
+        )
+
+    # Contagem de todos os alunos
+    cont_rank = semana_rank_list.count()
+
+    semana_rank_list = semana_rank_list.order_by('posicao')
+
+    # Paginação
+    paginator = Paginator(semana_rank_list, 20)
+    page_number = request.GET.get('page')
+    semana_rank = paginator.get_page(page_number)
+
+    ultima_att = semana_rank_list.first().data if semana_rank_list.exists() else None
+    
+    
+
+
+    context = {
+        "campeonato": campeonato,
+        "alunos": semana_rank,
+        "cont_rank": cont_rank,
+        "semana": semana_filtrada,
+        "semanas_disponiveis": semanas_disponiveis,
+        "q": q,
+        "ultima_att": ultima_att,
+    }
+
+    return render(request, "Ranking/ranking_semana_campeonato.html", context)
+
+@login_required
+def ranking_campeonato(request, campeonato_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("Você não tem permissão para acessar esta página.")
+    
+    campeonato = Campeonato.objects.get(id=campeonato_id)
+    
+    alunos_list  = ranking_streamer_campeonato(campeonato)
+
+    q = request.GET.get('q', '').strip()
+
+    if q:
+        if q.isdigit():
+            alunos_list = alunos_list.filter(Q(id=int(q)) | Q(nome_completo__icontains=q))
+        else:
+            alunos_list = alunos_list.filter(Q(nome_completo__icontains=q))
+
+    # Contagem de todos os alunos
+    cont_rank = alunos_list.count()
+
+    paginator = Paginator(alunos_list, 50)
+    page_number = request.GET.get('page')
+    semana_rank = paginator.get_page(page_number)
+
+    context = {
+        "campeonato": campeonato,
+        "alunos": semana_rank,
+        "q": q,
+        "cont_rank": cont_rank,
+    }
+    return render(request, "Ranking/ranking_campeonato.html", context) 
+
+def data_aluno_campeonato(aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    campeonato = aluno.campeonato
+
+    maior_semana_obj = (
+        Alunos_posicoes_semana.objects.filter(campeonato=campeonato)
+        .order_by('-semana')
+        .only('semana')
+        .first()
+    )
+    semana = maior_semana_obj.semana if maior_semana_obj else 0
+
+    mes_mais_ganhou = (
+        Aluno_envios.objects
+        .filter(aluno=aluno, status=3, semana__gt=0)
+        .annotate(mes=TruncMonth('data'))
+        .values('mes')
+        .annotate(total_mes=Sum('valor_calculado'))
+        .order_by('-total_mes')
+        .first()
+    )
+
+    total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
+    total_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).count()
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).aggregate(total=Sum('valor_calculado'))['total'] or 0
+    total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+
+    soma_de_todos_valores = float(total_valores_envios) + float(total_valor_camp)
+
+    return ({
+        "aluno": aluno,
+        "maior_semana": semana,
+        "mes_mais_ganhou": {
+            "mes": mes_mais_ganhou["mes"].strftime("%Y-%m") if mes_mais_ganhou else None,
+            "total_mes": float(mes_mais_ganhou["total_mes"]) if mes_mais_ganhou else 0
+        },
+        "total_clientes": total_clientes,
+        "total_envios": total_envios,
+        "soma_de_todos_valores": float(soma_de_todos_valores)
+    })
+
+@login_required
+def aluno_campeonato(request, aluno_id):
+    context = data_aluno_campeonato(aluno_id)
+
+    return render(request, "Alunos/aluno_campeonato.html", context)
+
+@login_required
+def faturamento_aluno(request, aluno_id):
+    context = data_aluno_campeonato(aluno_id)
+    aluno = context["aluno"]
+
+    # Filtra apenas envios aprovados com data
+    envios = Aluno_envios.objects.filter(
+        aluno=aluno,
+        data__isnull=False,
+        status=3
+    )
+
+    mensal = envios.annotate(
+        mes=TruncMonth('data')
+    ).values('mes').annotate(
+        faturamento=Sum(Coalesce('valor_calculado', 'valor')),
+        total_envios=Count('id'),
+        ticket_medio=Avg(Coalesce('valor_calculado', 'valor')),
+    ).order_by('mes')
+
+    dados_grafico = []
+    faturamento_total = 0
+    maior_valor = 0
+    menor_valor = None
+    ultimo_mes = None
+    crescimento_percentual = 0
+    faturamentos_mes = []
+
+    for i, item in enumerate(mensal):
+        mes_nome = item["mes"].strftime("%b/%Y")
+        faturamento = float(item["faturamento"] or 0)
+        faturamentos_mes.append(faturamento)
+        dados_grafico.append({
+            "mes": mes_nome,
+            "faturamento": faturamento,
+            "envios": item["total_envios"],
+            "ticket_medio": float(item["ticket_medio"] or 0),
+        })
+
+        faturamento_total += faturamento
+
+        if faturamento > maior_valor:
+            maior_valor = faturamento
+            mes_maior = mes_nome
+
+        if menor_valor is None or faturamento < menor_valor:
+            menor_valor = faturamento
+            mes_menor = mes_nome
+
+        ultimo_mes = mes_nome
+
+    if len(faturamentos_mes) >= 2:
+        penultimo = faturamentos_mes[-2]
+        ultimo = faturamentos_mes[-1]
+        if penultimo > 0:
+            crescimento_percentual = round(((ultimo - penultimo) / penultimo) * 100, 2)
+
+    ticket_medio_geral = envios.aggregate(
+        media=Avg(Coalesce('valor_calculado', 'valor'))
+    )['media'] or 0
+
+    # Faturamento por campeonato
+    campeonatos = envios.values("campeonato__identificacao").annotate(
+        faturamento=Sum(Coalesce('valor_calculado', 'valor'))
+    ).order_by("-faturamento")
+
+    total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+
+    ranking_campeonatos = [
+        {
+            "campeonato": item["campeonato__identificacao"] or "Sem campeonato",
+            "faturamento": float(item["faturamento"] or 0)
+        }
+        for item in campeonatos
+    ]
+
+    ranking_campeonatos.append({
+        "campeonato": "Campeonatos Anteriores",
+        "faturamento": float(total_valor_camp)
+    })
+
+    faturamento_total = round(faturamento_total + float(total_valor_camp), 2)
+
+    # Adiciona os novos dados ao context
+    context.update({
+        "faturamento_mensal": dados_grafico,
+        "faturamento_total": round(faturamento_total, 2),
+        "ticket_medio_geral": round(ticket_medio_geral, 2),
+        "crescimento_percentual": crescimento_percentual,
+        "mes_maior_faturamento": mes_maior,
+        "mes_menor_faturamento": mes_menor,
+        "ultimo_mes": ultimo_mes,
+        "ranking_campeonatos": ranking_campeonatos,
+    })
+
+    return render(request, "Alunos/faturamento_aluno.html", context)
+
+
+
+def AlunoEnviosPorCampeonatoSerializer(envios):
+    agrupado = defaultdict(lambda: defaultdict(lambda: {
+        "infos": {"data": "", "valor_total": "R$ 0,00", "pontos_total": "0"},
+        "envios": []
+    }))
+    
+    resumo = defaultdict(lambda: defaultdict(lambda: {
+        "valor_total": 0.0,
+        "pontos_total": 0
+    }))
+
+    for envio in envios:
+        if not envio.data:
+            continue
+
+        campeonato_id = envio.campeonato.id if envio.campeonato else None
+        campeonato_nome = envio.campeonato.identificacao if envio.campeonato else "Sem campeonato"
+
+        mes_ano = envio.data.strftime('%Y-%m')
+        nome_mes = envio.data.strftime('%B').upper()
+        data_formatada = envio.data.strftime('%d/%m/%Y')
+        data_cadastro_formatada = envio.data_cadastro.strftime('%d/%m/%Y') if envio.data_cadastro else ""
+
+        item = {
+            "id": envio.id,
+            "data_criacao": data_cadastro_formatada,
+            "data": data_formatada,
+            "descricao": (envio.descricao or "")[:147] + "..." if envio.descricao and len(envio.descricao) > 150 else (envio.descricao or ""),
+            "cliente": (envio.cliente.titulo or "")[:147] + "..." if envio.cliente and envio.cliente.titulo and len(envio.cliente.titulo) > 150 else (envio.cliente.titulo or ""),
+            "valor": f"R$ {float(envio.valor):.2f}",
+            "pontos_efetivos": str(int(envio.pontos)),
+            "pontos_preenchidos": str(int(envio.pontos_previsto or envio.pontos)),
+            "arquivo": str(envio.arquivo1 or ""),
+            "status": envio.status,
+            "status_motivo": envio.status_motivo or "",
+            "semana": envio.semana
+        }
+
+        agrupado[campeonato_nome][mes_ano]["envios"].append(item)
+        agrupado[campeonato_nome][mes_ano]["infos"]["data"] = f"{nome_mes} {envio.data.year}"
+
+        if envio.status == 3:
+            resumo[campeonato_nome][mes_ano]["valor_total"] += float(envio.valor)
+            resumo[campeonato_nome][mes_ano]["pontos_total"] += int(envio.pontos)
+            resumo[campeonato_nome][mes_ano]["pontos_total"] = min(resumo[campeonato_nome][mes_ano]["pontos_total"], 3000)
+
+    # Formatando os totais para string
+    for campeonato, meses in resumo.items():
+        for mes_ano, valores in meses.items():
+            agrupado[campeonato][mes_ano]["infos"]["valor_total"] = f"R$ {valores['valor_total']:,.2f}".replace(",", ".")
+            agrupado[campeonato][mes_ano]["infos"]["pontos_total"] = str(valores["pontos_total"])
+
+    # Ordenar por campeonato e por mês (desc)
+    resultado_final = OrderedDict()
+    for campeonato in sorted(agrupado.keys(), reverse=True):
+        resultado_final[campeonato] = OrderedDict()
+        meses_ordenados = sorted(agrupado[campeonato].keys(), reverse=True)
+        for mes in meses_ordenados:
+            resultado_final[campeonato][mes] = agrupado[campeonato][mes]
+
+    return resultado_final
+
+
+@login_required
+def pontos_recebimento_aluno(request, aluno_id):
+    context = data_aluno_campeonato(aluno_id)
+    envios = Aluno_envios.objects.filter(aluno_id=aluno_id).select_related('campeonato')
+    resultado = AlunoEnviosPorCampeonatoSerializer(envios)
+
+    context.update({
+        "envios": resultado
+    })
+
+    return render(request, "Alunos/pontos_recebimento.html", context)
+
+
+
+
+
 
 @login_required
 def exportar_alunos(request):
