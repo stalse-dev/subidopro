@@ -9,7 +9,6 @@
     <link rel="shortcut icon" href="https://subidopro.com.br/img/favicon.png?6769b3322459a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Usando mais pesos da fonte para maior flexibilidade no design -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
@@ -23,9 +22,9 @@
         body {
             margin: 0;
             font-family: 'Montserrat', sans-serif;
-            background-color: #f8f9fa; /* Um fundo levemente cinza para destacar o conteúdo */
-            /* Adicionado para evitar que o conteúdo comece sob a navbar fixa */
-            padding-top: 5rem; 
+            background-color: #f8f9fa;
+            /* Ajustado para a nova altura da navbar (h-24 -> 6rem) */
+            padding-top: 6rem; 
         }
         
         /* Estilos da tela de carregamento (mantidos) */
@@ -34,7 +33,7 @@
         .loading-screen span { font-size: 1.5rem; color: #1C46A0; font-weight: bold; }
         body.hidden { overflow: hidden; }
 
-        /* Animações para os dropdowns (entrada e saída) */
+        /* Animações para os dropdowns (mantidas) */
         .scale-in-top {
             animation: scale-in-top 0.2s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
         }
@@ -50,6 +49,12 @@
             0% { transform: scale(1); transform-origin: top right; opacity: 1; }
             100% { transform: scale(0.95); transform-origin: top right; opacity: 0; }
         }
+
+        /* Estilo para o link ativo. Adicione a classe 'active' ao link da página atual no seu template Django */
+        .nav-link.active {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body class="hidden">
@@ -59,32 +64,37 @@
     </div>
 
     <!-- ===== NavBar Início ===== -->
-    <nav class="bg-[#1C46A0] shadow-lg fixed top-0 left-0 w-full z-50">
+    <!-- Efeito de vidro (glassmorphism), borda sutil e altura aumentada -->
+    <nav class="bg-[#1C46A0]/80 backdrop-blur-lg border-b border-white/10 shadow-lg fixed top-0 left-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
+            <!-- Altura aumentada para h-24 -->
+            <div class="flex justify-between items-center h-24">
                 
-                <!-- Logo -->
+                <!-- Logo (tamanho aumentado) -->
                 <div class="flex-shrink-0">
                     <a href="/">
-                        <img class="h-8 w-auto" src="https://subidopro.com.br/img/logo-subido-pro-negativo.2f7b8cf2611a.svg" alt="Logo SubidoPRO" onerror="this.onerror=null;this.src='https://placehold.co/150x40/1C46A0/FFFFFF?text=SubidoPRO';">
+                        <!-- Classe de altura aumentada para h-12 -->
+                        <img class="h-12 w-auto rounded-lg" src="https://subidopro.com.br/img/logo-subido-pro-negativo.2f7b8cf2611a.svg" alt="Logo SubidoPRO" onerror="this.onerror=null;this.src='https://placehold.co/180x50/1C46A0/FFFFFF?text=SubidoPRO';">
                     </a>
                 </div>
 
                 <!-- Links do Menu Desktop -->
-                <div class="hidden md:flex items-center space-x-8">
+                <div class="hidden md:flex items-center space-x-2">
                     {% if user.is_authenticated %}
-                        <a href="{% url 'campeonatos' %}" class="text-white hover:text-blue-300 transition-colors duration-300 font-medium text-base relative group">
+                        <!-- Adicionado padding (px-4 py-2), classe .nav-link e bordas arredondadas -->
+                        <!-- Para o link ativo, adicione a classe 'active' dinamicamente com Django -->
+                        <a href="{% url 'campeonatos' %}" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
                             Campeonatos
-                            <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-300 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                            <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                         </a>
-                        <a href="" class="text-white hover:text-blue-300 transition-colors duration-300 font-medium text-base relative group">
+                        <a href="" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
                             Health SubidoMetro
-                            <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-300 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                            <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                         </a>
                         {% if user.is_superuser %}
-                            <a href="" class="text-white hover:text-blue-300 transition-colors duration-300 font-medium text-base relative group">
+                            <a href="" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
                                 Logs
-                                <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-300 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                                <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                             </a>
                         {% endif %}
                     {% endif %}
@@ -95,26 +105,44 @@
                     {% if user.is_authenticated %}
                         <!-- Menu de Usuário (visível em desktop) -->
                         <div class="hidden md:block relative">
-                            <button id="user-menu-btn" class="flex items-center space-x-2 text-white hover:text-blue-300 focus:outline-none transition-colors duration-300">
+                            <button id="user-menu-btn" class="flex items-center space-x-2 text-white hover:text-sky-300 focus:outline-none transition-colors duration-300 p-2 rounded-lg hover:bg-white/10">
                                 <span class="font-semibold">{{ user.name|capfirst }}</span>
                                 <span id="user-menu-icon" class="material-symbols-outlined transition-transform duration-300">expand_more</span>
                             </button>
-                            <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-xl overflow-hidden z-50">
-                                <a href="{% url 'alunos' %}" class="block px-4 py-3 text-sm hover:bg-gray-100 transition-colors duration-200">Todos alunos</a>
-                                <a href="{% url 'clientes' %}" class="block px-4 py-3 text-sm hover:bg-gray-100 transition-colors duration-200">Todos clientes</a>
-                                {% if user.is_superuser %}
-                                    <a href="{% url 'balanceamento' %}" class="block px-4 py-3 text-sm hover:bg-gray-100 transition-colors duration-200">Balanceamento</a>
-                                    <a href="{% url 'retencao' %}" class="block px-4 py-3 text-sm hover:bg-gray-100 transition-colors duration-200">Retenção</a>
-                                {% endif %}
-                                <div class="border-t border-gray-200"></div>
-                                <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200">Sair</a>
+                            <!-- Dropdown com novo estilo e ícones -->
+                            <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-slate-800/90 backdrop-blur-md border border-slate-700 text-gray-200 rounded-lg shadow-xl overflow-hidden z-50">
+                                <div class="p-2">
+                                    <a href="{% url 'alunos' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
+                                        <span class="material-symbols-outlined">groups</span>
+                                        <span>Todos alunos</span>
+                                    </a>
+                                    <a href="{% url 'clientes' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
+                                        <span class="material-symbols-outlined">business_center</span>
+                                        <span>Todos clientes</span>
+                                    </a>
+                                    {% if user.is_superuser %}
+                                        <a href="{% url 'balanceamento' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
+                                            <span class="material-symbols-outlined">scale</span>
+                                            <span>Balanceamento</span>
+                                        </a>
+                                        <a href="{% url 'retencao' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
+                                            <span class="material-symbols-outlined">trending_up</span>
+                                            <span>Retenção</span>
+                                        </a>
+                                    {% endif %}
+                                    <div class="border-t border-slate-700 my-2"></div>
+                                    <a href="{% url 'logout' %}" class="flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-md transition-colors duration-200">
+                                        <span class="material-symbols-outlined">logout</span>
+                                        <span>Sair</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     {% endif %}
 
                     <!-- Botão Hamburger (visível em mobile) -->
                     <div class="md:hidden flex items-center">
-                        <button id="mobile-menu-btn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-blue-800 focus:outline-none transition-colors duration-300">
+                        <button id="mobile-menu-btn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-white/10 focus:outline-none transition-colors duration-300">
                             <span id="mobile-menu-icon" class="material-symbols-outlined">menu</span>
                         </button>
                     </div>
@@ -124,25 +152,25 @@
         </div>
 
         <!-- Menu Mobile (oculto por padrão) -->
-        <div id="mobile-menu" class="hidden md:hidden bg-blue-900/50 backdrop-blur-sm">
+        <div id="mobile-menu" class="hidden md:hidden bg-[#1C46A0]/95 backdrop-blur-sm border-t border-white/10">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'ranking_semana' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Ranking Semanal Individual</a>
-                    <a href="{% url 'ranking_cla' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Ranking Semanal Clã</a>
+                    <a href="{% url 'ranking_semana' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Ranking Semanal Individual</a>
+                    <a href="{% url 'ranking_cla' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Ranking Semanal Clã</a>
                     {% if user.is_superuser %}
-                        <a href="{% url 'ranking' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Ranking Real Time</a>
+                        <a href="{% url 'ranking' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Ranking Real Time</a>
                     {% endif %}
                     
                     <!-- Links do usuário no menu mobile -->
-                    <div class="border-t border-blue-700 my-4"></div>
+                    <div class="border-t border-blue-800 my-4"></div>
                     <div class="px-3 py-2 text-white font-semibold">{{ user.name|capfirst }}</div>
-                    <a href="{% url 'alunos' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Alunos</a>
-                    <a href="{% url 'clientes' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Clientes</a>
+                    <a href="{% url 'alunos' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Alunos</a>
+                    <a href="{% url 'clientes' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Clientes</a>
                     {% if user.is_superuser %}
-                        <a href="{% url 'balanceamento' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Balanceamento</a>
-                        <a href="{% url 'retencao' %}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-800 transition-colors duration-300">Retenção</a>
+                        <a href="{% url 'balanceamento' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Balanceamento</a>
+                        <a href="{% url 'retencao' %}" class="text-gray-200 hover:text-white hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Retenção</a>
                     {% endif %}
-                    <a href="{% url 'logout' %}" class="text-red-400 block px-3 py-2 rounded-md text-base font-medium hover:bg-red-500 hover:text-white transition-colors duration-300">Sair</a>
+                    <a href="{% url 'logout' %}" class="text-red-400 hover:text-white hover:bg-red-500/20 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300">Sair</a>
                 {% endif %}
             </div>
         </div>
