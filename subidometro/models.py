@@ -88,6 +88,19 @@ class Alunos(models.Model):
 
     def __str__(self):
         return self.nome_completo
+    
+class ParticipacaoCampeonato(models.Model):
+    aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="participacoes")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, related_name="participacoes")
+    data_entrada = models.DateTimeField(auto_now_add=True)
+    data_saida = models.DateTimeField(null=True, blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('aluno', 'campeonato')
+
+    def __str__(self):
+        return f"{self.aluno.nome_completo} em {self.campeonato.identificacao}"
 
 class Alunos_posicoes_semana(models.Model):
     aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="alunos_posicoes_semana")

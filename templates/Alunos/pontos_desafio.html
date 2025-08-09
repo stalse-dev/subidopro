@@ -1,0 +1,162 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block containerAluno %}
+<div class="w-full">
+
+    <!-- Cabeçalho da Seção -->
+    <div class="mb-8 p-6 bg-white rounded-2xl shadow-md border border-gray-200">
+        <h1 class="text-3xl font-bold text-gray-800">Meus Desafios</h1>
+        <p class="mt-2 text-lg text-gray-600">Acompanhe seu progresso e os pontos conquistados em cada campeonato.</p>
+    </div>
+
+    <!-- Container do Acordeão de Campeonatos -->
+    <div class="space-y-4">
+        {% for key, campeonato in campeonatos.items %}
+        <!-- Item do Acordeão para cada Campeonato -->
+        <div class="campeonato-accordion bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-shadow hover:shadow-lg">
+            
+            <!-- Cabeçalho do Acordeão (Clicável) -->
+            <div class="campeonato-header flex justify-between items-center p-6 cursor-pointer hover:bg-gray-50 transition-colors duration-200">
+                <div>
+                    <h2 class="text-xl font-bold text-[#1C46A0]">{{ campeonato.campeonato_identificacao }}</h2>
+                    <p class="text-sm text-gray-500">Início em: {{ campeonato.campeonato_data_inicio|date:"d/m/Y" }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-lg font-semibold text-gray-700">Total: {{ campeonato.total_pontos|floatformat:0|intcomma }} pts</span>
+                    <span class="material-symbols-outlined accordion-icon transition-transform duration-300">expand_more</span>
+                </div>
+            </div>
+
+            <!-- Conteúdo do Acordeão (Desafios) - Oculto por padrão -->
+            <div class="campeonato-content hidden">
+                <div class="border-t border-gray-200 p-4 md:p-6 space-y-4 bg-gray-50/50">
+                    {% for desafio in campeonato.desafios %}
+                    <!-- Card de Desafio Individual -->
+                    <div class="desafio-card bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <!-- Cabeçalho do Card (Clicável) -->
+                        <div class="desafio-header flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                            <div class="flex-1 mb-2 sm:mb-0">
+                                <h3 class="font-semibold text-gray-800">{{ desafio.desafio_titulo }}</h3>
+                                <p class="text-sm text-gray-500">Pontos Ganhos: <span class="font-bold text-green-600">{{ desafio.pontos|floatformat:0 }}</span> / {{ desafio.pontos_previsto|floatformat:0 }}</p>
+                            </div>
+                            <div class="flex items-center space-x-3 ml-0 sm:ml-4">
+                                <!-- Badge de Status -->
+                                {% if desafio.status == 3 %}
+                                    <span class="px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">Aprovado</span>
+                                {% elif desafio.status == 2 %}
+                                    <span class="px-3 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded-full">Recusado</span>
+                                {% elif desafio.status == 1 %}
+                                    <span class="px-3 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">Pendente</span>
+                                {% else %}
+                                    <span class="px-3 py-1 text-xs font-semibold text-gray-800 bg-gray-200 rounded-full">Não Validado</span>
+                                {% endif %}
+                                <span class="material-symbols-outlined desafio-icon text-gray-500 transition-transform duration-300 text-lg">expand_more</span>
+                            </div>
+                        </div>
+                        <!-- Detalhes do Desafio (Oculto por padrão) -->
+                        <div class="desafio-details hidden">
+                            <div class="border-t border-gray-200 p-4 text-sm text-gray-700 space-y-4">
+                                <div>
+                                    <h4 class="font-semibold mb-1">Descrição do Desafio:</h4>
+                                    <div class="prose prose-sm max-w-none text-gray-600">{{ desafio.desafio_descricao|safe|linebreaksbr }}</div>
+                                </div>
+
+                                {% if desafio.texto_execucao %}
+                                <div>
+                                    <h4 class="font-semibold mb-1">Link Enviado:</h4>
+                                    <a href="{{ desafio.texto_execucao }}" target="_blank" class="text-blue-600 hover:underline break-all">{{ desafio.texto_execucao }}</a>
+                                </div>
+                                {% endif %}
+                                
+                                {% if desafio.status_comentario %}
+                                <div class="p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg mt-2">
+                                    <h4 class="font-semibold mb-1 text-blue-800">Comentário da Avaliação:</h4>
+                                    <p class="text-gray-600">{{ desafio.status_comentario }}</p>
+                                </div>
+                                {% endif %}
+                                
+                                {% if desafio.status_motivo %}
+                                <div class="p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg mt-2">
+                                    <h4 class="font-semibold mb-1 text-red-800">Motivo da Recusa:</h4>
+                                    <p class="text-gray-600">{{ desafio.status_motivo }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-gray-500 py-4">Nenhum desafio encontrado para este campeonato.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12 bg-white rounded-2xl shadow-md">
+            <span class="material-symbols-outlined text-6xl text-gray-400">emoji_events</span>
+            <h2 class="mt-4 text-2xl font-semibold text-gray-700">Nenhum campeonato encontrado.</h2>
+            <p class="mt-2 text-gray-500">Você ainda não participou de nenhum desafio.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// Para evitar conflitos, encapsulamos o script em uma função
+// e verificamos se já foi executado para não duplicar os event listeners.
+function setupDesafioAccordions() {
+    if (window.desafioAccordionsInitialized) {
+        return;
+    }
+    window.desafioAccordionsInitialized = true;
+
+    // Lógica para o acordeão de campeonatos
+    const campeonatoAccordions = document.querySelectorAll('.campeonato-accordion');
+    campeonatoAccordions.forEach(accordion => {
+        const header = accordion.querySelector('.campeonato-header');
+        if (!header) return;
+        
+        const content = accordion.querySelector('.campeonato-content');
+        const icon = header.querySelector('.accordion-icon');
+
+        header.addEventListener('click', () => {
+            const isHidden = content.classList.contains('hidden');
+            if (isHidden) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        });
+    });
+
+    // Lógica para os detalhes expansíveis dos desafios
+    const desafioCards = document.querySelectorAll('.desafio-card');
+    desafioCards.forEach(card => {
+        const header = card.querySelector('.desafio-header');
+        if (!header) return;
+
+        const details = card.querySelector('.desafio-details');
+        const icon = header.querySelector('.desafio-icon');
+
+        header.addEventListener('click', () => {
+            const isHidden = details.classList.contains('hidden');
+            if (isHidden) {
+                details.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                details.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        });
+    });
+}
+
+// Garante que o script rode mesmo com navegações via HTMX
+document.addEventListener('DOMContentLoaded', setupDesafioAccordions);
+document.body.addEventListener('htmx:afterSwap', setupDesafioAccordions);
+
+</script>
+{% endblock %}
