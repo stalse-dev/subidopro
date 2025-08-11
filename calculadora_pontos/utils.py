@@ -263,7 +263,6 @@ def ranking_streamer(campeonato):
         Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
         nivel__lt=16,
         cla__in=mentoria_ids,
-        campeonato__id=campeonato.id
     )
 
     subquery_pontos_recebimento = Aluno_envios.objects.filter(

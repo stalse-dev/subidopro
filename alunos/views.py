@@ -30,27 +30,71 @@ def campeonatos(request):
     }
     return render(request, 'Campeonato/Campeonatos.html', context)
 
+@login_required
 def dashboard(request, campeonato_id):
     campeonato = Campeonato.objects.get(id=campeonato_id)
+
     maior_semana_obj = (
-        Alunos_posicoes_semana.objects.filter(campeonato=campeonato)
+        Alunos_posicoes_semana.objects
+        .filter(campeonato=campeonato)
         .order_by('-semana')
         .only('semana')
         .first()
     )
-
     semana = maior_semana_obj.semana if maior_semana_obj else 0
 
-    #alunos = Alunos.objects.filter(campeonato=campeonato)
     alunos = ParticipacaoCampeonato.objects.filter(campeonato=campeonato)
-
-
     clas = Mentoria_cla.objects.filter(campeonato=campeonato).order_by('id')
     desafios = Desafios.objects.order_by('id')
 
     hoje = date.today()
     dias_ate_sabado = (5 - hoje.weekday()) % 7
 
+    top_3_alunos = Alunos_posicoes_semana.objects.filter(
+        campeonato=campeonato, semana=semana
+    ).order_by('posicao')[:3]
+
+    top_3_clas = Mentoria_cla_posicao_semana.objects.filter(
+        campeonato=campeonato, semana=semana
+    ).order_by('posicao')[:3]
+
+    faturamento_total = (
+        Aluno_envios.objects
+        .filter(campeonato=campeonato, status=3)
+        .aggregate(total=Sum('valor_calculado'))['total'] or 0
+    )
+
+    # -------------------------------
+    # Dados para o gráfico (top 10 por semana)
+    # -------------------------------
+    semanas_disponiveis = (
+        Alunos_posicoes_semana.objects
+        .filter(campeonato=campeonato)
+        .values_list('semana', flat=True)
+        .distinct()
+        .order_by('semana')
+    )
+
+    grafico_dados = []
+    for sem in semanas_disponiveis:
+        top10_semana = (
+            Alunos_posicoes_semana.objects
+            .filter(campeonato=campeonato, semana=sem)
+            .order_by('-pontos_totais')[:3]
+            .select_related('aluno')
+        )
+
+        grafico_dados.append({
+            "semana": sem,
+            "alunos": [
+                {
+                    "aluno_id": aps.aluno.id,
+                    "nome": aps.aluno.nome_completo,
+                    "pontos": float(aps.pontos_totais or 0)
+                }
+                for aps in top10_semana
+            ]
+        })
 
     context = {
         'campeonato': campeonato,
@@ -59,7 +103,12 @@ def dashboard(request, campeonato_id):
         'clas': clas,
         'desafios': desafios,
         'semana': semana,
+        'top_3_alunos': top_3_alunos,
+        'top_3_clas': top_3_clas,
+        'faturamento_total': faturamento_total,
+        'grafico_dados': grafico_dados
     }
+    #return JsonResponse(grafico_dados, safe=False)
     return render(request, 'Dashboard/Dashboard.html', context)
 
 @login_required
@@ -237,6 +286,8 @@ def ranking_campeonato(request, campeonato_id):
     paginator = Paginator(alunos_list, 50)
     page_number = request.GET.get('page')
     semana_rank = paginator.get_page(page_number)
+
+    print(campeonato.id)
 
     context = {
         "campeonato": campeonato,
@@ -832,6 +883,12 @@ def pontos_cliente(request, aluno_id):
     #
     #return JsonResponse(resultado, safe=False)
     return render(request, "Alunos/pontos_cliente_aluno.html", context)
+
+
+
+
+
+
 
 
 
