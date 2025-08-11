@@ -287,8 +287,6 @@ def ranking_campeonato(request, campeonato_id):
     page_number = request.GET.get('page')
     semana_rank = paginator.get_page(page_number)
 
-    print(campeonato.id)
-
     context = {
         "campeonato": campeonato,
         "alunos": semana_rank,
