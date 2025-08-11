@@ -175,7 +175,7 @@ else: # Este é o bloco para o Cloud Run (produção)
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro-dev', #Prod subidopro:us-central1:db-subidopro # Dev subidopro:us-central1:db-subidopro-dev
+            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro-cl', #Prod subidopro:us-central1:db-subidopro # Dev subidopro:us-central1:db-subidopro-dev
             'PORT': '5432',
         }
     }
@@ -220,9 +220,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Use 'staticfiles' para a 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # Para servir arquivos estáticos no Cloud Run via WhiteNoise
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-
-
 
 # STATICFILES_DIRS = [
 #     os.path.join(BASE_DIR, 'static'),  # Pasta onde você mantém seus arquivos estáticos locais
