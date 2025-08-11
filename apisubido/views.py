@@ -142,6 +142,45 @@ class RankingSemanalAPIView(APIView):
             "rank_alunos": serializer.data
         })
 
+class RankingClaAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = RankClaDetalhesSerializer
+
+    def get(self, request, campeonato_id):
+        campeonato_ativo = Campeonato.objects.filter(id=campeonato_id, ativo=True).first()
+        if not campeonato_ativo:
+            return Response({"detail": "Nenhum campeonato ativo encontrado."}, status=404)
+
+        # Buscar semana mais recente
+        maior_semana_obj = (
+            Alunos_posicoes_semana.objects
+            .filter(campeonato=campeonato_ativo)
+            .order_by('-semana')
+            .only('semana')
+            .first()
+        )
+        if not maior_semana_obj:
+            return Response({"detail": "Nenhuma semana encontrada."}, status=404)
+        
+        semana = maior_semana_obj.semana
+
+        # Buscar ranking com otimização
+        rank_alunos = (
+            Mentoria_cla_posicao_semana.objects
+            .select_related('cla')
+            .filter(campeonato=campeonato_ativo, semana=semana)
+            .order_by('posicao')[:100]
+        )
+
+        serializer = RankClaDetalhesSerializer(rank_alunos, many=True)
+        return Response({
+            "campeonato": campeonato_ativo.identificacao,
+            "semana": semana,
+            "rank_alunos": serializer.data
+        })
+
+
+
 class ExtratoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -445,7 +484,7 @@ class PontosSemanaisAlunoAPIView(APIView):
         return Response(resultado)
 
 class PontosSemanaisClaAPIView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, cla_id):
         cla = Mentoria_cla.objects.filter(id=cla_id).first()
@@ -497,4 +536,3 @@ class PontosSemanaisClaAPIView(APIView):
             posicao_anterior = registro.posicao
 
         return Response(resultado)
-

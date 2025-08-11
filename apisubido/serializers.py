@@ -78,6 +78,30 @@ class RankAlunoDetalhesSerializer(serializers.ModelSerializer):
             'semana', 'posicao', 'tipo', 'data', 'aluno', 'cla', 'campeonato'
         ]
 
+class RankClaDetalhesSerializer(serializers.ModelSerializer):
+    nome_cla = serializers.CharField(source='cla.nome', read_only=True)
+    nome_sigla = serializers.CharField(source='cla.sigla', read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        campos_para_int = [
+            'pontos_recebimento', 'pontos_desafio', 'pontos_certificacao',
+            'pontos_manual', 'pontos_contrato', 'pontos_retencao', 'pontos_totais'
+        ]
+        for campo in campos_para_int:
+            valor = data.get(campo)
+            data[campo] = int(float(valor)) if valor else 0
+        return data
+
+    class Meta:
+        model = Mentoria_cla_posicao_semana
+        fields = [
+            'id', 'nome_cla', 'nome_sigla',
+            'pontos_recebimento', 'pontos_desafio', 'pontos_certificacao',
+            'pontos_manual', 'pontos_contrato', 'pontos_retencao', 'pontos_totais',
+            'semana', 'posicao', 'data', 'cla', 'campeonato'
+        ]
+
 def AlunoEnviosExtratoSerializer(envios, semana_limite):
     recebimentos_temp = defaultdict(lambda: {"infos": {"data": "", "valor_total": "R$ 0,00", "pontos_total": "0"}, "envios": []})
     resumo_mensal = defaultdict(lambda: {"valor_total": 0, "pontos_total": 0})
