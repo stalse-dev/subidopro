@@ -4,6 +4,10 @@ from subidometro.models import *
 import requests
 from .utils import *
 
+def TestViewEnvioAprove(request):
+    response = test_aprove_envio()
+    return JsonResponse(response)
+
 def teste(request):
     response = teste_all_pontos()
     # date_now = str(date.today())

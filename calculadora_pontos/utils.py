@@ -257,12 +257,13 @@ def executar_calculo_retencao_retroativo():
     print("\n##### CÁLCULO DE RETENÇÃO RETROATIVO CONCLUÍDO #####")
 
 def ranking_streamer(campeonato):
-    mentoria_ids = Mentoria_cla.objects.filter(definido=1).values_list('id', flat=True)
+    mentoria_ids = Mentoria_cla.objects.values_list('id', flat=True)
 
     alunos_qs = Alunos.objects.filter(
         Q(status__in=['ACTIVE', 'APPROVED', 'COMPLETE']),
         nivel__lt=16,
         cla__in=mentoria_ids,
+        campeonato__id=campeonato.id
     )
 
     subquery_pontos_recebimento = Aluno_envios.objects.filter(

@@ -354,6 +354,19 @@ def faturamento_aluno(request, aluno_id):
         status=3
     )
 
+    if not envios.exists():
+        context.update({
+            "faturamento_mensal": [],
+            "faturamento_total": 0,
+            "ticket_medio_geral": 0,
+            "crescimento_percentual": 0,
+            "mes_maior_faturamento": "N/D",
+            "mes_menor_faturamento": "N/D",
+            "ultimo_mes": None,
+            "ranking_campeonatos": [],
+        })
+        return render(request, "Alunos/faturamento_aluno.html", context)
+
     mensal = envios.annotate(
         mes=TruncMonth('data')
     ).values('mes').annotate(
