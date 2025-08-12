@@ -843,11 +843,13 @@ def pontos_cliente(request, aluno_id):
     context = data_aluno_campeonato(aluno_id)
     
     contratos = (
-        Aluno_contrato.objects
-        .filter(aluno_id=aluno_id, pontos__gt=0, status=3)
+        Aluno_clientes_contratos.objects
+        .filter(cliente__aluno_id=aluno_id)
         .select_related('cliente')
-        .order_by('-data_cadastro')
+        .order_by('-data_criacao')
     )
+
+    print(f"Contratos encontrados: {contratos.count()}")
 
     clientes_dict = defaultdict(lambda: {
         "cliente_id": None,
@@ -868,22 +870,21 @@ def pontos_cliente(request, aluno_id):
                 "cliente_data_criacao": cliente.data_criacao
             })
 
-        # Buscar envios aprovados desse contrato
         envios = list(
             Aluno_envios.objects
             .filter(aluno_id=aluno_id, cliente=cliente, status=3)
             .order_by('data')
             .values("id", "data", "status", "pontos")
         )
+        print(f"Envios para cliente {cliente.id}: {len(envios)}")
 
         clientes_dict[cliente.id]["contratos"].append({
             "contrato_id": contrato.id,
-            "contrato_data": contrato.data,
-            "pontos": float(contrato.pontos),
+            "contrato_data": contrato.data_criacao,
+            "pontos": float(getattr(contrato, 'pontos', 0)),
             "envios": envios
         })
 
-    # Lista ordenada por data de criação do cliente
     resultado = sorted(
         clientes_dict.values(),
         key=lambda x: x["cliente_data_criacao"] or "1900-01-01",
@@ -891,9 +892,8 @@ def pontos_cliente(request, aluno_id):
     )
 
     context.update({"clientes": resultado})
-    #
-    #return JsonResponse(resultado, safe=False)
     return render(request, "Alunos/pontos_cliente_aluno.html", context)
+
 
 
 
