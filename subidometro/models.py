@@ -205,7 +205,6 @@ class Aluno_envios(models.Model):
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
     pontos_previsto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
-
     def __str__(self):
         return f"Envio {self.id} - {self.cliente} - {self.aluno}"
 

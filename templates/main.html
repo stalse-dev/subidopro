@@ -120,16 +120,6 @@
                                         <span class="material-symbols-outlined">business_center</span>
                                         <span>Todos clientes</span>
                                     </a>
-                                    {% if user.is_superuser %}
-                                        <a href="{% url 'balanceamento' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
-                                            <span class="material-symbols-outlined">scale</span>
-                                            <span>Balanceamento</span>
-                                        </a>
-                                        <a href="{% url 'retencao' %}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-700 rounded-md transition-colors duration-200">
-                                            <span class="material-symbols-outlined">trending_up</span>
-                                            <span>Retenção</span>
-                                        </a>
-                                    {% endif %}
                                     <div class="border-t border-slate-700 my-2"></div>
                                     <a href="{% url 'logout' %}" class="flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-md transition-colors duration-200">
                                         <span class="material-symbols-outlined">logout</span>

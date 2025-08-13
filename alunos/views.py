@@ -1,11 +1,12 @@
 import json
 from multiprocessing import context
+from django.db.models import Value, CharField
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.http import HttpResponse, HttpResponseForbidden
 from subidometro.models import *
 from subidometro.utils import *
-from django.db.models.functions import TruncMonth, ExtractMonth
+from django.db.models.functions import TruncMonth, ExtractMonth, ExtractHour, ExtractDay, ExtractYear
 from django.db.models import OuterRef, Subquery, F, Sum, Count, Avg, Exists
 from django.contrib.auth.decorators import login_required
 from datetime import date
@@ -295,17 +296,18 @@ def ranking_campeonato(request, campeonato_id):
     }
     return render(request, "Ranking/ranking_campeonato.html", context) 
 
-def data_aluno_campeonato(aluno_id):
-    aluno = Alunos.objects.get(id=aluno_id)
-    campeonato = aluno.campeonato
+@login_required
+def aluno_campeonato(request, aluno_id):
+    context = data_aluno_campeonato(aluno_id)
 
-    maior_semana_obj = (
-        Alunos_posicoes_semana.objects.filter(campeonato=campeonato)
-        .order_by('-semana')
-        .only('semana')
-        .first()
-    )
-    semana = maior_semana_obj.semana if maior_semana_obj else 0
+    return render(request, "Alunos/aluno_campeonato.html", context)
+
+@login_required
+def aluno_dashboard(request, aluno_id):
+    aluno = Alunos.objects.get(id=aluno_id)
+    envios = Aluno_envios.objects.filter(aluno_id=aluno_id)
+    clientes = Aluno_clientes.objects.filter(aluno_id=aluno_id)
+    contratos = Aluno_clientes_contratos.objects.filter(cliente__aluno_id=aluno_id)
 
     mes_mais_ganhou = (
         Aluno_envios.objects
@@ -317,35 +319,208 @@ def data_aluno_campeonato(aluno_id):
         .first()
     )
 
-    total_clientes = Aluno_clientes.objects.filter(aluno=aluno, status=1).count()
-    total_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).count()
     total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).aggregate(total=Sum('valor_calculado'))['total'] or 0
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
 
     soma_de_todos_valores = float(total_valores_envios) + float(total_valor_camp)
 
-    return ({
+    # Campeonatos atuais
+    campeonatos_atuais = Campeonato.objects.filter(
+        participacoes__aluno_id=aluno_id
+    ).annotate(
+        tipo=Value("Atual", output_field=CharField())
+    ).values("identificacao", "data_inicio", "data_fim")
+
+    campeonatos_atuais = list(campeonatos_atuais)
+
+    campeonatos_antigos = Aluno_camp_faturamento_anterior.objects.filter(aluno_id=aluno_id).first()
+
+    if campeonatos_antigos:
+        aluno_campeonato = {
+            "identificacao": "Campeonatos antigos",
+            "data_inicio": "N/A",
+            "data_fim": "N/A",
+        }
+        campeonatos_atuais.append(aluno_campeonato)
+
+
+    # --- ENVIOS ---
+    total_envios = envios.count()
+    total_aprovados = envios.filter(status=3).count()
+    total_reprovados = envios.filter(status=2).count()
+
+    envios_por_mes = (
+        envios
+        .exclude(data__isnull=True)
+        .annotate(
+            mes=ExtractMonth("data"),
+            ano=ExtractYear("data")
+        )
+        .values("mes", "ano")
+        .annotate(total=Count("id"))
+        .order_by("ano", "mes")
+    )
+    envios_por_mes = [
+        {**item, "mes_ano": f"{item['mes']:02d}/{item['ano']}"}
+        for item in envios_por_mes
+    ]
+
+    dia_mais_comum = (
+        envios
+        .exclude(data_cadastro__isnull=True)
+        .annotate(dia=ExtractDay("data_cadastro"))
+        .values("dia")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+        .first()
+    )
+    if dia_mais_comum:
+        dia_mais_comum["dia_formatado"] = f"{dia_mais_comum['dia']:02d}"
+
+    horario_mais_comum = (
+        envios
+        .exclude(data_cadastro__isnull=True)
+        .annotate(hora=ExtractHour("data_cadastro"))
+        .values("hora")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+        .first()
+    )
+    if horario_mais_comum:
+        horario_mais_comum["hora_formatada"] = f"{horario_mais_comum['hora']:02d}:00"
+
+    # --- CLIENTES ---
+    total_clientes = clientes.count()
+    clientes_reprovados = clientes.filter(status=2).count()
+
+    # --- CONTRATOS ---
+    total_contratos = contratos.count()
+    contratos_reprovados = contratos.filter(status=2).count()
+
+    contratos_por_tipo = (
+        contratos
+        .values("tipo_contrato")
+        .annotate(total=Count("id"))
+        .order_by("tipo_contrato")
+    )
+
+    # --- RETENÇÃO ---
+    retencao_qs = Alunos_clientes_pontos_meses_retencao.objects.filter(aluno_id=aluno_id)
+
+    # Total de clientes com retenção (distintos)
+    total_clientes_retidos = retencao_qs.values("cliente").distinct().count()
+
+    # Clientes retidos por mês/ano
+    clientes_retidos_por_mes = (
+        retencao_qs
+        .annotate(
+            mes=ExtractMonth("data"),
+            ano=ExtractYear("data")
+        )
+        .values("mes", "ano")
+        .annotate(clientes_retidos=Count("cliente", distinct=True))
+        .order_by("ano", "mes")
+    )   
+
+    # Formata mes/ano no retorno
+    clientes_retidos_por_mes = [
+        {
+            **item,
+            "mes_ano": f"{item['mes']:02d}/{item['ano']}"
+        }
+        for item in clientes_retidos_por_mes
+    ]
+
+    #Clientes Novos Adiquiridos no Cameponato do Alunos
+    novos_clientes = Aluno_contrato.objects.filter(aluno_id=aluno_id, campeonato=aluno.campeonato, status=3).count()
+
+    mes_mais_ganhou = (
+        Aluno_envios.objects
+        .filter(aluno=aluno, status=3, semana__gt=0)
+        .annotate(mes=TruncMonth('data'))
+        .values('mes')
+        .annotate(total_mes=Sum('valor_calculado'))
+        .order_by('-total_mes')
+        .first()
+    )
+
+    total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).aggregate(total=Sum('valor_calculado'))['total'] or 0
+    total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
+
+    soma_de_todos_valores = float(total_valores_envios) + float(total_valor_camp)
+
+
+    context = {
         "aluno": aluno,
-        "maior_semana": semana,
+        "total_envios": total_envios,
+        "total_aprovados": total_aprovados,
+        "total_reprovados": total_reprovados,
+        "envios_por_mes": list(envios_por_mes),
+        "dia_mais_comum": dia_mais_comum,
+        "horario_mais_comum": horario_mais_comum,
+
         "mes_mais_ganhou": {
             "mes": mes_mais_ganhou["mes"].strftime("%Y-%m") if mes_mais_ganhou else None,
             "total_mes": float(mes_mais_ganhou["total_mes"]) if mes_mais_ganhou else 0
         },
+        "soma_de_todos_valores": float(soma_de_todos_valores),
+
+        # Campeonatos Atuais
+        "campeonatos_participantes": campeonatos_atuais,
+
+        # Clientes
         "total_clientes": total_clientes,
-        "total_envios": total_envios,
+        "clientes_reprovados": clientes_reprovados,
+        # Novos Clientes
+        "novos_clientes": novos_clientes,
+
+        # Contratos
+        "total_contratos": total_contratos,
+        "contratos_reprovados": contratos_reprovados,
+        "contratos_por_tipo": list(contratos_por_tipo),
+
+        # Retenção
+        "total_clientes_retidos": total_clientes_retidos,
+        "clientes_retidos_por_mes": list(clientes_retidos_por_mes),
+        "mes_mais_ganhou": {
+            "mes": mes_mais_ganhou["mes"].strftime("%Y-%m") if mes_mais_ganhou else None,
+            "total_mes": float(mes_mais_ganhou["total_mes"]) if mes_mais_ganhou else 0
+        },
         "soma_de_todos_valores": float(soma_de_todos_valores)
-    })
+    }
+    return render(request, "Alunos/aluno_dashboard.html", context)
 
-@login_required
-def aluno_campeonato(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    return JsonResponse({
+        # Envios
+        "total_envios": total_envios,
+        "total_aprovados": total_aprovados,
+        "total_reprovados": total_reprovados,
+        "envios_por_mes": list(envios_por_mes),
+        "dia_mais_comum": dia_mais_comum,
+        "horario_mais_comum": horario_mais_comum,
 
-    return render(request, "Alunos/aluno_campeonato.html", context)
+        # Campeonatos Atuais
+        "campeonatos_participantes": campeonatos_atuais,
+
+        # Clientes
+        "total_clientes": total_clientes,
+        "clientes_reprovados": clientes_reprovados,
+        # Novos Clientes
+        "novos_clientes": novos_clientes,
+
+        # Contratos
+        "total_contratos": total_contratos,
+        "contratos_reprovados": contratos_reprovados,
+        "contratos_por_tipo": list(contratos_por_tipo),
+
+        # Retenção
+        "total_clientes_retidos": total_clientes_retidos,
+        "clientes_retidos_por_mes": list(clientes_retidos_por_mes),
+    }, safe=False)
 
 @login_required
 def faturamento_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
-    aluno = context["aluno"]
+    aluno = Alunos.objects.get(id=aluno_id)
 
     # Filtra apenas envios aprovados com data
     envios = Aluno_envios.objects.filter(
@@ -355,7 +530,7 @@ def faturamento_aluno(request, aluno_id):
     )
 
     if not envios.exists():
-        context.update({
+        context = {
             "faturamento_mensal": [],
             "faturamento_total": 0,
             "ticket_medio_geral": 0,
@@ -364,7 +539,7 @@ def faturamento_aluno(request, aluno_id):
             "mes_menor_faturamento": "N/D",
             "ultimo_mes": None,
             "ranking_campeonatos": [],
-        })
+        }
         return render(request, "Alunos/faturamento_aluno.html", context)
 
     mensal = envios.annotate(
@@ -439,7 +614,8 @@ def faturamento_aluno(request, aluno_id):
     faturamento_total = round(faturamento_total + float(total_valor_camp), 2)
 
     # Adiciona os novos dados ao context
-    context.update({
+    context = {
+        "aluno": aluno,
         "faturamento_mensal": dados_grafico,
         "faturamento_total": round(faturamento_total, 2),
         "ticket_medio_geral": round(ticket_medio_geral, 2),
@@ -448,7 +624,7 @@ def faturamento_aluno(request, aluno_id):
         "mes_menor_faturamento": mes_menor,
         "ultimo_mes": ultimo_mes,
         "ranking_campeonatos": ranking_campeonatos,
-    })
+    }
 
     return render(request, "Alunos/faturamento_aluno.html", context)
 
@@ -516,19 +692,20 @@ def AlunoEnviosPorCampeonatoSerializer(envios):
 
 @login_required
 def pontos_recebimento_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
     envios = Aluno_envios.objects.filter(aluno_id=aluno_id).select_related('campeonato')
     resultado = AlunoEnviosPorCampeonatoSerializer(envios)
 
-    context.update({
+    context = {
+        "aluno": aluno,
         "envios": resultado
-    })
+    }
 
     return render(request, "Alunos/pontos_recebimento.html", context)
 
 @login_required
 def pontos_cliente_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
     # Buscar todos os contratos válidos do aluno com seus clientes e campeonatos relacionados
     contratos = (
         Aluno_contrato.objects
@@ -589,15 +766,15 @@ def pontos_cliente_aluno(request, aluno_id):
 
     #return JsonResponse(campeonatos_ordenados)
 
-    context.update({
+    context = {
         "clientes": campeonatos_ordenados
-    })
+    }
 
     return render(request, "Alunos/pontos_cliente.html", context)
 
 @login_required
 def pontos_desafio_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
     desafios = (
         Aluno_desafio.objects
         .filter(aluno_id=aluno_id)
@@ -653,16 +830,17 @@ def pontos_desafio_aluno(request, aluno_id):
         )
     )
 
-    context.update({
+    context = {
+        "aluno": aluno,
         "campeonatos": campeonatos_ordenados
-    })
+    }
 
     #return JsonResponse(campeonatos_ordenados)
     return render(request, "Alunos/pontos_desafio.html", context)
     
 @login_required
 def pontos_certificacao_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
     certificacoes = (
         Aluno_certificacao.objects
         .filter(aluno_id=aluno_id, tipo=3)
@@ -710,13 +888,12 @@ def pontos_certificacao_aluno(request, aluno_id):
         )
     )
 
-    context.update({"campeonatos": campeonatos_ordenados})
+    context = {"aluno": aluno, "campeonatos": campeonatos_ordenados}
 
     return render(request, "Alunos/pontos_certificacao.html", context)
-
 @login_required
 def pontos_manuais_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
     manuais = (
         Aluno_certificacao.objects
         .filter(aluno_id=aluno_id, tipo=5)
@@ -765,12 +942,12 @@ def pontos_manuais_aluno(request, aluno_id):
     )
 
     #return JsonResponse(campeonatos_ordenados)
-    context.update({"campeonatos": campeonatos_ordenados})
+    context = {"aluno": aluno, "campeonatos": campeonatos_ordenados}
     return render(request, "Alunos/pontos_manuais.html", context)
 
 @login_required
 def pontos_retencao_aluno(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
+    aluno = Alunos.objects.get(id=aluno_id)
 
     # Busca todas as retenções do aluno com cliente e campeonato
     retencoes = (
@@ -834,14 +1011,14 @@ def pontos_retencao_aluno(request, aluno_id):
         )
     )
 
-    context.update({"campeonatos": campeonatos_ordenados})
+    context = {"aluno": aluno, "campeonatos": campeonatos_ordenados}
     #return JsonResponse(campeonatos_ordenados)
     return render(request, "Alunos/pontos_retencao.html", context)
 
 @login_required
 def pontos_cliente(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
-    
+    aluno = Alunos.objects.get(id=aluno_id)
+
     contratos = (
         Aluno_clientes_contratos.objects
         .filter(cliente__aluno_id=aluno_id)
@@ -891,7 +1068,7 @@ def pontos_cliente(request, aluno_id):
         reverse=True
     )
 
-    context.update({"clientes": resultado})
+    context = {"aluno": aluno, "clientes": resultado}
     return render(request, "Alunos/pontos_cliente_aluno.html", context)
 
 
