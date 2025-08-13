@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from subidometro.models import *
 
 BASE_URL = "http://127.0.0.1:8000/pontos/"
-AUTH_TOKEN = "Token c586814b447778525319c9e4237b52ce74d307c2"
+AUTH_TOKEN = "Token 0166cee43caca907f38a697ecd5062ab8cb7a0a9"
 
 HEADERS = {
     "Authorization": AUTH_TOKEN,
@@ -134,6 +134,16 @@ def test_post_envio(campeonato_id, aluno_id, cliente_id, contrato_id, data_receb
         return None
     return response.json().get("id")
 
+def TestPostEnvio(payload):
+    url = f"{BASE_URL}envio_criar/"
+    response = requests.post(url, json=payload, headers=HEADERS)
+    try:
+        if response.status_code != 201:
+            return False, f"Erro ao criar envio: {response.status_code} - {response.json()}"
+        return True, response.json().get("id")
+    except Exception as e:
+        return False, str(e)
+
 ### DELETE TEST FUNCTIONS ###
 
 def test_delete_campeonato(campeonato_id):
@@ -203,6 +213,16 @@ def test_patch_envio(envio_id, status):
     print("🔹 PATCH - Atualizar Envio")
     return response.json() if response.status_code == 200 else None
 
+def TestPatchEnvio(envio_id, payload):
+    url = f"{BASE_URL}envio_detalhes/{envio_id}/"
+    response = requests.patch(url, json=payload, headers=HEADERS)
+    try:
+        if response.status_code not in [200, 204]:
+            return False, f"Erro ao atualizar envio: {response.status_code} - {response.json()}"
+        return True, response.json()
+    except requests.RequestException as e:
+        return False, str(e)
+
 ### GET TEST FUNCTIONS ###
 
 def test_get_envio(envio_id):
@@ -210,6 +230,16 @@ def test_get_envio(envio_id):
     response = requests.get(url, headers=HEADERS)
     print("🔹 GET - Detalhes do Envio")
     return response.json() if response.status_code == 200 else None
+
+def TestGetEnvio(envio_id):
+    url = f"{BASE_URL}envio_detalhes/{envio_id}/"
+    response = requests.get(url, headers=HEADERS)
+    try:
+        if response.status_code != 200:
+            return False, f"Erro ao obter detalhes do envio: {response.status_code} - {response.json()}"
+        return True, response.json()
+    except requests.RequestException as e:
+        return False, str(e)
 
 ### MICRO TEST FUNCTIONS ###
 
