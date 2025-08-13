@@ -87,12 +87,12 @@
                             Campeonatos
                             <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                         </a>
-                        <a href="" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
+                        <a href="{% url 'health_subidometro' %}" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
                             Health SubidoMetro
                             <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                         </a>
                         {% if user.is_superuser %}
-                            <a href="" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
+                            <a href="{% url 'logs' %}" class="nav-link text-gray-300 hover:text-white transition-colors duration-300 font-medium text-base relative group px-4 py-2 rounded-lg">
                                 Logs
                                 <span class="absolute -bottom-0.5 left-1/2 w-0 h-0.5 bg-sky-400 group-hover:w-1/2 group-hover:left-1/4 transition-all duration-300"></span>
                             </a>
