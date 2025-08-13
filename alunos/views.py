@@ -297,12 +297,6 @@ def ranking_campeonato(request, campeonato_id):
     return render(request, "Ranking/ranking_campeonato.html", context) 
 
 @login_required
-def aluno_campeonato(request, aluno_id):
-    context = data_aluno_campeonato(aluno_id)
-
-    return render(request, "Alunos/aluno_campeonato.html", context)
-
-@login_required
 def aluno_dashboard(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
     envios = Aluno_envios.objects.filter(aluno_id=aluno_id)
