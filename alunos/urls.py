@@ -9,7 +9,7 @@ urlpatterns = [
     path('clas_campeonato/<int:campeonato_id>/exportar_alunos/', clas_campeonato, name='clas_campeonato'),
     path('ranking_semana_campeonato/<int:campeonato_id>/', ranking_semana_campeonato, name='ranking_semana_campeonato'),
     path('ranking_campeonato/<int:campeonato_id>/', ranking_campeonato, name='ranking_campeonato'),
-    
+    path('aluno_campeonato/<int:aluno_id>/dashboard_aluno', aluno_dashboard, name='dashboard_aluno'),
     path('aluno_campeonato/<int:aluno_id>/faturamento_aluno', faturamento_aluno, name='faturamento_aluno'),
     path('aluno_campeonato/<int:aluno_id>/pontos_recebimento_aluno', pontos_recebimento_aluno, name='pontos_recebimento_aluno'),
     path('aluno_campeonato/<int:aluno_id>/pontos_cliente_aluno', pontos_cliente_aluno, name='pontos_cliente_aluno'),

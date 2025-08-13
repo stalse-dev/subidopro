@@ -1066,14 +1066,6 @@ def pontos_cliente(request, aluno_id):
     return render(request, "Alunos/pontos_cliente_aluno.html", context)
 
 
-
-
-
-
-
-
-
-
 @login_required
 def exportar_alunos(request):
     alunos = Alunos.objects.all()
