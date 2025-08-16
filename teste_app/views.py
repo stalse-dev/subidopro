@@ -243,12 +243,18 @@ def cloud_run_logs(request):
     """
     client = logging.Client(project="subidopro")
 
+    # log_filter = """
+    #     resource.type="cloud_run_revision"
+    #     resource.labels.service_name="apisubidopro"
+    #     resource.labels.location="us-east1"
+    #     severity >= DEFAULT
+    #     httpRequest.userAgent = "node"
+    # """
+
     log_filter = """
-        resource.type="cloud_run_revision"
-        resource.labels.service_name="apisubidopro"
-        resource.labels.location="us-east1"
-        severity >= DEFAULT
-        httpRequest.userAgent = "node"
+        resource.type="gae_app"
+        resource.labels.module_id="default"
+        resource.labels.version_id="homolog"
     """
 
     entries = client.list_entries(
@@ -256,7 +262,7 @@ def cloud_run_logs(request):
         order_by=logging.DESCENDING,
         max_results=50
     )
-
+    print("entries: ", entries)
     logs_list = []
     for entry in entries:
         http_req = getattr(entry, "http_request", None)
@@ -301,6 +307,8 @@ def cloud_run_logs(request):
             "url": request_url
             
         })
+
+    print("logs_list: ", logs_list)
     context = {
         "logs": logs_list
     }
