@@ -2,8 +2,28 @@ from django.urls import path, include
 from .views import *
 
 urlpatterns = [
-    path('', ranking_semana, name='ranking_semana_home'),
+    path('', campeonatos, name='campeonatos'),
+    path('campeonatos/', campeonatos, name='campeonatos'),
+    path('dashboard/<int:campeonato_id>/', dashboard, name='dashboard'),
+    path('alunos_campeonato/<int:campeonato_id>/', alunos_campeonato, name='alunos_campeonato'),
+    path('clas_campeonato/<int:campeonato_id>/exportar_alunos/', clas_campeonato, name='clas_campeonato'),
+    path('ranking_semana_campeonato/<int:campeonato_id>/', ranking_semana_campeonato, name='ranking_semana_campeonato'),
+    path('ranking_campeonato/<int:campeonato_id>/', ranking_campeonato, name='ranking_campeonato'),
+    path('aluno_campeonato/<int:aluno_id>/dashboard_aluno', aluno_dashboard, name='dashboard_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/faturamento_aluno', faturamento_aluno, name='faturamento_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_recebimento_aluno', pontos_recebimento_aluno, name='pontos_recebimento_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_cliente_aluno', pontos_cliente_aluno, name='pontos_cliente_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_desafio_aluno', pontos_desafio_aluno, name='pontos_desafio_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_certificacao_aluno', pontos_certificacao_aluno, name='pontos_certificacao_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_manuais_aluno', pontos_manuais_aluno, name='pontos_manuais_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_retencao_aluno', pontos_retencao_aluno, name='pontos_retencao_aluno'),
+    path('aluno_campeonato/<int:aluno_id>/pontos_cliente', pontos_cliente, name='pontos_cliente'),
     path('alunos/', alunos, name='alunos'),
+    path('clientes/', clientes, name='clientes'),
+    path('cliente/<int:cliente_id>/', cliente, name='cliente'),
+
+
+
     path('aluno/<int:aluno_id>/', aluno, name='aluno'),
     path('aluno/<int:aluno_id>/pontos/', aluno_pontos, name='aluno-pontos'),
     path('aluno/<int:aluno_id>/clientes/', aluno_clientes, name='aluno-clientes'),
@@ -15,9 +35,6 @@ urlpatterns = [
     path('ranking_cla/', ranking_cla, name='ranking_cla'),
     path('clas/', clas, name='clas'),
     path('cla/<int:cla_id>/', cla, name='cla'),
-    path('clientes/', clientes, name='clientes'),
-    path('cliente/<int:cliente_id>/', cliente, name='cliente'),
-    path('exportar-alunos/', exportar_alunos, name='exportar_alunos'),
     path('exportar-clientes/', exportar_clientes, name='exportar_clientes'),
     path('exportar_ranking/', exportar_ranking, name='exportar_ranking'),
     path('exportar_ranking_semana/<int:semana>/', exportar_ranking_semana, name='exportar_ranking_semana'),

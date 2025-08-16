@@ -1,0 +1,56 @@
+{% extends 'main.html' %}
+
+{% block containerBodyMain %}
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Cabeçalho do Campeonato -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">{{ campeonato.identificacao }}</h1>
+                    <p class="text-gray-500 mt-1">De {{ campeonato.data_inicio|date:"d M Y" }} a {{ campeonato.data_fim|date:"d M Y" }}</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <a href="{{ campeonato.regra_pdf }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-[#1C46A0] text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors duration-300">
+                        <span class="material-symbols-outlined mr-2">description</span>
+                        Ver Regras
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abas de Navegação -->
+        <div class="mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                    <a href="{% url 'dashboard' campeonato.id %}"
+                        class="{% if request.resolver_match.url_name == 'dashboard' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        Dashboard
+                    </a>
+                    <a href="{% url 'alunos_campeonato' campeonato.id %}"
+                        class="{% if request.resolver_match.url_name == 'alunos_campeonato' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        Alunos
+                    </a>
+                    <a href="{% url 'clas_campeonato' campeonato.id %}" 
+                        class="{% if request.resolver_match.url_name == 'clas_campeonato' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        Clãs
+                    </a>
+                    <a href="{% url 'ranking_semana_campeonato' campeonato.id %}" 
+                        class="{% if request.resolver_match.url_name == 'ranking_semana_campeonato' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        Ranking Semanal</a>
+                    <a href="{% url 'ranking_campeonato' campeonato.id %}" 
+                        class="{% if request.resolver_match.url_name == 'ranking_campeonato' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        Ranking Real-Time</a>
+                </nav>
+            </div>
+        </div>
+
+
+        <!-- Conteúdo da Aba Ativa (Aqui ficará o conteúdo dinâmico) -->
+        <div id="tab-content">
+            {% block containerCntMain %}
+
+            {% endblock %}
+        </div>
+    </div>
+{% endblock %}

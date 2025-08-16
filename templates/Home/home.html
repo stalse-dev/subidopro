@@ -1,34 +1,48 @@
 {% extends 'main.html' %}
 
 {% block containerBodyMain %}
-<div class="flex items-center justify-center min-h-screen text-white">
-    <div class="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-xl">
-        <img 
-            src="https://langermarketing.com.br/wp-content/uploads/2023/09/selo_subido_pro-2.png" 
-            alt="SubidoPro Logo" class="mx-auto mb-6 w-32 md:w-48 transition-transform transform hover:scale-105">
+    <!-- ===== Seção de Cards de Campeonatos Início ===== -->
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Campeonatos Ativos</h1>
         
-        <h2 class="text-xl font-medium mb-4 text-center text-blue-400">Bem-vindo, {{ user.name }}!</h2>
-        <h2 class="text-2xl font-semibold mb-4 text-center">Stalse Em Desenvolvimento...</h2>
-        
-        <div class="space-y-4">
-            <a href="{% url 'balanceamento' %}" 
-               class="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md">
-                Alunos que serão balanceados
+        <!-- Grid Responsiva para os Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            
+            {% for campeonato in campeonatos %}
+            <!-- Card Individual do Campeonato -->
+            <a href="#" class="group block bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 ease-in-out hover:shadow-xl">
+                <!-- Imagem do Card -->
+                <div class="relative h-48">
+                    <img class="w-full h-full object-cover" 
+                            src="{{ campeonato.imagem }}" 
+                            alt="Imagem do Campeonato {{ campeonato.identificacao }}"
+                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/1C46A0/FFFFFF?text=Campeonato';">
+                    <div class="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-10 transition-colors duration-300"></div>
+                </div>
+                
+                <!-- Conteúdo do Card -->
+                <div class="p-5">
+                    <h2 class="text-xl font-bold text-gray-800 truncate mb-2 group-hover:text-[#1C46A0] transition-colors duration-300">
+                        {{ campeonato.identificacao }}
+                    </h2>
+                    <p class="text-gray-600 text-sm mb-4 h-10 overflow-hidden">
+                        {{ campeonato.descricao|default:"Sem descrição disponível."|truncatechars:70 }}
+                    </p>
+                    
+                    <!-- Datas do Campeonato -->
+                    <div class="flex items-center text-sm text-gray-500">
+                        <span class="material-symbols-outlined text-base mr-2">calendar_today</span>
+                        <span>{{ campeonato.data_inicio|date:"d/m/Y" }} - {{ campeonato.data_fim|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
             </a>
-            <a href="{% url 'retencao' %}" 
-               class="block w-full text-center bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md">
-                Retenção Clientes por aluno
-            </a>
-            <a href="{% url 'ranking' %}" 
-               class="block w-full text-center bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md">
-                Ranking Real Time!
-            </a>
+            {% empty %}
+            <div class="col-span-full bg-white p-8 rounded-lg shadow-md text-center">
+                <h2 class="text-xl font-semibold text-gray-700">Nenhum campeonato encontrado.</h2>
+                <p class="text-gray-500 mt-2">Não há campeonatos ativos no momento. Volte em breve!</p>
+            </div>
+            {% endfor %}
+
         </div>
-        
-        <p class="mt-6 text-center text-sm">
-            Para mais informações acesse 
-            <a href="https://subidopro.com.br" class="text-blue-400 hover:text-blue-600 transition-colors">SubidoPro</a>
-        </p>
     </div>
-</div>
 {% endblock %}

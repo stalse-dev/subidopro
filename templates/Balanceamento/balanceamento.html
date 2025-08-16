@@ -50,6 +50,7 @@
                             <th class="px-4 py-3">ID Envio</th>
                             <th class="px-4 py-3">ID Aluno</th>
                             <th class="px-4 py-3">Nome do Aluno</th>
+                            <th class="px-4 py-3">Campeonato</th>
                             <th class="px-4 py-3">Mês</th>
                             <th class="px-4 py-3">Pontos Antes</th>
                             <th class="px-4 py-3">Pontos Após Ajuste</th>
@@ -61,6 +62,7 @@
                             <td class="px-4 py-3">{{ item.id }}</td>
                             <td class="px-4 py-3">{{ item.aluno_id }}</td>
                             <td class="px-4 py-3">{{ item.nome }}</td>
+                            <td class="px-4 py-3">{{ item.campeonato }}</td>
                             <td class="px-4 py-3">{{ item.mes }}</td>
                             <td class="px-4 py-3 text-red-500 font-semibold">{{ item.de|floatformat:0 }} Pts</td>
                             <td class="px-4 py-3 {% if item.para != 0 %}text-green-600{% else %}text-gray-500{% endif %} font-semibold">

@@ -1,0 +1,48 @@
+{% extends 'main.html' %}
+
+{% block containerBodyMain %}
+    <!-- ===== Seção de Cards de Campeonatos Início ===== -->
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Campeonatos Ativos</h1>
+        
+        <!-- Grid Responsiva para os Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            
+            {% for campeonato in campeonatos %}
+            <!-- Card Individual do Campeonato -->
+            <a href="{% url 'dashboard' campeonato.id %}" class="group block bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-2 transition-all duration-300 ease-in-out hover:shadow-xl">
+                <!-- Imagem do Card -->
+                <div class="relative h-48">
+                    <img class="w-full h-full object-cover" 
+                            src="{{ campeonato.imagem }}" 
+                            alt="Imagem do Campeonato {{ campeonato.identificacao }}"
+                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/1C46A0/FFFFFF?text=Campeonato';">
+                    <div class="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-10 transition-colors duration-300"></div>
+                </div>
+                
+                <!-- Conteúdo do Card -->
+                <div class="p-5">
+                    <h2 class="text-xl font-bold text-gray-800 truncate mb-2 group-hover:text-[#1C46A0] transition-colors duration-300">
+                        {{ campeonato.identificacao }}
+                    </h2>
+                    <p class="text-gray-600 text-sm mb-4 h-10 overflow-hidden">
+                        {{ campeonato.descricao|default:"Sem descrição disponível."|truncatechars:70 }}
+                    </p>
+                    
+                    <!-- Datas do Campeonato -->
+                    <div class="flex items-center text-sm text-gray-500">
+                        <span class="material-symbols-outlined text-base mr-2">calendar_today</span>
+                        <span>{{ campeonato.data_inicio|date:"d/m/Y" }} - {{ campeonato.data_fim|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="col-span-full bg-white p-8 rounded-lg shadow-md text-center">
+                <h2 class="text-xl font-semibold text-gray-700">Nenhum campeonato encontrado.</h2>
+                <p class="text-gray-500 mt-2">Não há campeonatos ativos no momento. Volte em breve!</p>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+{% endblock %}

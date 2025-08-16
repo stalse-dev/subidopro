@@ -80,13 +80,27 @@ class Alunos(models.Model):
     hotmart = models.IntegerField(null=True, blank=True)
     termo_aceito = models.IntegerField(null=True, blank=True, db_column="termo_aceito")
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_cla")
-    nivel = models.IntegerField(null=True, blank=True, default=0)
+    #nivel = models.IntegerField(null=True, blank=True, default=0)
+    nivel = models.ForeignKey("Mentoria_lista_niveis", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_nivel")
     aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
     tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")
     
 
     def __str__(self):
         return self.nome_completo
+    
+class ParticipacaoCampeonato(models.Model):
+    aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="participacoes")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, related_name="participacoes")
+    data_entrada = models.DateTimeField(auto_now_add=True)
+    data_saida = models.DateTimeField(null=True, blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('aluno', 'campeonato')
+
+    def __str__(self):
+        return f"{self.aluno.nome_completo} em {self.campeonato.identificacao}"
 
 class Alunos_posicoes_semana(models.Model):
     aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="alunos_posicoes_semana")
@@ -190,7 +204,6 @@ class Aluno_envios(models.Model):
 
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
     pontos_previsto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-
 
     def __str__(self):
         return f"Envio {self.id} - {self.cliente} - {self.aluno}"

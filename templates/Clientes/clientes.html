@@ -1,114 +1,128 @@
 {% extends 'main.html' %}
+{% load humanize %}
+
 {% block containerBodyMain %}
-    <div class="flex flex-col min-h-screen pt-20 bg-gray-100">
-        <div class="flex-grow flex items-center justify-center p-4">
-            <div class="w-full bg-white p-6 rounded-xl shadow-lg max-w-[1600px]">
-
-            <div class="w-full px-4 mt-8">
-
-                <h1 class="text-3xl font-bold text-[#002D55] text-center mb-6">Todos os Clientes</h1>
-
-                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-                    <div class="text-sm text-gray-500">
-                        <span>Total de Clientes Cadastros: </span><span class="font-bold text-gray-900">{{ cont_clientes }}</span>
-                    </div>
-                    <form method="get" class="flex flex-wrap items-center gap-2">
-                        <div class="relative min-w-[200px]">
-                            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar Cliente"
-                                class="pl-8 pr-4 py-1.5 border-b border-gray-400 text-sm focus:outline-none focus:border-[#1B469F] placeholder-gray-400 w-full" />
-                            <svg class="absolute left-2 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
-                            </svg>
-                        </div>
-                    </form>
-                </div>
+<!-- =============================================================== -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE TODOS OS CLIENTES                -->
+<!-- =============================================================== -->
+<div class="max-w-7xl mx-auto">
+    <!-- Cabeçalho da Seção e Barra de Busca -->
+    <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Todos os Clientes</h1>
+            <p class="text-sm text-gray-500">{{ cont_clientes }} cliente(s) encontrado(s)</p>
+        </div>
+        <form method="get" action="" class="w-full md:w-auto">
+            <div class="relative">
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por título ou documento..." class="w-full md:w-80 pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1C46A0]">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
             </div>
-                
-            <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-700 rounded-lg">
-                        <thead class="text-xs uppercase bg-gray-100 text-gray-600">
-                            <tr>
-                                <th class="px-6 py-3">ID</th>
-                                <th class="px-6 py-3">Título</th>
-                                <th class="px-6 py-3">Documento</th>
-                                <th class="px-6 py-3">Data de Criação</th>
-                                <th class="px-6 py-3">Aluno Res.</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cliente in clientes %}
-                            <tr class="bg-white border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='{% url 'cliente' cliente.id %}'" >
-                                <td class="px-6 py-4">{{ cliente.id }}</td>
-                                <td class="px-6 py-4">{{ cliente.titulo|default:"-" }}</td>
-                                <td class="px-6 py-4">{{ cliente.documento|default:"-" }}</td>
-                                <td class="px-6 py-4">{{ cliente.data_criacao|date:"d/m/Y H:i" }}</td>
+        </form>
+    </div>
 
-                                <td class="px-6 py-4">{{ cliente.aluno.apelido }}</td>
-                                <td class="px-6 py-4">
-                                    {% if cliente.status == 1 %}
-                                        <span class="text-green-400">Ativo</span>
-                                    {% else %}
-                                        <span class="text-red-400">Inativo</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                                <tr><td colspan="11" class="text-center py-4 text-gray-500">Nenhum cliente encontrado.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-    
-                <div class="flex flex-col items-center mt-6 mb-6">
-                    <span class="text-base text-gray-700 font-semibold mb-2">
-                        Página {{ clientes.number }} de {{ clientes.paginator.num_pages }}
-                    </span>
-                
-                    <div class="flex flex-wrap gap-2">
-                        {% if clientes.has_previous %}
-                            <a href="?q={{ q }}&semana={{ semana }}&page=1"
-                               class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
-                                Primeira
-                            </a>
-                            <a href="?q={{ q }}&semana={{ semana }}&page={{ clientes.previous_page_number }}"
-                               class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
-                                Anterior
-                            </a>
-                        {% endif %}
-                
-                        {% for num in clientes.paginator.page_range %}
-                            {% if clientes.number == num %}
-                                <span class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-md">
-                                    {{ num }}
+    <!-- Tabela de Clientes -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Cliente</th>
+                        <th scope="col" class="px-6 py-3">Aluno Responsável</th>
+                        <th scope="col" class="px-6 py-3">Data de Criação</th>
+                        <th scope="col" class="px-6 py-3 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr class="bg-white border-b hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location.href='{% url 'cliente' cliente.id %}'">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                            <div class="font-bold text-gray-800">{{ cliente.titulo }}</div>
+                            <div class="text-xs text-gray-500 font-mono">{{ cliente.documento|default:"N/A" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <img class="h-8 w-8 rounded-full object-cover mr-3" src="https://placehold.co/40x40/EBF4FF/7F9CF5?text={{ cliente.aluno.apelido|default:cliente.aluno.nome_completo|default:'?'|first|upper }}" alt="Avatar">
+                                <div>
+                                    <div class="font-semibold text-gray-700">{{ cliente.aluno.apelido|default:cliente.aluno.nome_completo }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ cliente.data_criacao|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if cliente.status == 1 %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 mr-1 bg-green-500 rounded-full"></span>
+                                    Aprovado
                                 </span>
-                            {% elif num > clientes.number|add:"-3" and num < clientes.number|add:"3" %}
-                                <a href="?q={{ q }}&semana={{ semana }}&page={{ num }}"
-                                   class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium transition">
-                                    {{ num }}
-                                </a>
+                            {% elif cliente.status == 2 %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    <span class="w-2 h-2 mr-1 bg-red-500 rounded-full"></span>
+                                    Invalidado
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                    <span class="w-2 h-2 mr-1 bg-gray-400 rounded-full"></span>
+                                    Não Analisado
+                                </span>
                             {% endif %}
-                        {% endfor %}
-                
-                        {% if clientes.has_next %}
-                            <a href="?q={{ q }}&semana={{ semana }}&page={{ clientes.next_page_number }}"
-                               class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
-                                Próxima
-                            </a>
-                            <a href="?q={{ q }}&semana={{ semana }}&page={{ clientes.paginator.num_pages }}"
-                               class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
-                                Última
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                
-            </div>
-
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-12 px-6">
+                            <p class="font-semibold">Nenhum cliente encontrado.</p>
+                            <p class="text-gray-500 text-sm mt-1">Tente ajustar os termos da sua busca.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
+    <!-- Paginação -->
+    {% if clientes.has_other_pages %}
+    <div class="flex items-center justify-between bg-white px-4 py-3 sm:px-6 rounded-b-lg shadow-md mt-4">
+        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Mostrando de
+                    <span class="font-medium">{{ clientes.start_index }}</span>
+                    a
+                    <span class="font-medium">{{ clientes.end_index }}</span>
+                    de
+                    <span class="font-medium">{{ cont_clientes }}</span>
+                    resultados
+                </p>
+            </div>
+            <div>
+                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    {% if clientes.has_previous %}
+                    <a href="?page={{ clientes.previous_page_number }}&q={{ q }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    </a>
+                    {% endif %}
+                    {% for i in clientes.paginator.page_range %}
+                        {% if clientes.number == i %}
+                            <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-[#1C46A0] text-white px-4 py-2 text-sm font-semibold">{{ i }}</a>
+                        {% elif i > clientes.number|add:'-3' and i < clientes.number|add:'3' %}
+                            <a href="?page={{ i }}&q={{ q }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if clientes.has_next %}
+                    <a href="?page={{ clientes.next_page_number }}&q={{ q }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<!-- =============================================================== -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE TODOS OS CLIENTES                  -->
+<!-- =============================================================== -->
 {% endblock %}

@@ -20,7 +20,7 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return redirect("ranking_semana_home")
+            return redirect("campeonatos")
         else:
             messages.error(request, "E-mail ou senha inválidos.")
 

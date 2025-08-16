@@ -60,14 +60,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     "django_htmx",
-    "rest_framework",
-    "rest_framework.authtoken",
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
+    'drf_spectacular',
     "corsheaders",
     'api',
     'users',
     'subidometro',
     'alunos',
+    'apisubido',
+    'calculadora_pontos',
+    'teste_app',
 ]
 WSGI_APPLICATION = 'subidopro.wsgi.application'
 
@@ -93,20 +99,22 @@ CORS_ALLOW_CREDENTIALS = True
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_HEADERS = list(default_headers)
-CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]  # Permitir todos os métodos HTTP
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
-
-
+# JWT
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-    ],
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# Swagger config
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API Subido',
+    'DESCRIPTION': 'Documentação da API protegida com JWT.',
+    'VERSION': '1.0.0',
 }
 
 SIMPLE_JWT = {
@@ -207,7 +215,7 @@ else:
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/{}'.format(env("db_instance_pro")),  # Defina corretamente a variável de ambiente
+            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro-homolog',
             'PORT': '5432',
         }
     }

@@ -1,0 +1,74 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+
+{% block containerAluno %}
+<div class="space-y-8">
+    {% for key, campeonato_data in clientes.items %}
+    <!-- Card para cada Campeonato -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Cabeçalho do Campeonato -->
+        <div class="p-5 bg-gray-50 border-b flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ campeonato_data.campeonato_identificacao }}</h2>
+                <p class="text-sm text-gray-500">Início em: {{ campeonato_data.campeonato_data_inicio|date:"d/m/Y" }}</p>
+            </div>
+            <div class="text-left sm:text-right">
+                <p class="text-2xl font-bold text-[#1C46A0]">{{ campeonato_data.total_pontos|floatformat:0 }}</p>
+                <p class="text-xs text-gray-500 uppercase font-semibold">Total de Pontos</p>
+            </div>
+        </div>
+        
+        <!-- Tabela de Clientes -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Cliente</th>
+                        <th scope="col" class="px-6 py-3">Data do Contrato</th>
+                        <th scope="col" class="px-6 py-3">1º Envio Aprovado</th>
+                        <th scope="col" class="px-6 py-3 text-center">Pontos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in campeonato_data.clientes %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <p class="font-semibold text-gray-800">{{ cliente.cliente_titulo }}</p>
+                            <p class="text-xs text-gray-500 font-mono">{{ cliente.cliente_documento|default:"N/A" }}</p>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center text-gray-700">
+                                <span class="material-symbols-outlined text-base mr-2 text-gray-400">calendar_today</span>
+                                <span>{{ cliente.contrato_data|date:"d/m/Y" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if cliente.primeiro_envio_aprovado %}
+                            <div class="flex items-center text-green-600">
+                                <span class="material-symbols-outlined text-base mr-2">check_circle</span>
+                                <span class="font-medium">{{ cliente.primeiro_envio_aprovado|date:"d/m/Y" }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center text-blue-800 bg-blue-100 px-3 py-1 rounded-full text-sm font-bold">
+                                {{ cliente.pontos|floatformat:0 }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 px-6 bg-white rounded-lg shadow-md">
+        <span class="material-symbols-outlined text-6xl text-gray-300">person_off</span>
+        <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum ponto por cliente encontrado.</p>
+        <p class="text-gray-500 text-sm mt-1">Este aluno ainda não ganhou pontos por contratos de clientes.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
