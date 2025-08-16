@@ -1065,66 +1065,6 @@ def pontos_cliente(request, aluno_id):
     context = {"aluno": aluno, "clientes": resultado}
     return render(request, "Alunos/pontos_cliente_aluno.html", context)
 
-
-@login_required
-def exportar_alunos(request):
-    alunos = Alunos.objects.all()
-    
-    # Preparando a resposta para o arquivo Excel
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=alunos_subidopro.xlsx'
-
-    # Criando a planilha
-    workbook = xlsxwriter.Workbook(response)
-    worksheet = workbook.add_worksheet()
-
-    # Estilo para os cabeçalhos
-    header_format = workbook.add_format({
-        'bold': True,
-        'font_size': 12,
-        'align': 'center',
-        'valign': 'vcenter',
-        'border': 1  # Adiciona borda
-    })
-
-    # Estilo para o conteúdo das células
-    cell_format = workbook.add_format({
-        'align': 'center',
-        'valign': 'vcenter',
-        'border': 1  # Adiciona borda
-    })
-
-    # Ajustando a largura das colunas
-    for col in range(7):  # De A (0) até G (6)
-        worksheet.set_column(col, col, 24)
-
-    # Cabeçalhos das colunas
-    headers = ['ID', 'Nome Completo', 'Nível', 'Apelido', 'Email', 'Data Criação', 'Status']
-    
-    # Escrevendo os cabeçalhos
-    for col_num, header in enumerate(headers):
-        worksheet.write(0, col_num, header, header_format)
-
-    # Preenchendo os dados
-    row = 1
-    for aluno in alunos:
-        # Remover o timezone dos datetimes
-        data_criacao = aluno.data_criacao.replace(tzinfo=None) if aluno.data_criacao else None
-        
-        worksheet.write(row, 0, aluno.id, cell_format)  # ID
-        worksheet.write(row, 1, aluno.nome_completo, cell_format)  # Nome Completo
-        worksheet.write(row, 2, aluno.nivel, cell_format)  # Nível
-        worksheet.write(row, 3, aluno.apelido, cell_format)  # Apelido
-        worksheet.write(row, 4, aluno.email, cell_format)  # Email
-        worksheet.write(row, 5, data_criacao.strftime('%d/%m/%Y %H:%M') if data_criacao else '', cell_format)  # Data Criação
-        worksheet.write(row, 6, 'Ativo' if aluno.status == 'ACTIVE' else 'Inativo', cell_format)  # Status
-        row += 1
-
-    # Fechar o workbook e retornar a resposta
-    workbook.close()
-    return HttpResponse("Erro ao exportar excel do alunos")
-    #return response
-
 @login_required
 def alunos(request):
     query = request.GET.get('q', '')
@@ -1138,17 +1078,9 @@ def alunos(request):
             Q(email__icontains=query)
         )
 
-    paginator = Paginator(alunos_list, 20)
+    paginator = Paginator(alunos_list, 50)
     page_number = request.GET.get('page')
     alunos_page = paginator.get_page(page_number)
-
-    # Associa os níveis aos alunos
-    niveis_dict = {
-        nivel.id: nivel for nivel in Mentoria_lista_niveis.objects.all()
-    }
-
-    for aluno in alunos_page:
-        aluno.nivel_obj = niveis_dict.get(aluno.nivel)
 
     context = {
         'alunos': alunos_page,
@@ -1156,6 +1088,84 @@ def alunos(request):
         'cont_alunos': alunos_list.count()
     }
     return render(request, 'Alunos/alunos.html', context)
+
+@login_required
+def clientes(request):
+    query = request.GET.get('q', '')
+
+    clientes_list = Aluno_clientes.objects.all().order_by('id')
+
+    if query:
+        clientes_list = clientes_list.filter(
+            Q(titulo__icontains=query) | 
+            Q(documento__icontains=query)
+        )
+
+    paginator = Paginator(clientes_list, 50)
+    page_number = request.GET.get('page')
+    clientes = paginator.get_page(page_number)
+
+    cont_clientes = clientes_list.count()
+
+    context = {
+        'clientes': clientes,
+        'q': query,
+        'cont_clientes': cont_clientes
+    }
+    return render(request, 'Clientes/clientes.html', context)
+
+@login_required
+def cliente(request, cliente_id):
+    cliente = Aluno_clientes.objects.get(id=cliente_id)
+    ano_atual = timezone.now().year
+
+    # Lista dos meses para exibição no template
+    meses = [calendar.month_abbr[i].capitalize() for i in range(1, 13)]
+    numeros_meses = list(range(1, 13))
+
+    # Agregando pontos de retenção por mês
+    retencao_mensal = (
+        Alunos_clientes_pontos_meses_retencao.objects
+        .filter(cliente=cliente, envio__data__year=ano_atual)
+        .annotate(mes=ExtractMonth('envio__data'))
+        .values('mes')
+        .annotate(total_pontos=Sum('pontos'))
+        .order_by('mes')
+    )
+
+    meses_filtrados = range(3, 9)
+    retencao_por_mes = {i: 0 for i in meses_filtrados}
+
+    for item in retencao_mensal:
+        mes = item['mes']
+        if mes in retencao_por_mes:
+            retencao_por_mes[mes] = float(item['total_pontos'])
+
+    lista_pontos_mes = [retencao_por_mes[i] for i in meses_filtrados]
+    meses = [calendar.month_abbr[i].capitalize() for i in meses_filtrados]
+    numeros_meses = list(meses_filtrados)
+
+
+    cliente_pontos = Aluno_contrato.objects.filter(cliente=cliente).first()
+    contratos = Aluno_clientes_contratos.objects.filter(cliente=cliente).order_by('-data_contrato')
+    recebimentos = Aluno_envios.objects.filter(cliente=cliente).order_by('-data')
+    pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(cliente=cliente).order_by('-data')
+
+    context = {
+        'cliente': cliente,
+        'contratos': contratos,
+        'recebimentos': recebimentos,
+        'cliente_pontos': cliente_pontos,
+        'numeros_meses': numeros_meses,
+        'meses': meses,
+        'lista_pontos_mes': lista_pontos_mes,
+        'pontos_retencao': pontos_retencao,
+    }
+    return render(request, 'Clientes/cliente.html', context)
+
+
+
+
 
 
 @login_required
@@ -1415,80 +1425,9 @@ def exportar_clientes(request):
     return HttpResponse("Erro ao exportar excel do alunos")
     #return response
 
-@login_required
-def clientes(request):
-    query = request.GET.get('q', '')
-
-    clientes_list = Aluno_clientes.objects.all().order_by('id')
-
-    if query:
-        clientes_list = clientes_list.filter(
-            Q(titulo__icontains=query) | 
-            Q(documento__icontains=query)
-        )
-
-    paginator = Paginator(clientes_list, 20)
-    page_number = request.GET.get('page')
-    clientes = paginator.get_page(page_number)
-
-    cont_clientes = clientes_list.count()
-
-    context = {
-        'clientes': clientes,
-        'q': query,
-        'cont_clientes': cont_clientes
-    }
-    return render(request, 'Clientes/clientes.html', context)
-
-@login_required
-def cliente(request, cliente_id):
-    cliente = Aluno_clientes.objects.get(id=cliente_id)
-    ano_atual = timezone.now().year
-
-    # Lista dos meses para exibição no template
-    meses = [calendar.month_abbr[i].capitalize() for i in range(1, 13)]
-    numeros_meses = list(range(1, 13))
-
-    # Agregando pontos de retenção por mês
-    retencao_mensal = (
-        Alunos_clientes_pontos_meses_retencao.objects
-        .filter(cliente=cliente, envio__data__year=ano_atual)
-        .annotate(mes=ExtractMonth('envio__data'))
-        .values('mes')
-        .annotate(total_pontos=Sum('pontos'))
-        .order_by('mes')
-    )
-
-    # Filtra apenas de março (3) a agosto (8)
-    meses_filtrados = range(3, 9)
-    retencao_por_mes = {i: 0 for i in meses_filtrados}
-
-    for item in retencao_mensal:
-        mes = item['mes']
-        if mes in retencao_por_mes:
-            retencao_por_mes[mes] = float(item['total_pontos'])
-
-    lista_pontos_mes = [retencao_por_mes[i] for i in meses_filtrados]
-    meses = [calendar.month_abbr[i].capitalize() for i in meses_filtrados]
-    numeros_meses = list(meses_filtrados)
 
 
-    cliente_pontos = Aluno_contrato.objects.filter(cliente=cliente).first()
-    contratos = Aluno_clientes_contratos.objects.filter(cliente=cliente).order_by('-data_contrato')
-    recebimentos = Aluno_envios.objects.filter(cliente=cliente).order_by('-data')
-    pontos_retencao = Alunos_clientes_pontos_meses_retencao.objects.filter(cliente=cliente).order_by('-data')
 
-    context = {
-        'cliente': cliente,
-        'contratos': contratos,
-        'recebimentos': recebimentos,
-        'cliente_pontos': cliente_pontos,
-        'numeros_meses': numeros_meses,
-        'meses': meses,
-        'lista_pontos_mes': lista_pontos_mes,
-        'pontos_retencao': pontos_retencao,
-    }
-    return render(request, 'Clientes/cliente.html', context)
 
 @login_required
 def balanceamento(request):

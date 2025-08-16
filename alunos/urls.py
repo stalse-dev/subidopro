@@ -18,8 +18,12 @@ urlpatterns = [
     path('aluno_campeonato/<int:aluno_id>/pontos_manuais_aluno', pontos_manuais_aluno, name='pontos_manuais_aluno'),
     path('aluno_campeonato/<int:aluno_id>/pontos_retencao_aluno', pontos_retencao_aluno, name='pontos_retencao_aluno'),
     path('aluno_campeonato/<int:aluno_id>/pontos_cliente', pontos_cliente, name='pontos_cliente'),
-
     path('alunos/', alunos, name='alunos'),
+    path('clientes/', clientes, name='clientes'),
+    path('cliente/<int:cliente_id>/', cliente, name='cliente'),
+
+
+
     path('aluno/<int:aluno_id>/', aluno, name='aluno'),
     path('aluno/<int:aluno_id>/pontos/', aluno_pontos, name='aluno-pontos'),
     path('aluno/<int:aluno_id>/clientes/', aluno_clientes, name='aluno-clientes'),
@@ -31,9 +35,6 @@ urlpatterns = [
     path('ranking_cla/', ranking_cla, name='ranking_cla'),
     path('clas/', clas, name='clas'),
     path('cla/<int:cla_id>/', cla, name='cla'),
-    path('clientes/', clientes, name='clientes'),
-    path('cliente/<int:cliente_id>/', cliente, name='cliente'),
-    path('exportar-alunos/', exportar_alunos, name='exportar_alunos'),
     path('exportar-clientes/', exportar_clientes, name='exportar_clientes'),
     path('exportar_ranking/', exportar_ranking, name='exportar_ranking'),
     path('exportar_ranking_semana/<int:semana>/', exportar_ranking_semana, name='exportar_ranking_semana'),
