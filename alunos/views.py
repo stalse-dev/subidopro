@@ -700,7 +700,6 @@ def pontos_recebimento_aluno(request, aluno_id):
 @login_required
 def pontos_cliente_aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
-    # Buscar todos os contratos válidos do aluno com seus clientes e campeonatos relacionados
     contratos = (
         Aluno_contrato.objects
         .filter(aluno_id=aluno_id, pontos__gt=0, status=3)
@@ -761,6 +760,7 @@ def pontos_cliente_aluno(request, aluno_id):
     #return JsonResponse(campeonatos_ordenados)
 
     context = {
+        "aluno": aluno,
         "clientes": campeonatos_ordenados
     }
 

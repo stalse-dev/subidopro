@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    "auditlog",
     "django_htmx",
     'rest_framework',
     'rest_framework_simplejwt',
@@ -215,7 +216,7 @@ else:
             'NAME': "subidopro",
             'USER': env("db_user_pro"),
             'PASSWORD': env("db_password_pro"),
-            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro-homolog',
+            'HOST': '/cloudsql/subidopro:us-central1:db-subidopro',
             'PORT': '5432',
         }
     }

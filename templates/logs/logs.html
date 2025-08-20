@@ -4,14 +4,30 @@
 
 {% block containerBodyMain %}
 <!-- =============================================================== -->
-<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE LOGS                            -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE LOGS DE AUDITORIA              -->
 <!-- =============================================================== -->
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
-    <!-- Cabeçalho Principal -->
+    <!-- Cabeçalho e Barra de Busca -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Logs do Cloud Run</h1>
-        <p class="text-gray-500 mt-1">Exibindo as últimas 50 requisições HTTP registradas no serviço.</p>
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Logs de Auditoria</h1>
+                <p class="text-gray-500 mt-1">Registros de atividades importantes no sistema.</p>
+            </div>
+            <form method="get" action="" class="w-full md:w-80">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                    <input 
+                        type="text" 
+                        name="q" 
+                        value="{{ request.GET.q }}" 
+                        placeholder="Buscar em objetos e alterações..."
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Lista de Logs -->
@@ -19,76 +35,135 @@
         {% for log in logs %}
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
             <!-- Linha Principal do Log -->
-            <div class="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <!-- Método e Status -->
+            <div class="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 cursor-pointer" onclick="toggleDetails('log-{{ log.pk }}')">
+                <!-- Badge da Ação -->
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <!-- Badge do Método -->
-                    {% with method_color='bg-gray-200 text-gray-800' %}
-                        {% if log.method == 'GET' %}{% with method_color='bg-blue-100 text-blue-800' %}{% endwith %}{% endif %}
-                        {% if log.method == 'POST' %}{% with method_color='bg-green-100 text-green-800' %}{% endwith %}{% endif %}
-                        {% if log.method == 'PATCH' or log.method == 'PUT' %}{% with method_color='bg-yellow-100 text-yellow-800' %}{% endwith %}{% endif %}
-                        {% if log.method == 'DELETE' %}{% with method_color='bg-red-100 text-red-800' %}{% endwith %}{% endif %}
-                        <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ method_color }}">{{ log.method|default:'---' }}</span>
-                    {% endwith %}
-
-                    <!-- Badge do Status -->
-                    {% with status_color='bg-gray-200 text-gray-800' %}
-                        {% if log.status >= 200 and log.status < 300 %}{% with status_color='bg-green-100 text-green-800' %}{% endwith %}{% endif %}
-                        {% if log.status >= 300 and log.status < 400 %}{% with status_color='bg-yellow-100 text-yellow-800' %}{% endwith %}{% endif %}
-                        {% if log.status >= 400 and log.status < 500 %}{% with status_color='bg-orange-100 text-orange-800' %}{% endwith %}{% endif %}
-                        {% if log.status >= 500 %}{% with status_color='bg-red-100 text-red-800' %}{% endwith %}{% endif %}
-                        <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ status_color }}">{{ log.status|default:'---' }}</span>
+                    {% with action_label=log.get_action_display %}
+                        {% if log.action == 0 %} {# CREATE #}
+                            {% with action_color='bg-green-100 text-green-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">CRIAÇÃO</span>
+                            {% endwith %}
+                        {% elif log.action == 1 %} {# UPDATE #}
+                            {% with action_color='bg-blue-100 text-blue-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">ATUALIZAÇÃO</span>
+                            {% endwith %}
+                        {% elif log.action == 2 %} {# DELETE #}
+                            {% with action_color='bg-red-100 text-red-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">EXCLUSÃO</span>
+                            {% endwith %}
+                        {% else %}
+                             <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-gray-100 text-gray-800">{{ action_label }}</span>
+                        {% endif %}
                     {% endwith %}
                 </div>
                 
-                <!-- URL -->
-                <div class="flex-grow font-mono text-sm text-gray-600 break-all">
-                    {{ log.url }}
+                <!-- Descrição da Ação -->
+                <div class="flex-grow text-sm text-gray-700">
+                    <span class="font-semibold text-gray-900">Sistema</span>
+                    realizou uma ação de <span class="font-semibold">{{ log.get_action_display|lower }}</span> no objeto
+                    <span class="font-semibold text-blue-600">{{ log.content_type }}</span>:
+                    <span class="font-mono bg-gray-100 px-1 rounded text-gray-800">{{ log.object_repr }}</span>.
+                </div>
+
+                <!-- Timestamp -->
+                <div class="text-xs text-gray-500 font-mono w-full sm:w-auto text-left sm:text-right flex-shrink-0">
+                    {{ log.timestamp|timezone:"America/Sao_Paulo"|naturaltime }}
                 </div>
             </div>
             
-            <!-- Detalhes do Log -->
-            <div class="bg-gray-50/70 border-t p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-x-6 gap-y-4 text-xs">
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">Timestamp</span>
-                    <span class="font-mono text-gray-800">{{ log.timestamp|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i:s" }}</span>
+            <!-- Detalhes do Log (Ocultos por Padrão) -->
+            <div id="log-{{ log.pk }}" class="hidden bg-gray-50/70 border-t p-4">
+                <!-- Grade com informações rápidas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 text-xs mb-4">
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Timestamp</span>
+                        <span class="font-mono text-gray-800">{{ log.timestamp|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i:s" }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Usuário (Ator)</span>
+                        <span class="font-mono text-gray-800">{{ log.actor|default:'N/A' }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Endereço IP</span>
+                        <span class="font-mono text-gray-800">{{ log.remote_addr|default:'N/A' }}</span>
+                    </div>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">Severidade</span>
-                    <span class="font-mono font-bold {% if log.severity == 'WARNING' %}text-yellow-600{% elif log.severity == 'ERROR' or log.severity == 'CRITICAL' %}text-red-600{% else %}text-gray-800{% endif %}">{{ log.severity }}</span>
+
+                <!-- Prévia das alterações -->
+                {% if log.changes %}
+                <div class="mb-4">
+                    <span class="text-gray-500 uppercase font-semibold text-xs">Prévia das Alterações</span>
+                    <pre class="bg-gray-200 text-gray-800 p-3 rounded-md mt-1 text-xs whitespace-pre-wrap font-mono">{{ log.changes_str|truncatechars:300 }}</pre>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">IP Remoto</span>
-                    <span class="font-mono text-gray-800">{{ log.remote_ip|default:'-' }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">IP Servidor</span>
-                    <span class="font-mono text-gray-800">{{ log.server_ip|default:'-' }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">Latência</span>
-                    <span class="font-mono text-gray-800">{{ log.latency|default:'-' }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-gray-500 uppercase font-semibold">Tamanho</span>
-                    <span class="font-mono text-gray-800">{{ log.response_size|default:'-' }}</span>
-                </div>
-                <div class="flex flex-col col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-1">
-                    <span class="text-gray-500 uppercase font-semibold">User Agent</span>
-                    <span class="font-mono text-gray-800 truncate" title="{{ log.user_agent }}">{{ log.user_agent|truncatechars:50 }}</span>
+                {% endif %}
+
+                <!-- Botão para ver detalhes -->
+                <div class="flex justify-end">
+                    <a href="{% url 'log_detail' log.pk %}" class="inline-flex items-center gap-2 px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                        Ver Detalhes Completos
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="text-center py-16 px-6 bg-white rounded-lg shadow-md">
+        <div class="text-center py-16 px-6 bg-white rounded-lg shadow-sm border">
             <span class="material-symbols-outlined text-6xl text-gray-300">history</span>
             <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum log encontrado.</p>
-            <p class="text-gray-500 text-sm mt-1">Não foi possível carregar os logs do Cloud Run no momento.</p>
+            <p class="text-gray-500 text-sm mt-1">
+                {% if request.GET.q %}
+                    Sua busca por "{{ request.GET.q }}" não retornou resultados.
+                {% else %}
+                    Não há registros de auditoria para exibir no momento.
+                {% endif %}
+            </p>
         </div>
         {% endfor %}
     </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center items-center">
+        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Anterior</span>
+                    <span class="material-symbols-outlined text-xl">chevron_left</span>
+                </a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{{ i }}</a>
+                {% else %}
+                    <a href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Próximo</span>
+                    <span class="material-symbols-outlined text-xl">chevron_right</span>
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+
 </div>
+
+<script>
+    function toggleDetails(logId) {
+        const element = document.getElementById(logId);
+        if (element) {
+            element.classList.toggle('hidden');
+        }
+    }
+</script>
+
+<!-- Adicione isso ao seu <head> se ainda não tiver -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <!-- =============================================================== -->
-<!-- FIM DO CONTEÚDO DA PÁGINA DE LOGS                               -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE LOGS DE AUDITORIA                  -->
 <!-- =============================================================== -->
 {% endblock %}

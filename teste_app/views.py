@@ -1,13 +1,16 @@
 from multiprocessing import context
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from subidometro.models import *
 from .models import TestEnvioLog
 from google.cloud import logging
 from .utils import *
-from datetime import date
 import decimal
-from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q
+from auditlog.models import LogEntry
+from subidometro.models import *
 
 def to_jsonable(obj):
     if isinstance(obj, decimal.Decimal):
@@ -237,84 +240,7 @@ def TestViewEnvioAproveCoproducao(request):
         "detalhes": detalhes
     })
 
-def cloud_run_logs(request):
-    """
-    Retorna logs de requisições HTTP do Cloud Run em formato estruturado.
-    """
-    client = logging.Client(project="subidopro")
-
-    # log_filter = """
-    #     resource.type="cloud_run_revision"
-    #     resource.labels.service_name="apisubidopro"
-    #     resource.labels.location="us-east1"
-    #     severity >= DEFAULT
-    #     httpRequest.userAgent = "node"
-    # """
-
-    log_filter = """
-        resource.type="gae_app"
-        resource.labels.module_id="default"
-        resource.labels.version_id="homolog"
-    """
-
-    entries = client.list_entries(
-        filter_=log_filter,
-        order_by=logging.DESCENDING,
-        max_results=50
-    )
-    print("entries: ", entries)
-    logs_list = []
-    for entry in entries:
-        http_req = getattr(entry, "http_request", None)
-
-        if not http_req:
-            continue
-
-        # Se vier como dict
-        if isinstance(http_req, dict):
-            request_url = http_req.get("requestUrl")
-            remote_ip = http_req.get("remoteIp")
-            server_ip = http_req.get("serverIp")
-            method = http_req.get("requestMethod")
-            status = http_req.get("status")
-            response_size = http_req.get("responseSize")
-            latency = http_req.get("latency")
-            user_agent = http_req.get("userAgent")
-        else:
-            # Se vier como objeto
-            request_url = getattr(http_req, "request_url", None)
-            remote_ip = getattr(http_req, "remote_ip", None)
-            server_ip = getattr(http_req, "server_ip", None)
-            method = getattr(http_req, "request_method", None)
-            status = getattr(http_req, "status", None)
-            response_size = getattr(http_req, "response_size", None)
-            latency = getattr(http_req, "latency", None)
-            user_agent = getattr(http_req, "user_agent", None)
-
-        if not request_url:
-            continue
-
-        logs_list.append({
-            "timestamp": timezone.localtime(entry.timestamp) if entry.timestamp else None,
-            "severity": entry.severity,
-            "method": method,
-            "status": status,
-            "remote_ip": remote_ip,
-            "server_ip": server_ip,
-            "response_size": f"{int(response_size) / 1024:.2f} KiB" if response_size else None,
-            "latency": str(latency) if latency else None,
-            "user_agent": user_agent,
-            "url": request_url
-            
-        })
-
-    print("logs_list: ", logs_list)
-    context = {
-        "logs": logs_list
-    }
-    return render(request, "logs/logs.html", context)
-    #return JsonResponse({"logs": logs_list})
-
+@login_required
 def HealthSubidometroView(request):
     """
     Valida a saúde do sistema baseado nos últimos testes executados.
@@ -364,3 +290,127 @@ def HealthSubidometroView(request):
     #     "status": status_geral,
     #     "resultado": resultado
     # })
+
+@login_required
+def log_list(request):
+    logs = LogEntry.objects.select_related("content_type", "actor").order_by("-timestamp")
+
+    # filtros básicos (opcionais)
+    q = request.GET.get("q")
+    if q:
+        logs = logs.filter(
+            Q(object_repr__icontains=q) |
+            Q(changes__icontains=q)
+        )
+
+    paginator = Paginator(logs, 25)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+
+    return render(request, "logs/logs.html", {
+        "logs": page_obj,
+        "page_obj": page_obj,
+    })
+
+def _resolve_related(obj):
+    """
+    Extrai IDs relacionados (aluno/cliente/contrato/envio) a partir do objeto logado.
+    Retorna também os próprios objetos (para exibir nome/título no front).
+    """
+    data = {
+        "aluno_id": None, "cliente_id": None, "contrato_id": None, "envio_id": None,
+        "aluno_obj": None, "cliente_obj": None, "contrato_obj": None, "envio_obj": None,
+    }
+
+    if obj is None:
+        return data
+
+    # Aluno
+    if isinstance(obj, Alunos):
+        data["aluno_id"] = obj.id
+        data["aluno_obj"] = obj
+
+    # Cliente
+    if isinstance(obj, Aluno_clientes):
+        data["cliente_id"] = obj.id
+        data["cliente_obj"] = obj
+        if obj.aluno_id:
+            data["aluno_id"] = obj.aluno_id
+            data["aluno_obj"] = getattr(obj, "aluno", None)
+
+    # Contrato
+    if isinstance(obj, Aluno_clientes_contratos):
+        data["contrato_id"] = obj.id
+        data["contrato_obj"] = obj
+        if obj.cliente_id:
+            data["cliente_id"] = obj.cliente_id
+            data["cliente_obj"] = getattr(obj, "cliente", None)
+            # pega aluno via cliente
+            if data["cliente_obj"] and data["cliente_obj"].aluno_id:
+                data["aluno_id"] = data["cliente_obj"].aluno_id
+                data["aluno_obj"] = getattr(data["cliente_obj"], "aluno", None)
+
+    # Envio
+    if isinstance(obj, Aluno_envios):
+        data["envio_id"] = obj.id
+        data["envio_obj"] = obj
+        if obj.contrato_id:
+            data["contrato_id"] = obj.contrato_id
+            data["contrato_obj"] = getattr(obj, "contrato", None)
+        if obj.cliente_id:
+            data["cliente_id"] = obj.cliente_id
+            data["cliente_obj"] = getattr(obj, "cliente", None)
+        if obj.aluno_id:
+            data["aluno_id"] = obj.aluno_id
+            data["aluno_obj"] = getattr(obj, "aluno", None)
+
+    return data
+
+@login_required
+def log_detail(request, pk):
+    log = get_object_or_404(LogEntry, pk=pk)
+
+    # tenta resolver o objeto logado
+    alvo_obj = None
+    if log.content_type and log.object_pk:
+        try:
+            model_class = log.content_type.model_class()
+            alvo_obj = model_class.objects.filter(pk=log.object_pk).first()
+        except Exception:
+            alvo_obj = None
+
+    # IDs/objetos relacionados
+    related = _resolve_related(alvo_obj)
+
+    # transforma changes em lista amigável
+    changes = []
+    if isinstance(log.changes_dict, dict):
+        for field, values in log.changes_dict.items():
+            old_val, new_val = None, None
+            if isinstance(values, (list, tuple)) and len(values) == 2:
+                old_val, new_val = values
+            else:
+                new_val = values
+            changes.append({
+                "field": field,
+                "old": old_val,
+                "new": new_val,
+                "changed": (old_val != new_val),
+            })
+
+    return render(request, "logs/detalhes_log.html", {
+        "log": log,
+        "changes": changes,
+        "related_ids": {
+            "aluno_id": related["aluno_id"],
+            "cliente_id": related["cliente_id"],
+            "contrato_id": related["contrato_id"],
+            "envio_id": related["envio_id"],
+        },
+        "alvo_obj": alvo_obj,
+        "aluno_obj": related["aluno_obj"],
+        "cliente_obj": related["cliente_obj"],
+        "contrato_obj": related["contrato_obj"],
+        "envio_obj": related["envio_obj"],
+    })
