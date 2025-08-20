@@ -6,6 +6,7 @@ from datetime import datetime, date
 from datetime import timedelta
 from django.utils import timezone
 from .utils import *
+from django.db import transaction
 
 
 class CampeonatoSerializer(serializers.ModelSerializer):
@@ -290,6 +291,59 @@ class AlunoSerializer(serializers.ModelSerializer):
         model = Alunos
         fields = ["id", "nome_completo", "email", "status", "nivel", "cla", "campeonato", "data_criacao"]
         read_only_fields = ["id", "data_criacao"]
+
+    def _ativar_participacao(self, aluno: Alunos, campeonato_id: int):
+        """
+        Garante que existe uma participação (aluno, campeonato) ativa.
+        Se já existir e estiver inativa, reativa (ativo=True, data_saida=None).
+        """
+        part, created = ParticipacaoCampeonato.objects.get_or_create(
+            aluno=aluno,
+            campeonato_id=campeonato_id,
+            defaults={"ativo": True},
+        )
+        if not created and (not part.ativo or part.data_saida):
+            part.ativo = True
+            part.data_saida = None
+            # Se quiser resetar a data_entrada a cada reativação, descomente:
+            # part.data_entrada = timezone.now()
+            part.save(update_fields=["ativo", "data_saida"])  # adicione "data_entrada" se for resetar
+
+    def _fechar_participacao_antiga(self, aluno: Alunos, old_camp_id: int):
+        """
+        Fecha a participação ativa do campeonato anterior, se existir.
+        """
+        if not old_camp_id:
+            return
+        ParticipacaoCampeonato.objects.filter(
+            aluno=aluno,
+            campeonato_id=old_camp_id,
+            ativo=True
+        ).update(ativo=False, data_saida=timezone.now())
+
+    @transaction.atomic
+    def create(self, validated_data):
+        aluno = super().create(validated_data)
+        if aluno.campeonato_id:
+            self._ativar_participacao(aluno, aluno.campeonato_id)
+        return aluno
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        old_camp_id = instance.campeonato_id  # antes de aplicar update
+        aluno = super().update(instance, validated_data)
+        new_camp_id = aluno.campeonato_id
+
+        print(f"Atualizando participação do aluno {aluno.id} de {old_camp_id} para {new_camp_id}")
+
+        if old_camp_id != new_camp_id:
+            # fechamos a anterior (se havia)
+            self._fechar_participacao_antiga(aluno, old_camp_id)
+            # ativamos (ou criamos) a nova (se houver)
+            if new_camp_id:
+                self._ativar_participacao(aluno, new_camp_id)
+
+        return aluno
 
 class ClaSerializer(serializers.ModelSerializer):
     class Meta:

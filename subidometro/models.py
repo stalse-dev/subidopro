@@ -1,4 +1,5 @@
 from django.db import models
+from auditlog.registry import auditlog
 
 class Campeonato(models.Model):
     identificacao = models.CharField(max_length=255)
@@ -315,4 +316,14 @@ class Mentoria_lista_niveis(models.Model):
 
     def __str__(self):
         return self.titulo or f"Nível {self.id}"
-    
+
+
+auditlog.register(Campeonato)
+auditlog.register(Desafios)
+auditlog.register(Mentoria_cla)
+auditlog.register(Alunos)
+auditlog.register(Aluno_clientes)
+auditlog.register(Aluno_clientes_contratos)
+auditlog.register(Aluno_envios)
+auditlog.register(Aluno_desafio)
+auditlog.register(Aluno_certificacao)
