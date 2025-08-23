@@ -515,7 +515,6 @@ def aluno_dashboard(request, aluno_id):
 @login_required
 def faturamento_aluno(request, aluno_id):
     aluno = Alunos.objects.get(id=aluno_id)
-
     # Filtra apenas envios aprovados com data
     envios = Aluno_envios.objects.filter(
         aluno=aluno,
@@ -525,6 +524,7 @@ def faturamento_aluno(request, aluno_id):
 
     if not envios.exists():
         context = {
+            "aluno": aluno,
             "faturamento_mensal": [],
             "faturamento_total": 0,
             "ticket_medio_geral": 0,
