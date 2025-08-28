@@ -408,6 +408,9 @@ class MeuClaAPIView(APIView):
         else: semana = 0
 
         cla = aluno.cla
+        if cla.id == 0:
+            return Response({"detail": "CLA não encontrado para este aluno."}, status=404)
+
         if not cla:
             return Response({"detail": "CLA não encontrado para este aluno."}, status=404)
 
