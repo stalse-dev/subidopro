@@ -1,0 +1,99 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+
+{% block containerAluno %}
+
+<div class="space-y-8">
+    {% for campeonato_nome, meses in envios.items %}
+    <!-- Card para cada Campeonato -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <h2 class="text-2xl font-bold text-gray-800 p-5 bg-gray-50 border-b">
+            {{ campeonato_nome }}
+        </h2>
+        
+        <!-- Lista de meses dentro do campeonato -->
+        <div class="divide-y divide-gray-200">
+            {% for mes, dados in meses.items %}
+            <details class="group" {% if forloop.first %}open{% endif %}>
+                <!-- Resumo do Mês (Clicável para expandir) -->
+                <summary class="list-none flex items-center justify-between p-5 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-3xl text-[#1C46A0]">calendar_month</span>
+                        <div>
+                            <p class="text-lg font-bold text-gray-900">{{ dados.infos.data }}</p>
+                            <p class="text-sm text-gray-500">
+                                <span class="font-semibold">{{ dados.infos.pontos_total }}</span> pontos em 
+                                <span class="font-semibold">{{ dados.infos.valor_total }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-gray-400 group-open:rotate-180 transition-transform duration-300">
+                        <span class="material-symbols-outlined text-3xl">expand_more</span>
+                    </div>
+                </summary>
+
+                <!-- Tabela de Envios (Conteúdo expandido) -->
+                <div class="bg-white border-t overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-600">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Data & Cliente</th>
+                                <th scope="col" class="px-6 py-3">Descrição</th>
+                                <th scope="col" class="px-6 py-3 text-center">Valor & Pontos</th>
+                                <th scope="col" class="px-6 py-3 text-center">Status</th>
+                                <th scope="col" class="px-6 py-3 text-center">Comprovante</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for envio in dados.envios %}
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <p class="font-semibold text-gray-800">{{ envio.cliente }}</p>
+                                    <p class="text-xs text-gray-500">Envio em: {{ envio.data }}</p>
+                                </td>
+                                <td class="px-6 py-4 max-w-sm">
+                                    <p class="text-gray-700">{{ envio.descricao }}</p>
+                                </td>
+                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                    <p class="font-bold text-gray-800">{{ envio.valor }}</p>
+                                    <p class="text-xs text-blue-600 font-semibold">{{ envio.pontos_efetivos }} pts</p>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    {% if envio.status == 3 %}
+                                        <span class="inline-flex items-center text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">check_circle</span>Aprovado</span>
+                                    {% elif envio.status == 1 %}
+                                        <span class="inline-flex items-center text-yellow-700 bg-yellow-100 px-2.5 py-1 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">pending</span>Pendente</span>
+                                    {% elif envio.status == 2 %}
+                                        <span class="inline-flex items-center text-red-700 bg-red-100 px-2.5 py-1 rounded-full text-xs font-bold" title="{{ envio.status_motivo }}"><span class="material-symbols-outlined !text-sm mr-1">cancel</span>Rejeitado</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">info</span>Não analisado</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    {% if envio.arquivo %}
+                                        <a href="{{ envio.arquivo }}" target="_blank" class="inline-flex items-center justify-center h-9 w-9 rounded-full text-white bg-[#1C46A0] hover:bg-blue-800 transition-colors">
+                                            <span class="material-symbols-outlined !text-base">visibility</span>
+                                        </a>
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 px-6 bg-white rounded-lg shadow-md">
+        <span class="material-symbols-outlined text-6xl text-gray-300">receipt_long</span>
+        <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum envio encontrado.</p>
+        <p class="text-gray-500 text-sm mt-1">Este aluno ainda não possui pontos por recebimento.</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

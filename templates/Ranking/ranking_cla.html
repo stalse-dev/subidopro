@@ -1,64 +1,139 @@
 {% extends 'main.html' %}
 {% block containerBodyMain %}
-    <div class="flex flex-col text-white min-h-screen pt-20">
-        <h1 class="text-3xl font-bold text-center mt-6">Lista de Ranking Semanal Clã {{ semana }}</h1>
+    <div class="flex flex-col min-h-screen pt-20 bg-gray-100">
         <div class="flex-grow flex items-center justify-center p-4">
-            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div class="w-full bg-white p-6 rounded-xl shadow-lg max-w-[1600px]">
+
+                <div class="w-full px-4 mt-8">
+
+                    <h1 class="text-3xl font-bold text-[#002D55] text-center mb-6">Ranking Semanal Clã - Semana {{ semana }}</h1>
+    
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+                        <div class="text-sm text-gray-500">
+                            <span>Última atualização: </span><span class="font-bold text-gray-900 ">{{ ultima_att|date:"d/m/Y" }}</span> - <span>Total de Alunos no rank: </span><span class="font-bold text-gray-900">{{ cont_rank }}</span>
+                        </div>
+                        <form method="get" class="flex flex-wrap items-center gap-2">
+                            <div class="relative min-w-[200px]">
+                                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar Clã"
+                                    class="pl-8 pr-4 py-1.5 border-b border-gray-400 text-sm focus:outline-none focus:border-[#1B469F] placeholder-gray-400 w-full" />
+                                <svg class="absolute left-2 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
+                                </svg>
+                            </div>
+                    
+                            <div>
+                                <select
+                                    name="semana"
+                                    onchange="this.form.submit()"
+                                    class="text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none min-w-[150px]"
+                                >
+                                    <option value="">Filtro Semana</option>
+                                    {% for s in semanas_disponiveis %}
+                                        <option value="{{ s }}" {% if s == semana %}selected{% endif %}>
+                                            Semana {{ s }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                    
+                            <a href="{% url 'exportar_ranking_semana_cla' semana %}"
+                                class="flex-shrink-0 bg-green-500 text-white px-4 py-1.5 rounded text-sm hover:bg-green-600 transition flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Baixar Excel
+                            </a>
+                        </form>
+                    </div>
+                    
+                </div>
+                
+
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                    <table class="w-full text-sm text-left text-gray-700 rounded-lg">
+                        <thead class="text-xs uppercase bg-gray-100 text-gray-600">
                             <tr>
-                                <th class="px-6 py-3">ID Aluno</th>
-                                <th class="px-6 py-3">Nome do clã</th>
-                                <th class="px-6 py-3">Sigla</th>
-                                <th class="px-6 py-3">Pontuação</th>
-                                <th class="px-6 py-3">Rank</th>
+                                <th class="px-4 py-3 text-center">Posição</th>
+                                <th class="px-4 py-3">Clã</th>
+                                <th class="px-4 py-3 text-center">Pontuação Total</th>
+                                <th class="px-4 py-3 text-center">Recebimentos</th>
+                                <th class="px-4 py-3 text-center">Contratos</th>
+                                <th class="px-4 py-3 text-center">Retenção</th>
+                                <th class="px-4 py-3 text-center">Desafios</th>
+                                <th class="px-4 py-3 text-center">Certificação</th>
+                                <th class="px-4 py-3 text-center">Manual</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for cla in cla_rank %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
-                                onclick="window.location.href='{% url 'cla' cla.cla.id %}'">
-                                <td class="px-6 py-4">{{ cla.cla.id }}</td>
-                                <td class="px-6 py-4">{{ cla.cla.nome }}</td>
-                                <td class="px-6 py-4">{{ cla.cla.sigla }}</td>
-                                <td class="px-6 py-4">{{ cla.pontos_totais|floatformat:0 }}</td>
-                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ cla.posicao }}°</td>
+                            {% for aluno in cla_rank %}
+                            <tr class="bg-white border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='{% url 'cla' aluno.cla.id %}'">
+                                <td class="px-4 py-3 text-center font-bold text-gray-900">{{ aluno.posicao }}</td>
+                                <td class="px-4 py-3">{{ aluno.cla }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_totais|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_recebimento|floatformat:0}}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_contrato|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_retencao|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_desafio|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_certificacao|floatformat:0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ aluno.pontos_manual|floatformat:0 }}</td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <p class="text-center">Nenhum aluno encontrado.</p>
-                            </tr>
+                                <tr><td colspan="11" class="text-center py-4 text-gray-500">Nenhum aluno encontrado.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+
+                <div class="flex flex-col items-center mt-6 mb-6">
+                    <span class="text-base text-gray-700 font-semibold mb-2">
+                        Página {{ cla_rank.number }} de {{ cla_rank.paginator.num_pages }}
+                    </span>
+                
+                    <div class="flex flex-wrap gap-2">
+                        {% if cla_rank.has_previous %}
+                            <a href="?q={{ q }}&semana={{ semana }}&page=1"
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
+                                Primeira
+                            </a>
+                            <a href="?q={{ q }}&semana={{ semana }}&page={{ cla_rank.previous_page_number }}"
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
+                                Anterior
+                            </a>
+                        {% endif %}
+                
+                        {% for num in cla_rank.paginator.page_range %}
+                            {% if cla_rank.number == num %}
+                                <span class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-md">
+                                    {{ num }}
+                                </span>
+                            {% elif num > cla_rank.number|add:"-3" and num < cla_rank.number|add:"3" %}
+                                <a href="?q={{ q }}&semana={{ semana }}&page={{ num }}"
+                                class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium transition">
+                                    {{ num }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if cla_rank.has_next %}
+                            <a href="?q={{ q }}&semana={{ semana }}&page={{ cla_rank.next_page_number }}"
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
+                                Próxima
+                            </a>
+                            <a href="?q={{ q }}&semana={{ semana }}&page={{ cla_rank.paginator.num_pages }}"
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition">
+                                Última
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                
             </div>
-        </div>
-    </div>
-    <div class="flex flex-col items-center mt-6 mb-6">
-        <span class="text-lg text-white font-semibold mb-2">
-            Página {{ cla_rank.number }} de {{ cla_rank.paginator.num_pages }}
-        </span>
-    
-        <div class="flex gap-2">
-            {% if cla_rank.has_previous %}
-                <a href="?q={{ query }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
-                <a href="?q={{ query }}&page={{ cla_rank.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
-            {% endif %}
-    
-            {% for num in cla_rank.paginator.page_range %}
-                {% if cla_rank.number == num %}
-                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
-                {% elif num > cla_rank.number|add:"-3" and num < cla_rank.number|add:"3" %}
-                    <a href="?q={{ query }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
-                {% endif %}
-            {% endfor %}
-    
-            {% if cla_rank.has_next %}
-                <a href="?q={{ query }}&page={{ cla_rank.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
-                <a href="?q={{ query }}&page={{ cla_rank.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
-            {% endif %}
+
         </div>
     </div>
 {% endblock %}

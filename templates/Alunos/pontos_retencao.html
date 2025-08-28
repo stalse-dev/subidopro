@@ -1,0 +1,89 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+
+{% block containerAluno %}
+<div class="space-y-8">
+    {% for key, campeonato_data in campeonatos.items %}
+    <!-- Card para cada Campeonato -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Cabeçalho do Campeonato -->
+        <div class="p-5 bg-gray-50 border-b flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ campeonato_data.campeonato_identificacao }}</h2>
+                <p class="text-sm text-gray-500">Início em: {{ campeonato_data.campeonato_data_inicio|date:"d/m/Y" }}</p>
+            </div>
+            <div class="text-left sm:text-right">
+                <p class="text-2xl font-bold text-[#1C46A0]">{{ campeonato_data.total_pontos|floatformat:0|intcomma }}</p>
+                <p class="text-xs text-gray-500 uppercase font-semibold">Total de Pontos de Retenção</p>
+            </div>
+        </div>
+        
+        <!-- Lista de Clientes (Acordeão) -->
+        <div class="divide-y divide-gray-200">
+            {% for cliente in campeonato_data.clientes %}
+            <details class="group">
+                <!-- Resumo do Cliente (Clicável para expandir) -->
+                <summary class="list-none flex items-center justify-between p-5 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-3xl text-gray-500">person</span>
+                        <div>
+                            <p class="font-bold text-gray-900">{{ cliente.cliente_titulo }}</p>
+                            <p class="text-sm text-gray-500">
+                                <span class="font-semibold">{{ cliente.total_pontos_cliente|floatformat:0 }}</span> pontos deste cliente
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-gray-400 group-open:rotate-180 transition-transform duration-300">
+                        <span class="material-symbols-outlined text-3xl">expand_more</span>
+                    </div>
+                </summary>
+
+                <!-- Tabela de Retenções (Conteúdo expandido) -->
+                <div class="bg-white border-t overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-600">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Data da Retenção</th>
+                                <th scope="col" class="px-6 py-3 text-center">Semana</th>
+                                <th scope="col" class="px-6 py-3 text-center">Envios no Mês</th>
+                                <th scope="col" class="px-6 py-3 text-center">Pontos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for retencao in cliente.retencoes %}
+                            <tr class="border-b last:border-b-0 hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center text-gray-700">
+                                        <span class="material-symbols-outlined text-base mr-2 text-gray-400">calendar_today</span>
+                                        <span>{{ retencao.data|date:"d/m/Y" }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="font-mono text-gray-700">{{ retencao.semana }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="font-mono text-gray-700">{{ retencao.qtd_envios }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center text-blue-800 bg-blue-100 px-3 py-1 rounded-full text-sm font-bold">
+                                        {{ retencao.pontos|floatformat:0 }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 px-6 bg-white rounded-lg shadow-md">
+        <span class="material-symbols-outlined text-6xl text-gray-300">autorenew</span>
+        <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum ponto de retenção encontrado.</p>
+        <p class="text-gray-500 text-sm mt-1">Este aluno ainda não possui pontos por retenção de clientes.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

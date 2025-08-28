@@ -1,0 +1,131 @@
+{% extends 'main.html' %}
+{% load humanize %}
+
+{% block containerBodyMain %}
+<!-- =============================================================== -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE HEALTH CHECK                    -->
+<!-- =============================================================== -->
+<div class="max-w-7xl mx-auto">
+    
+    <!-- Cabeçalho Principal com Botão -->
+    <div class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Health Check do Subidômetro</h1>
+            <p class="text-gray-500 mt-1">Verificação do status de todas as regras e integrações.</p>
+        </div>
+        <div>
+            <button class="inline-flex items-center gap-2 w-full sm:w-auto justify-center px-5 py-3 bg-[#1C46A0] text-white font-semibold rounded-lg shadow-md hover:bg-blue-800 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <span class="material-symbols-outlined">play_circle</span>
+                Executar Todos os Testes
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner de Status Geral -->
+    {% if status_geral == "sucesso" %}
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-800 p-6 rounded-lg shadow-md mb-8 flex items-center gap-4">
+            <span class="material-symbols-outlined text-4xl">task_alt</span>
+            <div>
+                <h2 class="text-xl font-bold">Tudo operando normalmente</h2>
+                <p>Todos os testes foram executados com sucesso na última verificação.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-800 p-6 rounded-lg shadow-md mb-8 flex items-center gap-4">
+            <span class="material-symbols-outlined text-4xl">error</span>
+            <div>
+                <h2 class="text-xl font-bold">Atenção: Falha detectada</h2>
+                <p>Um ou mais testes falharam. Verifique os detalhes abaixo.</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Lista de Testes (Acordeão) -->
+    <div class="space-y-4">
+        {% for key, teste in testes.items %}
+        <details class="group bg-white rounded-xl shadow-sm overflow-hidden border {% if teste.status == 'sucesso' %}border-gray-200{% else %}border-red-300{% endif %}" {% if teste.status != 'sucesso' %}open{% endif %}>
+            <!-- Resumo do Teste -->
+            <summary class="list-none flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors">
+                <div class="flex items-center gap-4">
+                    {% if teste.status == "sucesso" %}
+                        <span class="material-symbols-outlined text-3xl text-green-500">check_circle</span>
+                    {% else %}
+                        <span class="material-symbols-outlined text-3xl text-red-500">cancel</span>
+                    {% endif %}
+                    <div>
+                        <p class="font-bold text-gray-900">{{ teste.nome_teste }}</p>
+                        <p class="text-sm text-gray-500">
+                            Última execução: {{ teste.criado_em|default:"Nunca executado" }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    {% if teste.status == "sucesso" %}
+                        <span class="hidden sm:inline-flex items-center text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-bold uppercase">Sucesso</span>
+                    {% else %}
+                        <span class="hidden sm:inline-flex items-center text-red-700 bg-red-100 px-3 py-1 rounded-full text-xs font-bold uppercase">Falha</span>
+                    {% endif %}
+                    
+                    <!-- Botão para executar teste individual -->
+                    {% if teste.rota %}
+                    <a href="/teste/{{ teste.rota }}/" class="hidden sm:inline-flex items-center gap-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-md shadow-sm hover:bg-gray-100 transition-colors">
+                        <span class="material-symbols-outlined !text-sm">replay</span>
+                        <span>Testar</span>
+                    </a>
+                    {% endif %}
+
+                    <div class="text-gray-400 group-open:rotate-180 transition-transform duration-300">
+                        <span class="material-symbols-outlined text-3xl">expand_more</span>
+                    </div>
+                </div>
+            </summary>
+
+            <!-- Detalhes do Teste (Conteúdo expandido) -->
+            <div class="p-5 border-t bg-gray-50/70">
+                <div class="prose prose-sm max-w-none space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Mensagem do Log:</h4>
+                        <div class="p-4 bg-white border rounded-md whitespace-pre-wrap font-mono text-xs">
+                            {{ teste.mensagem }}
+                        </div>
+                    </div>
+
+                    {% if teste.detalhes %}
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Resumo:</h4>
+                        <div class="p-4 bg-white border rounded-md">
+                            <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+                                {% for key, value in teste.detalhes.items %}
+                                <div class="flex flex-col">
+                                    <dt class="text-xs text-gray-500 uppercase font-semibold">{{ key }}</dt>
+                                    <dd class="font-mono text-gray-800">{{ value }}</dd>
+                                </div>
+                                {% endfor %}
+                            </dl>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if teste.dados_inseridos %}
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Dados Inseridos (Entrada):</h4>
+                        <pre class="p-4 bg-slate-800 text-slate-200 border rounded-md whitespace-pre-wrap font-mono text-xs overflow-x-auto"><code>{{ teste.dados_inseridos|pprint }}</code></pre>
+                    </div>
+                    {% endif %}
+
+                    {% if teste.dados_saida %}
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Dados Retornados (Saída):</h4>
+                        <pre class="p-4 bg-slate-800 text-slate-200 border rounded-md whitespace-pre-wrap font-mono text-xs overflow-x-auto"><code>{{ teste.dados_saida|pprint }}</code></pre>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </details>
+        {% endfor %}
+    </div>
+</div>
+<!-- =============================================================== -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE HEALTH CHECK                       -->
+<!-- =============================================================== -->
+{% endblock %}

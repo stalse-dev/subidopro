@@ -1,225 +1,160 @@
 {% extends 'main.html' %}
+{% load static %}
 
 {% block containerBodyMain %}
-<div class="flex flex-col text-white min-h-screen pt-20">
-    <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-center flex-1">Perfil do Aluno</h1>
-    </div>
-
+<div class="flex flex-col min-h-screen pt-20 bg-gray-100"> 
     <div class="flex-grow flex items-center justify-center p-4">
-        <div class="w-[90%] max-w-6xl bg-gray-800 p-6 rounded-lg shadow-lg">
-            <!-- Dados do Aluno -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold mb-2">{{ aluno.nome_completo }}</h2>
-                    <p class="text-gray-400"><strong>Apelido:</strong> {{ aluno.apelido|default:"N/A" }}</p>
-                    <p class="text-gray-400"><strong>Email:</strong> {{ aluno.email }}</p>
-                    <p class="text-gray-400"><strong>Data de Cadastro:</strong> {{ aluno.data_criacao|date:"d/m/Y H:i" }}</p>
-                    <p class="text-gray-400"><strong>Status:</strong> 
-                        {% if aluno.status == "ACTIVE" %}
-                            <span class="text-green-400">Ativo</span>
-                        {% else %}
-                            <span class="text-red-400">Inativo</span>
-                        {% endif %}
+        <div class="w-full bg-white p-8 rounded-3xl shadow-xl">
+            
+            <!-- Título -->
+            <div class="mb-8 flex justify-center items-center gap-2">
+                <h1 class="text-4xl font-extrabold text-gray-800">Dados do Aluno</h1>
+            </div>
+
+            <!-- Perfil do Aluno Gamificado -->
+            <div class="flex flex-col md:flex-row items-center gap-8 mb-10">
+                <!-- Dados do Aluno -->
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 text-base">
+                <!-- Coluna 1 -->
+                <div class="space-y-4">
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">badge</span>
+                    <strong class="text-gray-800">Nome:</strong>
+                    <span class="text-gray-700">{{ aluno.nome_completo }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">mail</span>
+                    <strong class="text-gray-800">Email:</strong>
+                    <span class="text-gray-700">{{ aluno.email }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">calendar_month</span>
+                    <strong class="text-gray-800">Cadastro:</strong>
+                    <span class="text-gray-700">{{ aluno.data_criacao|date:"d/m/Y" }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">fingerprint</span>
+                    <strong class="text-gray-800">ID:</strong>
+                    <span class="text-gray-700">{{ aluno.id }}</span>
+                    </p>
+                    <p>
+                    <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">sync</span>
+                    <strong class="text-gray-800">Status:</strong>
+                    {% if aluno.status == "ACTIVE" %}
+                        <span class="text-green-600 font-semibold">Ativo</span>
+                    {% else %}
+                        <span class="text-red-500 font-semibold">Inativo</span>
+                    {% endif %}
                     </p>
                 </div>
-                <div class="text-center md:text-right">
-                    <h3 class="text-xl font-bold text-yellow-400">Nível {{ aluno.nivel }}</h3>
-                    <h3 class="text-xl font-bold">Pontos: {{ pontos_aluno.pontos|default:"0" }} Pts</h3>
-                    <p class="text-gray-300 text-lg"><strong>Posição:</strong> {{ pontos_aluno.posicao|default:"0" }}°</p>
-                    <p class="text-gray-300 text-lg"><strong>Clã:</strong> {{ aluno.cla.sigla }}</p>
-                    <p class="text-gray-300 text-lg">{{ aluno.cla.nome }}</p>
+                <!-- Coluna 2 -->
+                <div class="space-y-4">
+                    <p class="flex items-center gap-2">
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">military_tech</span>
+                        <strong class="text-gray-800">Nivel:</strong>
+                        <span class="text-lg font-bold" style="color: {{ nivel_aluno.cor }};">{{ nivel_aluno.titulo }}
+                            {% if nivel_aluno.estrela == 1 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% elif nivel_aluno.estrela == 2 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% elif nivel_aluno.estrela == 3 %}
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            <span class="material-symbols-outlined text-yellow-500">star</span>
+                            {% else %}
+                            <span class="text-sm text-gray-400">-</span>
+                            {% endif %}
+                        </span>
+                    </p>
+
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">rewarded_ads</span>
+                        <strong class="text-gray-800">Pontuação Total:</strong>
+                        <span class="text-emerald-600 font-bold">
+                            {{ pontos_aluno_semana.pontos_totais|default:"0"|floatformat:0 }} Pts
+                        </span>
+                    </p>
+
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">leaderboard</span>
+                        <strong class="text-gray-800">Ranking:</strong>
+                        <span class="text-blue-700 font-bold">{{ pontos_aluno_semana.posicao|default:"0" }}°</span>
+                    </p>
+
+                    <p>
+                        <span class="material-symbols-outlined align-middle mr-1 text-[#1C46A0]">shield</span>
+                        <strong class="text-gray-800">Clã:</strong>
+                        <span class="text-gray-700">{{ aluno.cla.sigla }}</span>
+                    </p>
+                </div>
+
                 </div>
             </div>
             
-            <!-- Botão de Download Excel alinhado à direita -->
-            <div class="flex justify-end mb-6">
-                <a href="{% url 'extrato' aluno.id %}"
-                    class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Baixar Excel
-                </a>
-            </div>
-            
-            <!-- Pontuação pontoscontratos -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
-                <h2 class="text-xl font-bold mb-4">Pontuação pontos contrato</h2>
+            <!-- Abas HTMX -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl mt-10">
+                <div class="flex gap-4 border-b border-gray-200 mb-4">
+                    <button 
+                        hx-get="{% url 'aluno-pontos' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Pontos
+                    </button>
+                    <button 
+                        hx-get="{% url 'aluno-clientes' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Clientes
+                    </button>
+                    {% comment %} <button 
+                        hx-get="{% url 'aluno-faturamento' aluno.id %}" 
+                        hx-target="#conteudo-abas" 
+                        hx-swap="innerHTML" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition">
+                        Faturamento
+                    </button> {% endcomment %}
+                </div>
+
+                <!-- Conteúdo das Abas -->
+                <div id="conteudo-abas" class="flex flex-col text-gray-500">
+                    Selecione uma aba acima para visualizar os dados.
+                </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400 border-collapse" aria-label="Tabela de Pontuação de Contratos">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-4 py-3 text-center">Data</th>
-                                <th class="px-4 py-3 text-center">Cliente</th>
-                                <th class="px-4 py-3 text-center">Descrição</th>
-                                <th class="px-4 py-3 text-center">Valor</th>
-                                <th class="px-4 py-3 text-center">Pontos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for pontos_contrato in pontos_contratos %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-600 transition duration-200 ease-in-out">
-                                <td class="px-4 py-3 text-center">{{ pontos_contrato.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-4 py-3 text-center">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
-                                <td class="px-4 py-3 text-center">{{ pontos_contrato.descricao|default:"Sem descrição" }}</td>
-                                <td class="px-4 py-3 text-center">R$ {{ pontos_contrato.valor|default:"0.00"|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-center font-bold text-green-400">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
-                            </tr>
-                            {% empty %}
-                            <tr class="bg-gray-800">
-                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">Nenhum ponto de contrato encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div id="loader-container" role="status" class="hidden absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 z-50">
+                    <svg aria-hidden="true" class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                    </svg>
+                    <span class="sr-only">Loading...</span>
                 </div>
-            </div>
-
-            <!-- Recebimentos -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
-                <h2 class="text-xl font-bold mb-4">Recebimentos dos Alunos</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-6 py-3">Tipo de contrato</th>
-                                <th class="px-6 py-3">Data</th>
-                                <th class="px-6 py-3">Data Cadastro</th>
-                                <th class="px-6 py-3">Descrição</th>
-                                <th class="px-6 py-3">Valor</th>
-                                <th class="px-6 py-3">Pontos P.</th>
-                                <th class="px-6 py-3">Pontos E.</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for envio in pontos_recebimentos %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
-                                <td class="px-6 py-4">{{ envio.contrato.tipo_contrato }}</td>
-                                <td class="px-6 py-4">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
-                                <td class="px-6 py-4">R$ {{ envio.valor|default:"0.00" }}</td>
-                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
-                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                <td class="px-6 py-4">
-                                    {% if envio.status == 3 %}
-                                        <span class="text-green-400 font-semibold">Validado</span>
-                                    {% elif envio.status == 2 %}
-                                        <span class="text-red-400 font-semibold">Invalidado</span>
-                                    {% elif envio.status == 1 %}
-                                        <span class="text-yellow-400 font-semibold">Pendente</span>
-                                    {% elif envio.status == 0 %}
-                                        <span class="text-gray-400 font-semibold">Não analisado</span>
-                                    {% else %}
-                                        <span class="text-gray-400 font-semibold">Sem status</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Desafios -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
-                <h2 class="text-xl font-bold mb-4">Desafios dos Alunos</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-6 py-3">Data Cadastro</th>
-                                <th class="px-6 py-3">Data</th>
-                                <th class="px-6 py-3">Descrição</th>
-                                <th class="px-6 py-3">Pontos E.</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for envio in pontos_desafio %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
-                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
-                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                <td class="px-6 py-4">
-                                    {% if envio.status == 3 %}
-                                        <span class="text-green-400 font-semibold">Validado</span>
-                                    {% elif envio.status == 2 %}
-                                        <span class="text-red-400 font-semibold">Invalidado</span>
-                                    {% elif envio.status == 1 %}
-                                        <span class="text-yellow-400 font-semibold">Pendente</span>
-                                    {% elif envio.status == 0 %}
-                                        <span class="text-gray-400 font-semibold">Não analisado</span>
-                                    {% else %}
-                                        <span class="text-gray-400 font-semibold">Sem status</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Certificações -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-4">
-                <h2 class="text-xl font-bold mb-4">Certificações dos Alunos</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-6 py-3">Data Cadastro</th>
-                                <th class="px-6 py-3">Descrição</th>
-                                <th class="px-6 py-3">Pontos E.</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for envio in pontos_certificacao %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
-                                <td class="px-6 py-4">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
-                                <td class="px-6 py-4">{{ envio.descricao|default:"Sem descrição" }}</td>
-                                <td class="px-6 py-4 font-bold text-green-400">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
-                                <td class="px-6 py-4">
-                                    {% if envio.status == 3 %}
-                                        <span class="text-green-400 font-semibold">Validado</span>
-                                    {% elif envio.status == 2 %}
-                                        <span class="text-red-400 font-semibold">Invalidado</span>
-                                    {% elif envio.status == 1 %}
-                                        <span class="text-yellow-400 font-semibold">Pendente</span>
-                                    {% elif envio.status == 0 %}
-                                        <span class="text-gray-400 font-semibold">Não analisado</span>
-                                    {% else %}
-                                        <span class="text-gray-400 font-semibold">Sem status</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center py-4">Nenhum envio encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                
             </div>
 
         </div>
     </div>
+
+    <script>
+        document.body.addEventListener("htmx:beforeRequest", function() {
+          document.getElementById("loader-container").classList.remove("hidden");
+        });
+      
+        document.body.addEventListener("htmx:afterSwap", function() {
+          document.getElementById("loader-container").classList.add("hidden");
+        });
+      
+        // Opcional: em caso de erro
+        document.body.addEventListener("htmx:responseError", function() {
+          document.getElementById("loader-container").classList.add("hidden");
+        });
+    </script>
+      
+
 </div>
+
+
+
+
 {% endblock %}

@@ -6,5 +6,8 @@ db.ipynb
 migracao_db.ipynb
 .env
 api.http
-ajustesClientesEnvios-camp3-STALSE.php
+.pytest_cache
+.coverage
+htmlcov
 staticfiles
+migracao_db test.ipynb

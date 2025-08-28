@@ -1,0 +1,173 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+
+{% block containerAluno %}
+<div class="max-w-7xl mx-auto">
+    <!-- Grid de KPIs de Faturamento -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-5 rounded-xl shadow-md">
+            <p class="text-sm text-gray-500">Faturamento Total</p>
+            <p class="text-3xl font-bold text-gray-800 mt-1">R$ {{ faturamento_total|floatformat:2|intcomma }}</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl shadow-md">
+            <p class="text-sm text-gray-500">Ticket Médio Geral</p>
+            <p class="text-3xl font-bold text-gray-800 mt-1">R$ {{ ticket_medio_geral|floatformat:2|intcomma }}</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl shadow-md">
+            <p class="text-sm text-gray-500">Total de Envios</p>
+            <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_envios }}</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl shadow-md">
+            <p class="text-sm text-gray-500">Crescimento (vs. Mês Ant.)</p>
+            <div class="flex items-center mt-1">
+                {% if crescimento_percentual > 0 %}
+                    <span class="material-symbols-outlined text-green-500">trending_up</span>
+                    <p class="text-3xl font-bold text-green-500 ml-1">{{ crescimento_percentual|floatformat:2 }}%</p>
+                {% else %}
+                    <span class="material-symbols-outlined text-red-500">trending_down</span>
+                    <p class="text-3xl font-bold text-red-500 ml-1">{{ crescimento_percentual|floatformat:2 }}%</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção do Gráfico e Ranking -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Gráfico de Faturamento -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-5">
+            <h3 class="text-lg font-semibold text-gray-800">Evolução do Faturamento</h3>
+            <div class="mt-4 h-80">
+                <canvas id="faturamentoChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Ranking de Campeonatos -->
+        <div class="bg-white rounded-xl shadow-md p-5">
+            <h3 class="text-lg font-semibold text-gray-800 border-b pb-4 mb-4">Ranking por Campeonato</h3>
+            <div class="space-y-4">
+                {% for rank in ranking_campeonatos %}
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-base font-medium text-gray-700">{{ rank.campeonato }}</span>
+                        <span class="text-sm font-medium text-[#1C46A0]">R$ {{ rank.faturamento|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-[#1C46A0] h-2.5 rounded-full" style="width: {% widthratio rank.faturamento faturamento_total 100 %}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-500">Nenhum faturamento por campeonato encontrado.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Faturamento Mensal -->
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <h3 class="text-lg font-semibold text-gray-800 p-5 border-b">Histórico Detalhado</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Mês</th>
+                        <th scope="col" class="px-6 py-3 text-right">Faturamento</th>
+                        <th scope="col" class="px-6 py-3 text-center">Envios</th>
+                        <th scope="col" class="px-6 py-3 text-right">Ticket Médio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in faturamento_mensal %}
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span>{{ item.mes }}</span>
+                                {% if item.mes == mes_maior_faturamento %}
+                                    <span title="Mês de maior faturamento" class="inline-flex items-center text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">star</span>RECORDE</span>
+                                {% elif item.mes == mes_menor_faturamento %}
+                                    <span title="Mês de menor faturamento" class="inline-flex items-center text-gray-600 bg-gray-200 px-2 py-0.5 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">warning</span>BAIXA</span>
+                                {% elif item.mes == ultimo_mes %}
+                                    <span title="Último mês com dados" class="inline-flex items-center text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full text-xs font-bold"><span class="material-symbols-outlined !text-sm mr-1">schedule</span>RECENTE</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-right font-semibold text-gray-800">R$ {{ item.faturamento|floatformat:2|intcomma }}</td>
+                        <td class="px-6 py-4 text-center">{{ item.envios }}</td>
+                        <td class="px-6 py-4 text-right">R$ {{ item.ticket_medio|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Dados para o JS (com segurança) -->
+{{ faturamento_mensal|json_script:"faturamento-data" }}
+
+<!-- Gráfico com Chart.js -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const faturamentoData = JSON.parse(document.getElementById('faturamento-data').textContent);
+        
+        const labels = faturamentoData.map(item => item.mes);
+        const data = faturamentoData.map(item => item.faturamento);
+
+        const ctx = document.getElementById('faturamentoChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+        gradient.addColorStop(0, 'rgba(28, 70, 160, 0.7)');
+        gradient.addColorStop(1, 'rgba(79, 140, 255, 0.1)');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Faturamento Mensal',
+                    data: data,
+                    backgroundColor: gradient,
+                    borderColor: '#1C46A0',
+                    borderWidth: 2,
+                    borderRadius: 5,
+                    hoverBackgroundColor: 'rgba(28, 70, 160, 0.9)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + (value / 1000) + 'k';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

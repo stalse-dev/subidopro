@@ -1,94 +1,169 @@
 {% extends 'main.html' %}
 {% load tz %}
+{% load humanize %}
+
 {% block containerBodyMain %}
-    <div class="flex flex-col text-white min-h-screen pt-20">
-       
-        <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-center flex-1">Logs de Endpoints</h1>
-        
-            <!-- Formulário de Busca e Filtro -->
-            <form method="GET" class="flex bg-gray-700 p-2 rounded-lg shadow-lg h-15">
-                <input type="text" name="q" value="{{ query }}" placeholder="Buscar Logs..." 
-                        class="px-4 py-2 rounded-l-lg bg-gray-800 text-white focus:outline-none" />
-                <select name="status" class="px-2 py-2 bg-gray-800 text-white border-l border-gray-600 focus:outline-none">
-                    <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
-                    <option value="sucesso" {% if status_filter == "sucesso" %}selected{% endif %}>Sucesso</option>
-                    <option value="erro" {% if status_filter == "erro" %}selected{% endif %}>Erro</option>
-                </select>
-                <button type="submit" class="px-4 py-2 bg-[#1B469F] text-white rounded-r-lg font-bold">
-                    Buscar
-                </button>
+<!-- =============================================================== -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE LOGS DE AUDITORIA              -->
+<!-- =============================================================== -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Cabeçalho e Barra de Busca -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Logs de Auditoria</h1>
+                <p class="text-gray-500 mt-1">Registros de atividades importantes no sistema.</p>
+            </div>
+            <form method="get" action="" class="w-full md:w-80">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                    <input 
+                        type="text" 
+                        name="q" 
+                        value="{{ request.GET.q }}" 
+                        placeholder="Buscar em objetos e alterações..."
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                </div>
             </form>
         </div>
+    </div>
 
-        
-        
-    
-        <div class="flex-grow flex items-center justify-center p-4">
-            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-6 py-3">ID</th>
-                                <th class="px-6 py-3">Tabela</th>
-                                <th class="px-6 py-3">Ação</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Data</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for log in logs %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
-                                onclick="window.location.href='{% url 'detalhes_log' log.id %}'">
-                                <td class="px-6 py-4">{{ log.id }}</td>
-                                <td class="px-6 py-4">{{ log.tabela }}</td>
-                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ log.acao }}</td>
-                                {% if log.status == "sucesso" %}
-                                    <td class="px-6 py-4 text-green-400">Sucesso</td>
-                                {% else %}
-                                    <td class="px-6 py-4 text-red-400">Erro</td>
-                                {% endif %}
-                                <td class="px-6 py-4">{{ log.criado_em|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center py-4">Nenhum Log encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Lista de Logs -->
+    <div class="space-y-4">
+        {% for log in logs %}
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <!-- Linha Principal do Log -->
+            <div class="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 cursor-pointer" onclick="toggleDetails('log-{{ log.pk }}')">
+                <!-- Badge da Ação -->
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    {% with action_label=log.get_action_display %}
+                        {% if log.action == 0 %} {# CREATE #}
+                            {% with action_color='bg-green-100 text-green-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">CRIAÇÃO</span>
+                            {% endwith %}
+                        {% elif log.action == 1 %} {# UPDATE #}
+                            {% with action_color='bg-blue-100 text-blue-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">ATUALIZAÇÃO</span>
+                            {% endwith %}
+                        {% elif log.action == 2 %} {# DELETE #}
+                            {% with action_color='bg-red-100 text-red-800' %}
+                            <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md {{ action_color }}">EXCLUSÃO</span>
+                            {% endwith %}
+                        {% else %}
+                             <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-gray-100 text-gray-800">{{ action_label }}</span>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                
+                <!-- Descrição da Ação -->
+                <div class="flex-grow text-sm text-gray-700">
+                    <span class="font-semibold text-gray-900">Sistema</span>
+                    realizou uma ação de <span class="font-semibold">{{ log.get_action_display|lower }}</span> no objeto
+                    <span class="font-semibold text-blue-600">{{ log.content_type }}</span>:
+                    <span class="font-mono bg-gray-100 px-1 rounded text-gray-800">{{ log.object_repr }}</span>.
+                </div>
+
+                <!-- Timestamp -->
+                <div class="text-xs text-gray-500 font-mono w-full sm:w-auto text-left sm:text-right flex-shrink-0">
+                    {{ log.timestamp|timezone:"America/Sao_Paulo"|naturaltime }}
+                </div>
+            </div>
+            
+            <!-- Detalhes do Log (Ocultos por Padrão) -->
+            <div id="log-{{ log.pk }}" class="hidden bg-gray-50/70 border-t p-4">
+                <!-- Grade com informações rápidas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 text-xs mb-4">
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Timestamp</span>
+                        <span class="font-mono text-gray-800">{{ log.timestamp|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i:s" }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Usuário (Ator)</span>
+                        <span class="font-mono text-gray-800">{{ log.actor|default:'N/A' }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase font-semibold">Endereço IP</span>
+                        <span class="font-mono text-gray-800">{{ log.remote_addr|default:'N/A' }}</span>
+                    </div>
+                </div>
+
+                <!-- Prévia das alterações -->
+                {% if log.changes %}
+                <div class="mb-4">
+                    <span class="text-gray-500 uppercase font-semibold text-xs">Prévia das Alterações</span>
+                    <pre class="bg-gray-200 text-gray-800 p-3 rounded-md mt-1 text-xs whitespace-pre-wrap font-mono">{{ log.changes_str|truncatechars:300 }}</pre>
+                </div>
+                {% endif %}
+
+                <!-- Botão para ver detalhes -->
+                <div class="flex justify-end">
+                    <a href="{% url 'log_detail' log.pk %}" class="inline-flex items-center gap-2 px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                        Ver Detalhes Completos
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="text-center py-16 px-6 bg-white rounded-lg shadow-sm border">
+            <span class="material-symbols-outlined text-6xl text-gray-300">history</span>
+            <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum log encontrado.</p>
+            <p class="text-gray-500 text-sm mt-1">
+                {% if request.GET.q %}
+                    Sua busca por "{{ request.GET.q }}" não retornou resultados.
+                {% else %}
+                    Não há registros de auditoria para exibir no momento.
+                {% endif %}
+            </p>
+        </div>
+        {% endfor %}
     </div>
 
-    <div class="flex flex-col items-center mt-6 mb-6">
-        <span class="text-lg text-white font-semibold mb-2">
-            Página {{ logs.number }} de {{ logs.paginator.num_pages }}
-        </span>
-    
-        <div class="flex gap-2">
-            {% if logs.has_previous %}
-                <a href="?q={{ query }}&status={{ status_filter }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
-                <a href="?q={{ query }}&status={{ status_filter }}&page={{ logs.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center items-center">
+        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Anterior</span>
+                    <span class="material-symbols-outlined text-xl">chevron_left</span>
+                </a>
             {% endif %}
-    
-            {% for num in logs.paginator.page_range %}
-                {% if logs.number == num %}
-                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
-                {% elif num > logs.number|add:"-3" and num < logs.number|add:"3" %}
-                    <a href="?q={{ query }}&status={{ status_filter }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{{ i }}</a>
+                {% else %}
+                    <a href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">{{ i }}</a>
                 {% endif %}
             {% endfor %}
-    
-            {% if logs.has_next %}
-                <a href="?q={{ query }}&status={{ status_filter }}&page={{ logs.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
-                <a href="?q={{ query }}&status={{ status_filter }}&page={{ logs.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Próximo</span>
+                    <span class="material-symbols-outlined text-xl">chevron_right</span>
+                </a>
             {% endif %}
-        </div>
+        </nav>
     </div>
-    
-    
-    
+    {% endif %}
+
+</div>
+
+<script>
+    function toggleDetails(logId) {
+        const element = document.getElementById(logId);
+        if (element) {
+            element.classList.toggle('hidden');
+        }
+    }
+</script>
+
+<!-- Adicione isso ao seu <head> se ainda não tiver -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<!-- =============================================================== -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE LOGS DE AUDITORIA                  -->
+<!-- =============================================================== -->
 {% endblock %}

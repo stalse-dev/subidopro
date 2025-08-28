@@ -1,0 +1,128 @@
+{% extends 'main.html' %}
+{% load humanize %}
+
+{% block containerBodyMain %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Card Principal do Aluno -->
+    <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+            <!-- Avatar -->
+            <div class="flex-shrink-0">
+                <img class="h-24 w-24 rounded-full object-cover ring-4 ring-offset-2 ring-[#1C46A0]" 
+                     src="https://placehold.co/100x100/EBF4FF/7F9CF5?text={{ aluno.apelido|default:aluno.nome_completo|default:'?'|first|upper }}" 
+                     alt="Avatar de {{ aluno.apelido }}">
+            </div>
+            <!-- Informações Principais -->
+            <div class="flex-grow text-center md:text-left">
+                <!-- NOME E STATUS -->
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1 mb-1">
+                    <h1 class="text-3xl font-bold text-gray-900">{{ aluno.nome_completo|default:"Nome não informado" }}</h1>
+                    {% if aluno.status == 'ACTIVE' %}
+                        <span class="text-xs font-semibold inline-block py-1 px-2.5 uppercase rounded-full text-green-600 bg-green-200">
+                            Ativo
+                        </span>
+                    {% else %}
+                        <span class="text-xs font-semibold inline-block py-1 px-2.5 uppercase rounded-full text-red-600 bg-red-200">
+                            Inativo
+                        </span>
+                    {% endif %}
+                </div>
+                <!-- APELIDO E EMAIL -->
+                <p class="text-gray-500">
+                    <span class="font-medium">Apelido:</span> {{ aluno.apelido|default:"N/A" }} 
+                    <span class="mx-2">|</span> 
+                    {{ aluno.email }}
+                </p>
+                
+                <!-- NÍVEL E CLÃ -->
+                <div class="flex items-center justify-center md:justify-start gap-4 mt-3">
+                    {% if aluno.nivel %}
+                    <div class="inline-flex items-center gap-x-2 py-1 px-3 rounded-full text-xs font-medium" 
+                         style="background-color: {{ aluno.nivel.cor|default:'#dbeafe' }}20; color: {{ aluno.nivel.cor|default:'#1e40af' }};">
+                        <span>{{ aluno.nivel.titulo }}</span>
+                        <div class="flex items-center">
+                            {% if aluno.nivel.estrela > 0 %}{% for i in "x"|ljust:aluno.nivel.estrela %}<span class="material-symbols-outlined !text-sm">star</span>{% endfor %}{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if aluno.cla %}
+                    <div class="inline-flex items-center gap-2 text-sm text-gray-600 font-medium">
+                        <img class="h-6 w-6 object-contain" src="{{ aluno.cla.brasao }}" onerror="this.onerror=null;this.src='https://placehold.co/24x24/EBF4FF/7F9CF5?text={{ aluno.cla.sigla|default:'C' }}';">
+                        <span>{{ aluno.cla.nome }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abas de Navegação para Detalhes -->
+    <div class="mb-8">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                <a href="{% url 'dashboard_aluno' aluno.id %}"
+                    class="{% if request.resolver_match.url_name == 'dashboard_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Dashboard
+                </a>
+
+                <a href="{% url 'faturamento_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'faturamento_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Faturamento
+                </a>
+
+                
+
+                <a href="{% url 'pontos_recebimento_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_recebimento_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Recebimento
+                </a>
+
+                <a href="{% url 'pontos_cliente_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_cliente_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Novos Clientes
+                </a>
+
+                <a href="{% url 'pontos_desafio_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_desafio_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Desafios
+                </a>
+
+                <a href="{% url 'pontos_certificacao_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_certificacao_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Certificação
+                </a>
+
+                <a href="{% url 'pontos_manuais_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_manuais_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Manuais
+                </a>
+
+                <a href="{% url 'pontos_retencao_aluno' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_retencao_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Retenção
+                </a>
+
+                <a href="{% url 'pontos_cliente' aluno.id %}"
+                class="{% if request.resolver_match.url_name == 'pontos_cliente' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Todos Clientes
+                </a>
+
+                <a href=""
+                class="{% if request.resolver_match.url_name == 'logs_aluno' %}tab-active border-[#1C46A0] text-[#1C46A0]{% else %}text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Logs Aluno
+                </a>
+            </nav>
+        </div>
+    </div>
+
+
+    <!-- Conteúdo da Aba Ativa -->
+    <div id="tab-content">
+        {% block containerAluno %}
+
+        {% endblock %}
+    </div>
+
+</div>
+{% endblock %}

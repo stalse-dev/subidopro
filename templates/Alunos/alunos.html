@@ -1,109 +1,140 @@
 {% extends 'main.html' %}
+{% load humanize %}
 
 {% block containerBodyMain %}
-    <div class="flex flex-col text-white min-h-screen pt-20">
-       
-        <div class="my-6 w-[95%] max-w-7xl mx-auto flex items-center justify-between">
-            
-            <!-- Botão de Download -->
-            <a href="{% url 'exportar_alunos' %}" 
-                class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600 h-15">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Baixar Excel
-            </a>
-    
-            <!-- Título Centralizado -->
-            <h1 class="text-3xl font-bold text-center flex-1">Lista de Alunos</h1>
-    
-            <!-- Formulário de Busca -->
-            <form method="GET" class="flex bg-gray-700 p-2 rounded-lg shadow-lg h-15">
-                <input type="text" name="q" value="{{ query }}" placeholder="Buscar aluno..." 
-                        class="px-4 py-2 rounded-l-lg bg-gray-800 text-white focus:outline-none" />
-                <button type="submit" class="px-4 py-2 bg-[#1B469F] text-white rounded-r-lg font-bold">
-                    Buscar
-                </button>
-            </form>
+<!-- =============================================================== -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE TODOS OS ALUNOS                  -->
+<!-- =============================================================== -->
+<div class="max-w-7xl mx-auto">
+    <!-- Cabeçalho da Seção e Barra de Busca -->
+    <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Todos os Alunos</h1>
+            <p class="text-sm text-gray-500">{{ cont_alunos }} aluno(s) encontrado(s)</p>
         </div>
+        <form method="get" action="" class="w-full md:w-auto">
+            <div class="relative">
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, apelido, email..." class="w-full md:w-80 pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1C46A0]">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+            </div>
+        </form>
+    </div>
 
-        
-        
-    
-        <div class="flex-grow flex items-center justify-center p-4">
-            <div class="w-[95%] max-w-7xl bg-gray-800 p-6 rounded-lg shadow-lg">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-                            <tr>
-                                <th class="px-6 py-3">ID</th>
-                                <th class="px-6 py-3">Nome Completo</th>
-                                <th class="px-6 py-3">Nível</th>
-                                <th class="px-6 py-3">Apelido</th>
-                                <th class="px-6 py-3">Email</th>
-                                <th class="px-6 py-3">Data Criação</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for aluno in alunos %}
-                            <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 cursor-pointer" 
-                                onclick="window.location.href='{% url 'aluno' aluno.id %}'">
-                                <td class="px-6 py-4">{{ aluno.id }}</td>
-                                <td class="px-6 py-4">{{ aluno.nome_completo }}</td>
-                                <td class="px-6 py-4 text-yellow-400 font-bold">{{ aluno.nivel }}</td>
-                                <td class="px-6 py-4">{{ aluno.apelido }}</td>
-                                <td class="px-6 py-4">{{ aluno.email }}</td>
-                                <td class="px-6 py-4">{{ aluno.data_criacao|date:"d/m/Y H:i" }}</td>
-                                <td class="px-6 py-4">
-                                    {% if aluno.status == "ACTIVE" %}
-                                        <span class="text-green-400">Ativo</span>
-                                    {% else %}
-                                        <span class="text-red-400">Inativo</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center py-4">Nenhum aluno encontrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    <!-- Tabela de Alunos -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Aluno</th>
+                        <th scope="col" class="px-6 py-3">Clã Atual</th>
+                        <th scope="col" class="px-6 py-3">Nível</th>
+                        <th scope="col" class="px-6 py-3 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aluno in alunos %}
+                    <tr class="bg-white border-b hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location.href='{% url 'dashboard_aluno' aluno.id %}'">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <img class="h-10 w-10 rounded-full object-cover mr-3" src="https://placehold.co/40x40/EBF4FF/7F9CF5?text={{ aluno.apelido|default:aluno.nome_completo|default:'?'|first|upper }}" alt="Avatar">
+                                <div>
+                                    <div class="font-bold text-gray-800">{{ aluno.apelido|default:aluno.nome_completo }}</div>
+                                    <div class="text-xs text-gray-500">{{ aluno.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ aluno.cla.nome|default:"-" }}
+                        </td>
+                            <td class="px-6 py-4">
+                                {% if aluno.nivel %}
+                                    <!-- Badge de Nível Dinâmico -->
+                                    <div class="inline-flex items-center gap-x-2 py-1 px-3 rounded-full text-xs font-medium" 
+                                            style="background-color: {{ aluno.nivel.cor | default:'#dbeafe' }}20; color: {{ aluno.nivel.cor | default:'#1e40af' }};">
+                                        <span>{{ aluno.nivel.titulo }}</span>
+                                        <div class="flex items-center">
+                                            {% if aluno.nivel.estrela > 0 %}
+                                                {% for i in "x"|ljust:aluno.nivel.estrela %}
+                                                    <span class="material-symbols-outlined !text-sm">star</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        Sem Nível
+                                    </span>
+                                {% endif %}
+                            </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if aluno.status == 'ACTIVE' %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 mr-1 bg-green-500 rounded-full"></span>
+                                    Ativo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    <span class="w-2 h-2 mr-1 bg-red-500 rounded-full"></span>
+                                    Inativo
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-12 px-6">
+                            <p class="font-semibold">Nenhum aluno encontrado.</p>
+                            <p class="text-gray-500 text-sm mt-1">Tente ajustar os termos da sua busca.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if alunos.has_other_pages %}
+    <div class="flex items-center justify-between bg-white px-4 py-3 sm:px-6 rounded-b-lg shadow-md mt-4">
+        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Mostrando de
+                    <span class="font-medium">{{ alunos.start_index }}</span>
+                    a
+                    <span class="font-medium">{{ alunos.end_index }}</span>
+                    de
+                    <span class="font-medium">{{ cont_alunos }}</span>
+                    resultados
+                </p>
+            </div>
+            <div>
+                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    {% if alunos.has_previous %}
+                    <a href="?page={{ alunos.previous_page_number }}&q={{ q }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    </a>
+                    {% endif %}
+                    {% for i in alunos.paginator.page_range %}
+                        {% if alunos.number == i %}
+                            <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-[#1C46A0] text-white px-4 py-2 text-sm font-semibold">{{ i }}</a>
+                        {% elif i > alunos.number|add:'-3' and i < alunos.number|add:'3' %}
+                            <a href="?page={{ i }}&q={{ q }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if alunos.has_next %}
+                    <a href="?page={{ alunos.next_page_number }}&q={{ q }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </a>
+                    {% endif %}
+                </nav>
             </div>
         </div>
     </div>
-
-    <div class="flex flex-col items-center mt-6 mb-6">
-        <span class="text-lg text-white font-semibold mb-2">
-            Página {{ alunos.number }} de {{ alunos.paginator.num_pages }}
-        </span>
-    
-        <div class="flex gap-2">
-            {% if alunos.has_previous %}
-                <a href="?q={{ query }}&page=1" class="px-3 py-1 bg-gray-700 text-white rounded">Primeira</a>
-                <a href="?q={{ query }}&page={{ alunos.previous_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Anterior</a>
-            {% endif %}
-    
-            {% for num in alunos.paginator.page_range %}
-                {% if alunos.number == num %}
-                    <span class="px-3 py-1 bg-[#1B469F] text-white rounded">{{ num }}</span>
-                {% elif num > alunos.number|add:"-3" and num < alunos.number|add:"3" %}
-                    <a href="?q={{ query }}&page={{ num }}" class="px-3 py-1 bg-gray-700 text-white rounded">{{ num }}</a>
-                {% endif %}
-            {% endfor %}
-    
-            {% if alunos.has_next %}
-                <a href="?q={{ query }}&page={{ alunos.next_page_number }}" class="px-3 py-1 bg-gray-700 text-white rounded">Próxima</a>
-                <a href="?q={{ query }}&page={{ alunos.paginator.num_pages }}" class="px-3 py-1 bg-gray-700 text-white rounded">Última</a>
-            {% endif %}
-        </div>
-    </div>
-    
-    
-    
+    {% endif %}
+</div>
+<!-- =============================================================== -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE TODOS OS ALUNOS                    -->
+<!-- =============================================================== -->
 {% endblock %}
