@@ -1110,7 +1110,9 @@ def recebimentos_alunos(request, aluno_id):
 @api_view(['GET'])
 def painel_inicial_aluno(request, aluno_id):
     aluno = get_object_or_404(Alunos, id=int(aluno_id))
-    campeonato_vigente, semana_subidometro = calcular_semana_vigente()
+    #campeonato_vigente, semana_subidometro = calcular_semana_vigente()
+    campeonato_vigente = Campeonato.objects.filter(id=6).first()
+    semana_subidometro = 25
     # Buscar semana mais recente
     maior_semana_obj = (
         Alunos_posicoes_semana.objects
@@ -1155,10 +1157,10 @@ def painel_inicial_aluno(request, aluno_id):
     ultima_cla = Mentoria_cla_posicao_semana.objects.filter(cla=aluno.cla, semana=semana_subidometro).order_by('-data').first()
 
     # Últimos 10 alunos
-    ultimos_dez_posicoes = Alunos_posicoes_semana.objects.filter(semana=semana_subidometro).order_by('posicao')[:10]
+    ultimos_dez_posicoes = Alunos_posicoes_semana.objects.filter(semana=semana_subidometro, campeonato=campeonato_vigente).order_by('posicao')[:10]
 
     # Últimos 10 clãs
-    ultimos_dez_clas = Mentoria_cla_posicao_semana.objects.filter(semana=semana_subidometro).order_by('posicao')[:10]
+    ultimos_dez_clas = Mentoria_cla_posicao_semana.objects.filter(semana=semana_subidometro, campeonato=campeonato_vigente).order_by('posicao')[:10]
 
     resposta = {
         "evolucao": {

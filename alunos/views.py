@@ -315,7 +315,7 @@ def aluno_dashboard(request, aluno_id):
 
     total_valores_envios = Aluno_envios.objects.filter(aluno=aluno, status=3).aggregate(total=Sum('valor_calculado'))['total'] or 0
     total_valor_camp = Aluno_camp_faturamento_anterior.objects.filter(aluno=aluno).aggregate(total=Sum('valor'))['total'] or 0
-
+    
     soma_de_todos_valores = float(total_valores_envios) + float(total_valor_camp)
 
     # Campeonatos atuais

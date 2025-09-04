@@ -136,6 +136,9 @@ def calculo_retencao_func(data_referencia):
     """
     
     campeonatoVigente, semana = calcular_semana_vigente()
+    campeonatoVigente = Campeonato.objects.filter(id=6).order_by('-id').first()
+    semana = 26
+
     
 
     # Primeiro dia do mês atual

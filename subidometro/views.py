@@ -208,7 +208,10 @@ def calculo_retencao_func(request):
     return render(request, "Retencao/retencao.html", context)
         
 def calculo_ranking_func(request):
-    campeonato_vigente, semana = calcular_semana_vigente()
+    #campeonato_vigente, semana = calcular_semana_vigente()
+
+    campeonato_vigente = Campeonato.objects.filter(id=6).order_by('-id').first()
+    semana = 25
 
     ranking_ja_calculado = Alunos_posicoes_semana.objects.filter(
         campeonato=campeonato_vigente,
