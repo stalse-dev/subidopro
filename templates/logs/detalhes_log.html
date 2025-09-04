@@ -1,80 +1,174 @@
 {% extends 'main.html' %}
 {% load tz %}
+{% load humanize %}
 
 {% block containerBodyMain %}
-<div class="flex flex-col text-white min-h-screen pt-20">
-    <h1 class="text-3xl font-bold text-center mt-6">Detalhes do Log</h1>
+<!-- =============================================================== -->
+<!-- INÍCIO DO CONTEÚDO DA PÁGINA DE DETALHE DO LOG                  -->
+<!-- =============================================================== -->
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
-    <div class="flex-grow flex items-center justify-center p-4">
-        <div class="w-[90%] max-w-4xl bg-gray-800 p-6 rounded-lg shadow-lg">
-            <!-- Informações Gerais do Log -->
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6">
-                <h2 class="text-2xl font-bold mb-2">Ação: {{ log.acao|upper }}</h2>
-                <p class="text-gray-400"><strong>Tabela:</strong> {{ log.tabela }}</p>
-                <p class="text-gray-400"><strong>Status:</strong> 
-                    {% if log.status == "sucesso" %}
-                        <span class="text-green-400">Sucesso</span>
-                    {% else %}
-                        <span class="text-red-400">Erro</span>
-                    {% endif %}
-                </p>
-                <p class="text-gray-400"><strong>Data:</strong> {{ log.criado_em|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i" }}</p>
-                {% if log.erro %}
-                    <p class="text-red-400 mt-4"><strong>Erro:</strong> {{ log.erro }}</p>
-                {% endif %}
-            </div>
-
-            <div class="bg-gray-700 p-6 rounded-lg shadow-md mb-6">
-                {% if log.acao == "add" %}
-                    <h2 class="text-xl font-bold mb-4">Dados Novos</h2>
-                {% elif log.acao == "alt" %}
-                    <h2 class="text-xl font-bold mb-4">Dados Alterados</h2>
-                {% elif log.acao == "del" %}
-                    <h2 class="text-xl font-bold mb-4">Dados Apagados</h2>
-                {% endif %}
-                {% if log.dados_novos %}
-                    <div class="overflow-x-auto bg-gray-800 p-4 rounded-lg">
-                        <table class="w-full text-sm text-left text-gray-400">
-                            <thead class="text-xs uppercase bg-gray-600 text-gray-300">
-                                <tr>
-                                    <th class="px-6 py-3">Campo</th>
-                                    <th class="px-6 py-3">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for key, value in log.dados_novos.items %}
-                                    <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
-                                        <td class="px-6 py-4">{{ key }}</td>
-                                        <td class="px-6 py-4">{{ value }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% elif log.dados_anteriores %}
-                    <div class="overflow-x-auto bg-gray-800 p-4 rounded-lg">
-                        <table class="w-full text-sm text-left text-gray-400">
-                            <thead class="text-xs uppercase bg-gray-600 text-gray-300">
-                                <tr>
-                                    <th class="px-6 py-3">Campo</th>
-                                    <th class="px-6 py-3">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for key, value in log.dados_anteriores.items %}
-                                    <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
-                                        <td class="px-6 py-4">{{ key }}</td>
-                                        <td class="px-6 py-4">{{ value }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+    <!-- Cabeçalho -->
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-2">
+            <!-- Badge da Ação -->
+            {% with action_label=log.get_action_display %}
+                {% if log.action == 0 %} {# CREATE #}
+                    {% with action_color='bg-green-100 text-green-800' %}
+                    <span class="font-mono text-sm font-bold px-3 py-1 rounded-md {{ action_color }}">CRIAÇÃO</span>
+                    {% endwith %}
+                {% elif log.action == 1 %} {# UPDATE #}
+                    {% with action_color='bg-blue-100 text-blue-800' %}
+                    <span class="font-mono text-sm font-bold px-3 py-1 rounded-md {{ action_color }}">ATUALIZAÇÃO</span>
+                    {% endwith %}
+                {% elif log.action == 2 %} {# DELETE #}
+                    {% with action_color='bg-red-100 text-red-800' %}
+                    <span class="font-mono text-sm font-bold px-3 py-1 rounded-md {{ action_color }}">EXCLUSÃO</span>
+                    {% endwith %}
                 {% else %}
-                    <p class="text-gray-400">Nenhum dado novo registrado.</p>
+                     <span class="font-mono text-sm font-bold px-3 py-1 rounded-md bg-gray-100 text-gray-800">{{ action_label }}</span>
                 {% endif %}
+            {% endwith %}
+            <h1 class="text-2xl font-bold text-gray-800">
+                Detalhes do Log #{{ log.pk }}
+            </h1>
+        </div>
+        <p class="text-gray-600">
+            Ação realizada por <span class="font-semibold">Sistema</span> no objeto <span class="font-semibold text-blue-600">{{ log.content_type }}</span>: <span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">{{ log.object_repr }}</span>.
+        </p>
+    </div>
+
+    <!-- Informações Gerais -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Informações Gerais</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+            <div class="flex flex-col">
+                <span class="text-gray-500 uppercase font-semibold text-xs">Timestamp</span>
+                <span class="font-mono text-gray-800 mt-1">{{ log.timestamp|timezone:"America/Sao_Paulo"|date:"d/m/Y H:i:s" }}</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-gray-500 uppercase font-semibold text-xs">Usuário (Ator)</span>
+                <span class="font-mono text-gray-800 mt-1">{{ log.actor|default:'N/A' }}</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-gray-500 uppercase font-semibold text-xs">Endereço IP</span>
+                <span class="font-mono text-gray-800 mt-1">{{ log.remote_addr|default:'N/A' }}</span>
             </div>
         </div>
     </div>
+
+    {% comment %} ENTIDADES RELACIONADAS (Aluno / Cliente / Contrato / Envio) {% endcomment %}
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">Entidades Relacionadas</h2>
+
+    {% if related_ids.aluno_id or related_ids.cliente_id or related_ids.contrato_id or related_ids.envio_id %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {% if related_ids.aluno_id %}
+        <a href="{% url 'dashboard_aluno' related_ids.aluno_id %}" class="border rounded-lg cursor-pointer p-4 hover:bg-gray-200 transition-colors duration-300">
+            <div class="text-xs font-semibold uppercase text-gray-500">Aluno</div>
+            <div class="mt-1 font-mono text-gray-800">
+            ID: {{ related_ids.aluno_id }}
+            </div>
+            {% if aluno_obj %}
+            <div class="text-sm text-gray-600">Nome: {{ aluno_obj }}</div>
+            {% endif %}
+        </a>
+        {% endif %}
+
+        {% if related_ids.cliente_id %}
+        <div class="border rounded-lg p-4">
+            <div class="text-xs font-semibold uppercase text-gray-500">Cliente</div>
+            <div class="mt-1 font-mono text-gray-800">
+            ID: {{ related_ids.cliente_id }}
+            </div>
+            {% if cliente_obj %}
+            <div class="text-sm text-gray-600">Título: {{ cliente_obj }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if related_ids.contrato_id %}
+        <div class="border rounded-lg p-4">
+            <div class="text-xs font-semibold uppercase text-gray-500">Contrato</div>
+            <div class="mt-1 font-mono text-gray-800">
+            ID: {{ related_ids.contrato_id }}
+            </div>
+            {% if contrato_obj %}
+            <div class="text-sm text-gray-600">Detalhe: {{ contrato_obj }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if related_ids.envio_id %}
+        <div class="border rounded-lg p-4">
+            <div class="text-xs font-semibold uppercase text-gray-500">Envio</div>
+            <div class="mt-1 font-mono text-gray-800">
+            ID: {{ related_ids.envio_id }}
+            </div>
+            {% if envio_obj %}
+            <div class="text-sm text-gray-600">Resumo: {{ envio_obj }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        </div>
+    {% else %}
+        <p class="text-sm text-gray-500">Nenhuma entidade relacionada foi identificada para este log.</p>
+    {% endif %}
+    </div>
+
+
+    <!-- Tabela de Alterações -->
+    {% if changes %}
+    <div class="bg-white rounded-xl shadow-sm border">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold text-gray-700">Alterações</h2>
+            <p class="text-sm text-gray-500 mt-1">Campos que foram modificados neste evento.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 px-6 text-left font-semibold text-gray-600">Campo</th>
+                        <th scope="col" class="py-3.5 px-6 text-left font-semibold text-gray-600">Valor Antigo</th>
+                        <th scope="col" class="py-3.5 px-6 text-left font-semibold text-gray-600">Valor Novo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for change in changes %}
+                    <tr class="{% if change.changed %}bg-yellow-50/50{% endif %}">
+                        <td class="whitespace-nowrap px-6 py-4 font-mono font-medium text-gray-800">{{ change.field }}</td>
+                        <td class="px-6 py-4 font-mono text-gray-600">
+                            <pre class="whitespace-pre-wrap">{{ change.old|default:'(vazio)' }}</pre>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-gray-600">
+                            <pre class="whitespace-pre-wrap">{{ change.new|default:'(vazio)' }}</pre>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-12 px-6 bg-white rounded-lg shadow-sm border">
+        <span class="material-symbols-outlined text-5xl text-gray-400">difference</span>
+        <p class="font-semibold text-lg mt-3 text-gray-700">Nenhuma alteração detalhada</p>
+        <p class="text-gray-500 text-sm mt-1">Este registro de log não contém um detalhamento das alterações.</p>
+    </div>
+    {% endif %}
+
+    <!-- Botão Voltar -->
+    <div class="mt-8">
+        <a href="{% url 'log_list' %}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Voltar para a Lista de Logs
+        </a>
+    </div>
+
 </div>
+<!-- =============================================================== -->
+<!-- FIM DO CONTEÚDO DA PÁGINA DE DETALHE DO LOG                     -->
+<!-- =============================================================== -->
 {% endblock %}

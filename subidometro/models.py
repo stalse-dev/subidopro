@@ -1,4 +1,5 @@
 from django.db import models
+from auditlog.registry import auditlog
 
 class Campeonato(models.Model):
     identificacao = models.CharField(max_length=255)
@@ -22,6 +23,10 @@ class Desafios(models.Model):
     data_inicio = models.DateTimeField(null=True, blank=True)
     data_fim = models.DateTimeField(null=True, blank=True)
 
+    pontos_7_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontos_14_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pontos_21_dias = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
     def __str__(self):
         return self.titulo
 
@@ -33,11 +38,20 @@ class Mentoria_cla(models.Model):
     rastreador = models.IntegerField(null=True, blank=True)
     rastreador_substituto = models.IntegerField(null=True, blank=True)
     definido = models.IntegerField(null=True, blank=True)
-    brasao = models.TextField(null=True, blank=True)
+    brasao = models.TextField(null= True, blank=True)
 
     def __str__(self):
         return self.nome
 
+class Mentoria_cla_pontos(models.Model):
+    cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_pontos_cla')
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_pontos_campeonato")
+    pontos = models.DecimalField(max_digits=10, decimal_places=2)
+    descricao = models.CharField(max_length=255, null=True, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    semana = models.IntegerField(null=True, blank=True)
+    status = models.IntegerField(null=True, blank=True)
+    
 class Mentoria_cla_posicao_semana(models.Model):
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name='mentoria_cla_posicoes_semana_cla')
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="mentoria_cla_posicoes_semana_campeonato")
@@ -51,6 +65,7 @@ class Mentoria_cla_posicao_semana(models.Model):
     pontos_contrato = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     pontos_retencao = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     pontos_totais = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    rastreador = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.cla} - {self.semana} - {self.posicao}"
@@ -58,6 +73,7 @@ class Mentoria_cla_posicao_semana(models.Model):
 class Alunos(models.Model):
     nome_completo = models.CharField(max_length=255, null=True, blank=True, db_column="nome_completo")
     nome_social = models.CharField(max_length=255, null=True, blank=True, db_column="nome_social")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="alunos_campeonato")
     apelido = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=255, null=True, blank=True)
     data_criacao = models.DateTimeField(null=True, blank=True, db_column="data_criacao")
@@ -65,12 +81,27 @@ class Alunos(models.Model):
     hotmart = models.IntegerField(null=True, blank=True)
     termo_aceito = models.IntegerField(null=True, blank=True, db_column="termo_aceito")
     cla = models.ForeignKey("Mentoria_cla", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_cla")
-    nivel = models.IntegerField(null=True, blank=True, default=0)
+    #nivel = models.IntegerField(null=True, blank=True, default=0)
+    nivel = models.ForeignKey("Mentoria_lista_niveis", on_delete=models.CASCADE, null=True, blank=True, related_name="aluno_nivel")
     aluno_consultor = models.IntegerField(null=True, blank=True, default=0, db_column="aluno_consultor")
     tags_interna = models.CharField(max_length=255, null=True, blank=True, db_column="tags_interna")
+    
 
     def __str__(self):
         return self.nome_completo
+    
+class ParticipacaoCampeonato(models.Model):
+    aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="participacoes")
+    campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, related_name="participacoes")
+    data_entrada = models.DateTimeField(auto_now_add=True)
+    data_saida = models.DateTimeField(null=True, blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('aluno', 'campeonato')
+
+    def __str__(self):
+        return f"{self.aluno.nome_completo} em {self.campeonato.identificacao}"
 
 class Alunos_posicoes_semana(models.Model):
     aluno = models.ForeignKey(Alunos, on_delete=models.CASCADE, related_name="alunos_posicoes_semana")
@@ -138,8 +169,8 @@ class Alunos_clientes_pontos_meses_retencao(models.Model):
     id = models.BigAutoField(primary_key=True)
     aluno = models.ForeignKey("Alunos", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
     cliente = models.ForeignKey(Aluno_clientes, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set")
-    # envio = models.ForeignKey("Aluno_envios", on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
-    # contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
+    envio = models.ForeignKey("Aluno_envios", on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
+    contrato = models.ForeignKey(Aluno_clientes_contratos, on_delete=models.CASCADE, null=True, blank=True, related_name="alunosclientespontosestemesretencao_set") #Novo Campo
     campeonato = models.ForeignKey(Campeonato, on_delete=models.CASCADE, null=True, blank=True, related_name="campeonatos_clientes")
     data = models.DateField(null=True, blank=True)
     pontos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -158,6 +189,7 @@ class Aluno_envios(models.Model):
     data = models.DateField(null=True, blank=True)
     descricao = models.CharField(max_length=255, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    valor_calculado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     arquivo1 = models.CharField(max_length=255, null=True, blank=True)
     arquivo1_motivo = models.IntegerField(null=True, blank=True)
     arquivo1_status = models.IntegerField(null=True, blank=True, default=0)
@@ -173,7 +205,6 @@ class Aluno_envios(models.Model):
 
     pontos = models.DecimalField(max_digits=10, decimal_places=2)
     pontos_previsto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-
 
     def __str__(self):
         return f"Envio {self.id} - {self.cliente} - {self.aluno}"
@@ -239,7 +270,7 @@ class Alunos_Subidometro(models.Model):
     pontuacao_geral = models.IntegerField(null=True, blank=True)
     pontuacao_cla = models.IntegerField(null=True, blank=True)
     rastreador = models.IntegerField(null=True, blank=True)
-    data = models.DateField(null=True, blank=True, auto_now_add=True)
+    data = models.DateTimeField(null=True, blank=True, auto_now_add=True)
     status_aluno = models.CharField(max_length=255, null=True, blank=True)
     
     def __str__(self):
@@ -272,3 +303,27 @@ class Aluno_camp_faturamento_anterior(models.Model):
     def __str__(self):
         return f"{self.aluno.nome_completo} - {self.valor} - {self.campeonato_turma}"
     
+class Mentoria_lista_niveis(models.Model):
+    titulo = models.CharField(max_length=255, null=True, blank=True)
+    estrela = models.IntegerField(default=1, null=True, blank=True)
+    cor = models.CharField(max_length=255, null=True, blank=True)
+    ordem = models.IntegerField(null=True, blank=True)
+    checklist = models.TextField(null=True, blank=True)
+    ultimo_nivel = models.IntegerField(default=0, null=True, blank=True)
+    nivel_grupo = models.IntegerField(null=True, blank=True)
+    id_circle = models.CharField(max_length=255, null=True, blank=True)
+    id_intercom = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return self.titulo or f"Nível {self.id}"
+
+
+auditlog.register(Campeonato)
+auditlog.register(Desafios)
+auditlog.register(Mentoria_cla)
+auditlog.register(Alunos)
+auditlog.register(Aluno_clientes)
+auditlog.register(Aluno_clientes_contratos)
+auditlog.register(Aluno_envios)
+auditlog.register(Aluno_desafio)
+auditlog.register(Aluno_certificacao)

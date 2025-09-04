@@ -1,40 +1,111 @@
-{% extends 'main.html' %}
-{% block header %}
-        
-{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Sua Plataforma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
 
-{% block containerBodyMain %}
-    <div class="flex flex-col items-center justify-center min-h-screen text-white">
-
-        <div class="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-lg">
-            <img 
-            src="https://langermarketing.com.br/wp-content/uploads/2023/09/selo_subido_pro-2.png" 
-            alt="SubidoPro Logo" class="mx-auto mb-6 w-32 md:w-48 transition-transform transform hover:scale-105">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="relative flex flex-col m-6 space-y-8 bg-white shadow-2xl rounded-2xl md:flex-row md:space-y-0">
             
-            {% if messages %}
-                <div class="bg-red-500 text-white p-2 rounded mb-4">
-                    {% for message in messages %}
-                        <p>{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <!-- Coluna da Esquerda (Formulário) -->
+            <div class="flex flex-col justify-center p-8 md:p-14">
+                <span class="mb-3 text-4xl font-bold">Bem-vindo!</span>
+                <span class="font-light text-gray-500 mb-8">
+                    Faça login para acessar sua conta.
+                </span>
 
-            <form method="POST" class="space-y-4">
-                {% csrf_token %}
-                
-                <div>
-                    <label for="email" class="block text-sm font-semibold">E-mail:</label>
-                    <input type="email" name="email" id="email" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                </div>
-                
-                <div>
-                    <label for="password" class="block text-sm font-semibold">Senha:</label>
-                    <input type="password" name="password" id="password" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                </div>
+                <!-- Formulário -->
+                <!-- Substitua '#' pela sua action do Django/backend -->
+                <form method="POST" action="" class="space-y-5">
+                    <!-- Adicione o {% csrf_token %} aqui se estiver usando Django -->
+                    {% csrf_token %}
+                    <!-- Campo de E-mail -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">E-mail</label>
+                        <div class="relative mt-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <!-- Ícone de Email -->
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                                    <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+                                </svg>
+                            </div>
+                            <input 
+                                type="email" 
+                                name="email" 
+                                id="email" 
+                                class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" 
+                                placeholder="seuemail@exemplo.com"
+                                required>
+                        </div>
+                    </div>
 
-                <button type="submit" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 mt-4">Entrar</button>
-            </form>
+                    <!-- Campo de Senha -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                         <div class="relative mt-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <!-- Ícone de Cadeado -->
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input 
+                                type="password" 
+                                name="password" 
+                                id="password" 
+                                class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" 
+                                placeholder="Digite sua senha"
+                                required>
+                        </div>
+                    </div>
+                    
+                    <!-- Opções (Lembrar e Esqueci a senha) -->
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="remember" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="remember" class="text-gray-600">Lembrar-me</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Botão de Login -->
+                    <button 
+                        type="submit" 
+                        class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105">
+                        Entrar
+                    </button>
+                </form>
+            </div>
+
+            <!-- Coluna da Direita (Imagem) -->
+            <div class="relative hidden md:block">
+                <img 
+                    src="https://www.contrateumsubidopro.com.br/media/img/subidoProConheca.webp?210820231045002" 
+                    alt="Imagem de Login" 
+                    class="w-[400px] h-full object-cover rounded-r-2xl"
+                    onerror="this.onerror=null;this.src='https://placehold.co/400x630/3b82f6/ffffff?text=Imagem';">
+                <!-- Overlay de gradiente para dar um efeito -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-r-2xl"></div>
+                <!-- Texto sobre a imagem -->
+                <div class="absolute bottom-10 left-10 text-white">
+                    <h2 class="text-2xl font-bold">SubidoPRO</h2>
+                </div>
+            </div>
+
         </div>
     </div>
-{% endblock %}
 
+</body>
+</html>

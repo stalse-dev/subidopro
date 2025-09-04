@@ -1,0 +1,512 @@
+
+<!-- Botão de Download Excel alinhado à direita -->
+<!-- Selecionador de Campeonatos e Botão alinhados -->
+<div class="flex justify-between items-center mb-6">
+    
+<!-- Selects com HTMX -->
+<div class="flex items-center gap-4">
+
+    <!-- Campeonato -->
+    <div class="flex items-center gap-2">
+        <label for="campeonato" class="text-sm font-medium text-gray-700">Campeonato:</label>
+        <select 
+            name="campeonato_id" 
+            id="campeonato"
+            class="border rounded px-3 py-1 text-sm text-gray-800"
+            hx-get="{% url 'aluno-pontos' aluno.id %}"
+            hx-target="#conteudo-abas"
+            hx-include="[name='campeonato_id'], [name='semana']"
+            hx-push-url="true"
+            hx-swap="innerHTML">
+            {% for camp in campeonatos %}
+                <option value="{{ camp.id }}" {% if camp.id == campeonato.id %}selected{% endif %}>
+                    {{ camp.identificacao }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Semana -->
+    <div class="flex items-center gap-2">
+        <label for="semana" class="text-sm font-medium text-gray-700">Semana:</label>
+        <select 
+            name="semana"
+            id="semana"
+            class="border rounded px-3 py-1 text-sm text-gray-800"
+            hx-get="{% url 'aluno-pontos' aluno.id %}"
+            hx-target="#conteudo-abas"
+            hx-include="[name='campeonato_id'], [name='semana']"
+            hx-push-url="true"
+            hx-swap="innerHTML">
+            <option value="">Todas Semanas</option>
+            {% for s in semanas_disponiveis %}
+                <option value="{{ s }}" {% if s == semana %}selected{% endif %}>
+                    Semana {{ s }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+</div>
+
+<!-- Botão de Download Excel -->
+<a href="{% url 'extrato' aluno.id %}"
+    class="bg-green-500 text-white p-2 px-4 rounded-lg shadow-lg flex items-center hover:bg-green-600">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" 
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Baixar Excel
+</a>
+</div>
+
+
+<!-- Tabela de Pontos de Contrato -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaContratos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Clientes / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_contrato|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-contratos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-contratos" class="hidden px-6 pb-6">
+    <!-- Scroll Horizontal -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Pontuação de Contratos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Cliente</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID Contrato</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Assinatura</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pontos_contrato in pontos_contratos %}
+                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' pontos_contrato.cliente.id %}'">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.cliente.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ pontos_contrato.contrato.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ pontos_contrato.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ pontos_contrato.valor|default:"0,00"|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.data_criacao|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.cliente.titulo|default:"Sem Cliente" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ pontos_contrato.envio.semana|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-4 text-center text-gray-400">Nenhum ponto de contrato encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Recebimentos -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaRecebimentos()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Recebimentos / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_recebimento|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-recebimentos" class="hidden px-6 pb-6">
+    <!-- Scroll Horizontal -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Recebimentos dos Alunos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos P.</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Valor</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo de contrato</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Recebimento</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
+                    
+                    
+                </tr>
+            </thead>
+            <tbody>
+                {% for envio in pontos_recebimentos %}
+                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center font-bold text-gray-600 whitespace-nowrap">{{ envio.pontos_previsto|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center font-bold {% if envio.status != 3 %} text-red-600 {% else %} text-green-600 {% endif %} whitespace-nowrap ">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.status == 3 %}
+                            <span class="text-green-600 font-semibold">Validado</span>
+                        {% elif envio.status == 2 %}
+                            <span class="text-red-600 font-semibold">Invalidado</span>
+                        {% elif envio.status == 1 %}
+                            <span class="text-yellow-500 font-semibold">Pendente</span>
+                        {% elif envio.status == 0 %}
+                            <span class="text-gray-500 font-semibold">Não analisado</span>
+                        {% else %}
+                            <span class="text-gray-500 font-semibold">Sem status</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">R$ {{ envio.valor|default:"0.00" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.contrato.tipo_contrato == 1 %}
+                            Valor Fixo Mensal
+                        {% elif envio.contrato.tipo_contrato == 2 %}
+                            Coprodução / Multisserviços
+                        {% elif envio.contrato.tipo_contrato == 3 %}
+                            Valor Variável
+                        {% else %}
+                            Outros
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.cliente.titulo|length > 50 %}
+                            {{ envio.cliente.titulo|slice:":50" }}...
+                        {% else %}
+                            {{ envio.cliente.titulo|default:"Sem Cliente" }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.descricao|length > 50 %}
+                            {{ envio.descricao|slice:":50" }}...
+                        {% else %}
+                            {{ envio.descricao|default:"Sem descrição" }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Desafios -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaDesafios()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Desafios / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_desafio|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-desafios" class="hidden px-6 pb-6">
+    <!-- Scroll Horizontal -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Desafios dos Alunos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for envio in pontos_desafio %}
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.desafio.titulo|length > 80 %}
+                            {{ envio.desafio.titulo|slice:":80" }}...
+                        {% else %}
+                            {{ envio.desafio.titulo|default:"Sem descrição" }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.status == 3 %}
+                            <span class="text-green-600 font-semibold">Validado</span>
+                        {% elif envio.status == 2 %}
+                            <span class="text-red-600 font-semibold">Invalidado</span>
+                        {% elif envio.status == 1 %}
+                            <span class="text-yellow-500 font-semibold">Pendente</span>
+                        {% elif envio.status == 0 %}
+                            <span class="text-gray-500 font-semibold">Não analisado</span>
+                        {% else %}
+                            <span class="text-gray-500 font-semibold">Sem status</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+
+<!-- Certificações -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaCertificacoes()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Certificações / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_certificacao|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-certificacoes" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-certificacoes" class="hidden px-6 pb-6">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Certificações dos Alunos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for envio in pontos_certificacao %}
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.descricao|default:"Sem descrição" }}</td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.status == 3 %}
+                            <span class="text-green-600 font-semibold">Validado</span>
+                        {% elif envio.status == 2 %}
+                            <span class="text-red-600 font-semibold">Invalidado</span>
+                        {% elif envio.status == 1 %}
+                            <span class="text-yellow-500 font-semibold">Pendente</span>
+                        {% elif envio.status == 0 %}
+                            <span class="text-gray-500 font-semibold">Não analisado</span>
+                        {% else %}
+                            <span class="text-gray-500 font-semibold">Sem status</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Manual -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaManuais()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Manual / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_manuais|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-manuais" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-manuais" class="hidden px-6 pb-6">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Certificações dos Alunos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data Cadastro</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Descrição</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos E.</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for envio in pontos_manuais %}
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.data_cadastro|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.descricao|default:"Sem descrição" }}</td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.status == 3 %}
+                            <span class="text-green-600 font-semibold">Validado</span>
+                        {% elif envio.status == 2 %}
+                            <span class="text-red-600 font-semibold">Invalidado</span>
+                        {% elif envio.status == 1 %}
+                            <span class="text-yellow-500 font-semibold">Pendente</span>
+                        {% elif envio.status == 0 %}
+                            <span class="text-gray-500 font-semibold">Não analisado</span>
+                        {% else %}
+                            <span class="text-gray-500 font-semibold">Sem status</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhum envio encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+
+
+
+
+<!-- Retenção -->
+<div class="bg-white rounded-lg shadow-md mb-4 border border-gray-200">
+<button onclick="toggleTabelaRetencao()" class="w-full text-left px-6 py-4 flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition duration-200">
+    <h2 class="text-xl font-bold text-gray-800">
+        Pontuação Retenção / Pontos:
+        <span class="text-green-600">{{ pontos_aluno_semana.pontos_retencao|default:"0"|floatformat:0 }} Pts</span>
+    </h2>
+    <svg id="icon-recebimentos" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+</button>
+
+<div id="tabela-retencao" class="hidden px-6 pb-6">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-700 mt-4 border-t border-gray-200" aria-label="Tabela de Retenção dos Alunos">
+            <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Pontos</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Data</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Recebimento Id</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Cliente</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Contrato ID</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Tipo Contrato</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Camp</th>
+                    <th class="px-4 py-3 text-center border-b whitespace-nowrap">Semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for envio in pontos_retencao %}
+                <tr class="hover:bg-gray-50 border-b cursor-pointer" onclick="window.location.href='{% url 'cliente' envio.cliente.id %}'">
+                    <td class="px-4 py-3 text-center font-bold whitespace-nowrap">{{ envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600 whitespace-nowrap">{{ envio.pontos|default:"0"|floatformat:0 }} pts</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.data|date:"d/m/Y"|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.envio.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.cliente.titulo|default:"Sem Titulo" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.contrato.id|default:"N/A" }}</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        {% if envio.contrato.tipo_contrato == 1 %}
+                            Valor Fixo Mensal
+                        {% elif envio.contrato.tipo_contrato == 2 %}
+                            Coprodução / Multisserviços
+                        {% elif envio.contrato.tipo_contrato == 3 %}
+                            Valor Variável
+                        {% else %}
+                            Outros
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.campeonato_id }}°</td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">{{ envio.semana|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-4 py-4 text-center text-gray-400">Nenhuma retenção encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+
+
+<script>
+    function toggleTabelaContratos() {
+        const content = document.getElementById("tabela-contratos");
+        const icon = document.getElementById("icon-contratos");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleTabelaRecebimentos() {
+        const content = document.getElementById("tabela-recebimentos");
+        const icon = document.getElementById("icon-recebimentos");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleTabelaDesafios() {
+        const content = document.getElementById("tabela-desafios");
+        const icon = document.getElementById("icon-desafios");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleTabelaCertificacoes() {
+        const content = document.getElementById("tabela-certificacoes");
+        const icon = document.getElementById("icon-certificacoes");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleTabelaManuais() {
+        const content = document.getElementById("tabela-manuais");
+        const icon = document.getElementById("icon-manuais");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+
+    function toggleTabelaRetencao() {
+        const content = document.getElementById("tabela-retencao");
+        const icon = document.getElementById("icon-retencao");
+        content.classList.toggle("hidden");
+        icon.classList.toggle("rotate-180");
+    }
+</script>

@@ -1,0 +1,63 @@
+{% extends 'Alunos/aluno_campeonato.html' %}
+{% load humanize %}
+
+{% block containerAluno %}
+<div class="space-y-8">
+    {% for key, campeonato_data in campeonatos.items %}
+    <!-- Card para cada Campeonato -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Cabeçalho do Campeonato -->
+        <div class="p-5 bg-gray-50 border-b flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ campeonato_data.campeonato_identificacao }}</h2>
+                <p class="text-sm text-gray-500">Início em: {{ campeonato_data.campeonato_data_inicio|date:"d/m/Y" }}</p>
+            </div>
+            <div class="text-left sm:text-right">
+                <p class="text-2xl font-bold text-[#1C46A0]">{{ campeonato_data.total_pontos|floatformat:0 }}</p>
+                <p class="text-xs text-gray-500 uppercase font-semibold">Total de Pontos</p>
+            </div>
+        </div>
+        
+        <!-- Lista de Pontos Manuais -->
+        <div class="divide-y divide-gray-200">
+            {% for certificacao in campeonato_data.certificacoes %}
+            <div class="p-5 hover:bg-gray-50 transition-colors">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+                    <!-- Título e Data -->
+                    <div class="flex-grow mb-3 sm:mb-0">
+                        <p class="font-bold text-gray-800">{{ certificacao.certificacao_titulo }}</p>
+                        {% if certificacao.data %}
+                        <p class="text-sm text-gray-500">Data: {{ certificacao.data|date:"d/m/Y" }}</p>
+                        {% endif %}
+                    </div>
+                    <!-- Pontos e Status -->
+                    <div class="flex-shrink-0 flex items-center gap-4">
+                        <span class="inline-flex items-center text-blue-800 bg-blue-100 px-3 py-1 rounded-full text-sm font-bold">
+                            {{ certificacao.pontos|floatformat:0 }} pts
+                        </span>
+                    </div>
+                </div>
+                <!-- Motivo/Comentário do Status (se houver) -->
+                {% if certificacao.status != 3 and certificacao.status_motivo %}
+                <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                    <p><span class="font-bold">Motivo:</span> {{ certificacao.status_motivo }}</p>
+                </div>
+                {% endif %}
+                {% if certificacao.status_comentario %}
+                <div class="mt-3 p-3 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
+                    <p><span class="font-bold">Comentário:</span> {{ certificacao.status_comentario }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 px-6 bg-white rounded-lg shadow-md">
+        <span class="material-symbols-outlined text-6xl text-gray-300">edit_note</span>
+        <p class="font-semibold text-xl mt-4 text-gray-700">Nenhum ponto manual encontrado.</p>
+        <p class="text-gray-500 text-sm mt-1">Este aluno ainda não recebeu pontos manuais.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
